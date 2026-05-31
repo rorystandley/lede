@@ -4,7 +4,7 @@ import { getDb } from '../db/client.js';
 import { feeds } from '../db/schema/index.js';
 import { feedService } from '../services/feed.service.js';
 import { getLogger } from '../lib/logger.js';
-import { getRedisOpts, getRuleEngineQueue } from '../queues/index.js';
+import { getRedisOpts, getRuleEngineQueue, getContentExtractQueue } from '../queues/index.js';
 import { feedsRefreshed, articlesIngested, queueJobsProcessed, queueJobDuration } from '../lib/metrics.js';
 
 interface FeedRefreshJob {
@@ -28,8 +28,10 @@ export function createFeedRefreshWorker() {
           articlesIngested.inc(result.newArticles);
           if (result.newArticleIds.length > 0) {
             const ruleQueue = getRuleEngineQueue();
+            const extractQueue = getContentExtractQueue();
             for (const articleId of result.newArticleIds) {
               await ruleQueue.add('evaluate', { articleId, feedId: job.data.feedId });
+              await extractQueue.add('extract', { articleId });
             }
           }
           queueJobsProcessed.inc({ queue: 'feed-refresh', status: 'success' });
@@ -61,6 +63,7 @@ export function createFeedRefreshWorker() {
 
       let totalNew = 0;
       const ruleQueue = getRuleEngineQueue();
+      const extractQueue = getContentExtractQueue();
       for (const feed of staleFeeds) {
         try {
           const result = await feedService.refreshFeed(feed.id);
@@ -69,6 +72,7 @@ export function createFeedRefreshWorker() {
           articlesIngested.inc(result.newArticles);
           for (const articleId of result.newArticleIds) {
             await ruleQueue.add('evaluate', { articleId, feedId: feed.id });
+            await extractQueue.add('extract', { articleId });
           }
         } catch (err) {
           feedsRefreshed.inc({ status: 'error' });

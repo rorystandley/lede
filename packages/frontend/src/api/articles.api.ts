@@ -34,4 +34,7 @@ export const articlesApi = {
 
   archive: (articleId: string, isArchived: boolean) =>
     api.patch(`/articles/${articleId}/archive`, { isArchived }),
+
+  extract: (articleId: string) =>
+    api.post<ArticleWithState>(`/articles/${articleId}/extract`),
 };

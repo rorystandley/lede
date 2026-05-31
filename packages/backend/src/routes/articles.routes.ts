@@ -8,6 +8,7 @@ import {
   searchArticlesQuerySchema,
 } from '@news-reader/shared';
 import { articleService } from '../services/article.service.js';
+import { extractionService } from '../services/extraction.service.js';
 
 const markAllReadSchema = z.object({
   feedId: z.string().uuid().optional(),
@@ -47,6 +48,17 @@ export default async function articleRoutes(app: FastifyInstance) {
     const article = await articleService.getById(req.user.id, articleId);
     if (!article) return reply.status(404).send({ error: 'Article not found' });
     return article;
+  });
+
+  app.post('/:articleId/extract', {
+    schema: { tags: ['Articles'], summary: 'Re-extract full article content from URL' },
+  }, async (req, reply) => {
+    const { articleId } = req.params as { articleId: string };
+    const result = await extractionService.extractNow(articleId);
+    if (!result) return reply.status(422).send({ error: 'Could not extract content from the article URL' });
+    // Return the freshly extracted view; client should refetch the article
+    const fresh = await articleService.getById(req.user.id, articleId);
+    return reply.send(fresh ?? result);
   });
 
   app.post('/mark-all-read', {

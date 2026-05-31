@@ -1,7 +1,8 @@
-import { useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useArticles, useMarkRead, useStarArticle } from '../../hooks/use-articles.js';
+import { useArticlesInfinite } from '../../hooks/use-articles-infinite.js';
+import { useMarkRead, useStarArticle } from '../../hooks/use-articles.js';
 import { useSearch } from '../../hooks/use-search.js';
 import { useUiStore } from '../../stores/index.js';
 import { useKeyboardNav } from '../../hooks/use-keyboard-nav.js';
@@ -22,7 +23,7 @@ export function ArticleList() {
     ...(showStarred ? { isStarred: true } : {}),
   };
 
-  const { data, isLoading } = useArticles(params);
+  const infinite = useArticlesInfinite(params);
   const { data: searchData, isLoading: searchLoading } = useSearch(searchQuery, isSearching);
   const markRead = useMarkRead();
   const starArticle = useStarArticle();
@@ -33,7 +34,7 @@ export function ArticleList() {
       folderId: selectedFolderId ?? undefined,
     }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['articles'] });
+      qc.invalidateQueries({ queryKey: ['articles-infinite'] });
       qc.invalidateQueries({ queryKey: ['feeds'] });
       qc.invalidateQueries({ queryKey: ['folders'] });
     },
@@ -43,14 +44,19 @@ export function ArticleList() {
     mutationFn: () => feedsApi.refreshAll(),
     onSuccess: () => {
       setTimeout(() => {
-        qc.invalidateQueries({ queryKey: ['articles'] });
+        qc.invalidateQueries({ queryKey: ['articles-infinite'] });
         qc.invalidateQueries({ queryKey: ['feeds'] });
       }, 2000);
     },
   });
 
-  const articles = isSearching && searchQuery ? (searchData?.items ?? []) : (data?.items ?? []);
-  const loading = isSearching ? searchLoading : isLoading;
+  const infiniteArticles = useMemo(
+    () => infinite.data?.pages.flatMap((p) => p.items) ?? [],
+    [infinite.data?.pages],
+  );
+
+  const articles = isSearching && searchQuery ? (searchData?.items ?? []) : infiniteArticles;
+  const loading = isSearching ? searchLoading : (infinite.isLoading && articles.length === 0);
 
   useKeyboardNav({
     articles,
@@ -63,10 +69,18 @@ export function ArticleList() {
     if (!isRead) markRead.mutate([articleId]);
   };
 
+  const handleLoadMore = () => {
+    if (!isSearching && infinite.hasNextPage && !infinite.isFetchingNextPage) {
+      infinite.fetchNextPage();
+    }
+  };
+
+  const moreInfo = !isSearching && (infinite.hasNextPage || infinite.isFetchingNextPage);
+
   const toolbar = (
     <div className="flex items-center justify-between px-4 h-10 border-b border-border bg-surface-secondary shrink-0">
       <div className="text-xs text-text-tertiary">
-        {articles.length} {articles.length === 1 ? 'article' : 'articles'}
+        {articles.length}{moreInfo ? '+' : ''} {articles.length === 1 ? 'article' : 'articles'}
       </div>
       <div className="flex items-center gap-1">
         <button
@@ -80,7 +94,7 @@ export function ArticleList() {
           </svg>
         </button>
         <button
-          onClick={() => { if (articles.length > 0 && confirm(`Mark ${articles.length} articles as read?`)) markAllReadMut.mutate(); }}
+          onClick={() => { if (articles.length > 0 && confirm(`Mark all visible articles as read?`)) markAllReadMut.mutate(); }}
           disabled={markAllReadMut.isPending || articles.length === 0}
           className="p-1.5 rounded text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50"
           title="Mark all read"
@@ -122,8 +136,8 @@ export function ArticleList() {
     return (
       <>
         {toolbar}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <ScrollContainer onNearBottom={handleLoadMore}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
             {articles.map((article, index) => (
               <ArticleCard
                 key={article.id}
@@ -134,7 +148,8 @@ export function ArticleList() {
               />
             ))}
           </div>
-        </div>
+          <LoadMoreSentinel isFetching={infinite.isFetchingNextPage} hasMore={infinite.hasNextPage} />
+        </ScrollContainer>
       </>
     );
   }
@@ -143,8 +158,8 @@ export function ArticleList() {
     return (
       <>
         {toolbar}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ScrollContainer onNearBottom={handleLoadMore}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
             {articles.map((article, index) => (
               <ArticleMagazineItem
                 key={article.id}
@@ -156,7 +171,8 @@ export function ArticleList() {
               />
             ))}
           </div>
-        </div>
+          <LoadMoreSentinel isFetching={infinite.isFetchingNextPage} hasMore={infinite.hasNextPage} />
+        </ScrollContainer>
       </>
     );
   }
@@ -170,17 +186,49 @@ export function ArticleList() {
         selectedArticleId={selectedArticleId}
         onClick={handleClick}
         onStar={(id, s) => starArticle.mutate({ articleId: id, isStarred: s })}
+        onNearEnd={handleLoadMore}
+        isFetchingMore={infinite.isFetchingNextPage}
+        hasMore={!!infinite.hasNextPage}
       />
     </>
   );
 }
 
-function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick, onStar }: {
+function ScrollContainer({ children, onNearBottom }: { children: React.ReactNode; onNearBottom: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 600) onNearBottom();
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [onNearBottom]);
+  return <div ref={ref} className="flex-1 overflow-y-auto">{children}</div>;
+}
+
+function LoadMoreSentinel({ isFetching, hasMore }: { isFetching: boolean; hasMore: boolean }) {
+  if (!isFetching && !hasMore) return <div className="text-center py-6 text-xs text-text-tertiary">End of feed</div>;
+  if (isFetching) {
+    return (
+      <div className="flex justify-center py-4">
+        <div className="animate-spin w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+  return null;
+}
+
+function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick, onStar, onNearEnd, isFetchingMore, hasMore }: {
   articles: ArticleWithState[];
   focusedArticleIndex: number;
   selectedArticleId: string | null;
   onClick: (id: string, isRead: boolean) => void;
   onStar: (id: string, isStarred: boolean) => void;
+  onNearEnd: () => void;
+  isFetchingMore: boolean;
+  hasMore: boolean;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -191,10 +239,19 @@ function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick
     overscan: 6,
   });
 
+  // Watch the last virtual item to trigger load more
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const lastVirtualIndex = virtualItems[virtualItems.length - 1]?.index ?? 0;
+  useEffect(() => {
+    if (hasMore && !isFetchingMore && lastVirtualIndex >= articles.length - 8) {
+      onNearEnd();
+    }
+  }, [lastVirtualIndex, articles.length, hasMore, isFetchingMore, onNearEnd]);
+
   return (
     <div ref={parentRef} className="flex-1 overflow-y-auto">
       <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
-        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+        {virtualItems.map((virtualRow) => {
           const article = articles[virtualRow.index];
           return (
             <div
@@ -214,6 +271,7 @@ function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick
           );
         })}
       </div>
+      <LoadMoreSentinel isFetching={isFetchingMore} hasMore={hasMore} />
     </div>
   );
 }

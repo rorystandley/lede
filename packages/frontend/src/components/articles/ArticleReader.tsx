@@ -1,16 +1,28 @@
 import { useArticle, useMarkRead, useStarArticle } from '../../hooks/use-articles.js';
 import { useUiStore } from '../../stores/index.js';
-import { useEffect, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { aiApi } from '../../api/index.js';
+import { useEffect, useRef, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { aiApi, articlesApi } from '../../api/index.js';
+
+/** Mirror of backend isThinContent — keep them in sync. */
+function isThinContent(html: string | null, text: string | null): boolean {
+  const t = text ?? '';
+  if (t.length < 800) return true;
+  if (/Article URL:\s*https?:\/\//i.test(t) && t.length < 2000) return true;
+  if (/^Comments URL:/im.test(t) && t.length < 2000) return true;
+  if (html && html.length < 1000 && !/<p[\s>]/i.test(html)) return true;
+  return false;
+}
 
 export function ArticleReader() {
+  const qc = useQueryClient();
   const { selectedArticleId, selectArticle } = useUiStore();
   const { data: article, isLoading } = useArticle(selectedArticleId);
   const markRead = useMarkRead();
   const starArticle = useStarArticle();
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiTags, setAiTags] = useState<string[] | null>(null);
+  const autoExtractedRef = useRef<Set<string>>(new Set());
 
   const summarizeMut = useMutation({
     mutationFn: (articleId: string) => aiApi.summarize(articleId),
@@ -22,9 +34,25 @@ export function ArticleReader() {
     onSuccess: (data) => setAiTags(data.tags),
   });
 
+  const extractMut = useMutation({
+    mutationFn: (articleId: string) => articlesApi.extract(articleId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['article', selectedArticleId] });
+      qc.invalidateQueries({ queryKey: ['articles'] });
+    },
+  });
+
   useEffect(() => {
-    if (article && !article.isRead) {
-      markRead.mutate([article.id]);
+    if (article && !article.isRead) markRead.mutate([article.id]);
+  }, [article?.id]);
+
+  // Auto-extract once per article if content is thin and we haven't tried yet
+  useEffect(() => {
+    if (!article || !article.url) return;
+    if (autoExtractedRef.current.has(article.id)) return;
+    if (isThinContent(article.contentHtml, article.contentText)) {
+      autoExtractedRef.current.add(article.id);
+      extractMut.mutate(article.id);
     }
   }, [article?.id]);
 
@@ -57,6 +85,9 @@ export function ArticleReader() {
     );
   }
 
+  const stillThin = isThinContent(article.contentHtml, article.contentText) && !extractMut.isPending;
+  const isExtracting = extractMut.isPending;
+
   return (
     <div className="flex-1 overflow-y-auto bg-surface-secondary">
       <div className="max-w-2xl mx-auto p-6">
@@ -72,6 +103,16 @@ export function ArticleReader() {
           </button>
 
           <div className="flex items-center gap-1.5">
+            {article.url && (
+              <button
+                onClick={() => extractMut.mutate(article.id)}
+                disabled={isExtracting}
+                className="px-2 py-1 text-xs rounded border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50"
+                title="Fetch full article from URL"
+              >
+                {isExtracting ? 'Fetching...' : 'Fetch'}
+              </button>
+            )}
             <button
               onClick={() => summarizeMut.mutate(article.id)}
               disabled={summarizeMut.isPending}
@@ -112,6 +153,32 @@ export function ArticleReader() {
             )}
           </div>
         </div>
+
+        {/* Extraction banner */}
+        {isExtracting && (
+          <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-3 mb-4 flex items-center gap-2">
+            <div className="animate-spin w-3.5 h-3.5 border-2 border-primary-500 border-t-transparent rounded-full" />
+            <span className="text-xs text-primary-700 dark:text-primary-300">Fetching full article from {tryHostname(article.url)}...</span>
+          </div>
+        )}
+        {!isExtracting && stillThin && article.url && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 mb-4 flex items-center justify-between gap-3">
+            <div className="text-xs text-amber-800 dark:text-amber-200">
+              This feed only includes a link. Want to fetch the full article from {tryHostname(article.url)}?
+            </div>
+            <button
+              onClick={() => extractMut.mutate(article.id)}
+              className="px-2.5 py-1 text-xs font-medium bg-amber-600 text-white rounded hover:bg-amber-700 shrink-0"
+            >
+              Fetch
+            </button>
+          </div>
+        )}
+        {extractMut.isError && (
+          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 mb-4">
+            <p className="text-xs text-red-600 dark:text-red-400">Could not fetch full article. The site may block scrapers or require JavaScript.</p>
+          </div>
+        )}
 
         {/* AI Summary Panel */}
         {aiSummary && (
@@ -165,6 +232,17 @@ export function ArticleReader() {
             )}
           </div>
 
+          {/* Lead image */}
+          {article.imageUrl && (
+            <img
+              src={article.imageUrl}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="w-full max-h-96 object-cover rounded-lg mb-6"
+            />
+          )}
+
           {article.tags.length > 0 && (
             <div className="flex gap-1.5 mb-6">
               {article.tags.map((tag) => (
@@ -183,11 +261,16 @@ export function ArticleReader() {
           )}
 
           <div
-            className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-text-primary prose-p:text-text-secondary prose-a:text-primary-600"
+            className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-text-primary prose-p:text-text-secondary prose-a:text-primary-600 prose-img:rounded-lg"
             dangerouslySetInnerHTML={{ __html: article.contentHtml ?? article.summary ?? '' }}
           />
         </article>
       </div>
     </div>
   );
+}
+
+function tryHostname(url: string | null): string {
+  if (!url) return 'the source';
+  try { return new URL(url).hostname; } catch { return 'the source'; }
 }

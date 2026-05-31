@@ -14,6 +14,7 @@ export function getRedisOpts() {
 let _feedRefreshQueue: Queue | null = null;
 let _ruleEngineQueue: Queue | null = null;
 let _digestBuildQueue: Queue | null = null;
+let _contentExtractQueue: Queue | null = null;
 
 export function getFeedRefreshQueue(): Queue {
   if (_feedRefreshQueue) return _feedRefreshQueue;
@@ -33,6 +34,12 @@ export function getDigestBuildQueue(): Queue {
   return _digestBuildQueue;
 }
 
+export function getContentExtractQueue(): Queue {
+  if (_contentExtractQueue) return _contentExtractQueue;
+  _contentExtractQueue = new Queue('content-extract', { connection: getRedisOpts() });
+  return _contentExtractQueue;
+}
+
 export async function setupRecurringJobs() {
   const feedQueue = getFeedRefreshQueue();
   await feedQueue.upsertJobScheduler(
@@ -50,10 +57,11 @@ export async function setupRecurringJobs() {
 }
 
 export async function closeQueues() {
-  for (const q of [_feedRefreshQueue, _ruleEngineQueue, _digestBuildQueue]) {
+  for (const q of [_feedRefreshQueue, _ruleEngineQueue, _digestBuildQueue, _contentExtractQueue]) {
     if (q) await q.close();
   }
   _feedRefreshQueue = null;
   _ruleEngineQueue = null;
   _digestBuildQueue = null;
+  _contentExtractQueue = null;
 }
