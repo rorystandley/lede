@@ -49,6 +49,15 @@ export default async function feedRoutes(app: FastifyInstance) {
     return reply.status(204).send();
   });
 
+  app.post('/refresh-all', {
+    schema: { tags: ['Feeds'], summary: 'Trigger refresh of all subscribed feeds' },
+  }, async (req) => {
+    const { getFeedRefreshQueue } = await import('../queues/index.js');
+    const queue = getFeedRefreshQueue();
+    await queue.add('refresh-all', {});
+    return { queued: true };
+  });
+
   app.post('/:feedId/refresh', {
     schema: {
       tags: ['Feeds'],

@@ -18,7 +18,7 @@ export function ArticleCard({ article, isFocused, onClick, onStar }: Props) {
       } bg-surface`}
     >
       {article.imageUrl && (
-        <img src={article.imageUrl} alt="" className="w-full h-40 object-cover" />
+        <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full h-40 object-cover" />
       )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">

@@ -21,7 +21,7 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
       >
         <div className="flex flex-col md:flex-row">
           {article.imageUrl && (
-            <img src={article.imageUrl} alt="" className="w-full md:w-1/2 h-48 md:h-64 object-cover" />
+            <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full md:w-1/2 h-48 md:h-64 object-cover" />
           )}
           <div className={`p-6 flex flex-col justify-center ${article.imageUrl ? '' : 'w-full'}`}>
             <div className="flex items-center gap-2 mb-2">
@@ -58,7 +58,7 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
       } bg-surface`}
     >
       {article.imageUrl && (
-        <img src={article.imageUrl} alt="" className="w-full h-32 object-cover" />
+        <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full h-32 object-cover" />
       )}
       <div className="p-3">
         <div className="flex items-center gap-2 mb-1">

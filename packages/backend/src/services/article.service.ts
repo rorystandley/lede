@@ -141,6 +141,45 @@ export class ArticleService {
     }
   }
 
+  async markAllRead(userId: string, scope: { feedId?: string; folderId?: string; tagId?: string }): Promise<number> {
+    const db = getDb();
+    // Find unread article IDs in scope
+    const subscribedFeeds = db
+      .select({ feedId: userFeedSubscriptions.feedId })
+      .from(userFeedSubscriptions)
+      .where(eq(userFeedSubscriptions.userId, userId));
+
+    let articleQuery = db
+      .select({ id: articles.id })
+      .from(articles)
+      .leftJoin(userArticleStates, and(
+        eq(userArticleStates.articleId, articles.id),
+        eq(userArticleStates.userId, userId),
+      ))
+      .where(and(
+        inArray(articles.feedId, subscribedFeeds),
+        sql`(${userArticleStates.isRead} IS NULL OR ${userArticleStates.isRead} = false)`,
+      ))
+      .$dynamic();
+
+    if (scope.feedId) {
+      articleQuery = articleQuery.where(eq(articles.feedId, scope.feedId));
+    }
+    if (scope.folderId) {
+      const folderFeeds = db
+        .select({ feedId: userFeedSubscriptions.feedId })
+        .from(userFeedSubscriptions)
+        .where(and(eq(userFeedSubscriptions.userId, userId), eq(userFeedSubscriptions.folderId, scope.folderId)));
+      articleQuery = articleQuery.where(inArray(articles.feedId, folderFeeds));
+    }
+
+    const rows = await articleQuery.limit(10_000);
+    if (rows.length === 0) return 0;
+
+    await this.markRead(userId, rows.map((r) => r.id));
+    return rows.length;
+  }
+
   async markUnread(userId: string, articleIds: string[]) {
     const db = getDb();
     for (const articleId of articleIds) {

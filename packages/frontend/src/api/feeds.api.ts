@@ -22,4 +22,7 @@ export const feedsApi = {
 
   refresh: (feedId: string) =>
     api.post<{ newArticles: number }>(`/feeds/${feedId}/refresh`),
+
+  refreshAll: () =>
+    api.post<{ queued: boolean }>('/feeds/refresh-all'),
 };

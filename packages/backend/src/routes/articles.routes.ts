@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import {
   listArticlesQuerySchema,
   markArticlesReadSchema,
@@ -7,6 +8,11 @@ import {
   searchArticlesQuerySchema,
 } from '@news-reader/shared';
 import { articleService } from '../services/article.service.js';
+
+const markAllReadSchema = z.object({
+  feedId: z.string().uuid().optional(),
+  folderId: z.string().uuid().optional(),
+});
 
 export default async function articleRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
@@ -41,6 +47,14 @@ export default async function articleRoutes(app: FastifyInstance) {
     const article = await articleService.getById(req.user.id, articleId);
     if (!article) return reply.status(404).send({ error: 'Article not found' });
     return article;
+  });
+
+  app.post('/mark-all-read', {
+    schema: { tags: ['Articles'], summary: 'Mark all unread articles in a scope as read' },
+  }, async (req) => {
+    const body = markAllReadSchema.parse(req.body ?? {});
+    const marked = await articleService.markAllRead(req.user.id, body);
+    return { marked };
   });
 
   app.post('/mark-read', {

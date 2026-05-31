@@ -23,6 +23,9 @@ export const articlesApi = {
   markRead: (articleIds: string[]) =>
     api.post('/articles/mark-read', { articleIds }),
 
+  markAllRead: (scope: { feedId?: string; folderId?: string }) =>
+    api.post<{ marked: number }>('/articles/mark-all-read', scope),
+
   markUnread: (articleIds: string[]) =>
     api.post('/articles/mark-unread', { articleIds }),
 
