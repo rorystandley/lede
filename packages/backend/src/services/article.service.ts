@@ -1,0 +1,234 @@
+import { eq, and, desc, asc, sql, count, inArray } from 'drizzle-orm';
+import { getDb } from '../db/client.js';
+import { articles, userArticleStates, feeds, userFeedSubscriptions, articleTags, tags } from '../db/schema/index.js';
+import type { ArticleWithState, PaginatedResult, ListArticlesQuery, SearchArticlesQuery } from '@news-reader/shared';
+
+export class ArticleService {
+  async list(userId: string, query: ListArticlesQuery): Promise<PaginatedResult<ArticleWithState>> {
+    const db = getDb();
+    const { page, pageSize, sort, order } = query;
+    const offset = (page - 1) * pageSize;
+
+    const subscribedFeeds = db
+      .select({ feedId: userFeedSubscriptions.feedId })
+      .from(userFeedSubscriptions)
+      .where(eq(userFeedSubscriptions.userId, userId));
+
+    let baseQuery = db
+      .select({
+        article: articles,
+        feedTitle: feeds.title,
+        feedFaviconUrl: feeds.faviconUrl,
+        isRead: sql<boolean>`coalesce(${userArticleStates.isRead}, false)`,
+        isStarred: sql<boolean>`coalesce(${userArticleStates.isStarred}, false)`,
+        isArchived: sql<boolean>`coalesce(${userArticleStates.isArchived}, false)`,
+      })
+      .from(articles)
+      .innerJoin(feeds, eq(feeds.id, articles.feedId))
+      .leftJoin(
+        userArticleStates,
+        and(
+          eq(userArticleStates.articleId, articles.id),
+          eq(userArticleStates.userId, userId),
+        ),
+      )
+      .where(inArray(articles.feedId, subscribedFeeds))
+      .$dynamic();
+
+    if (query.feedId) {
+      baseQuery = baseQuery.where(eq(articles.feedId, query.feedId));
+    }
+    if (query.folderId) {
+      const folderFeeds = db
+        .select({ feedId: userFeedSubscriptions.feedId })
+        .from(userFeedSubscriptions)
+        .where(and(
+          eq(userFeedSubscriptions.userId, userId),
+          eq(userFeedSubscriptions.folderId, query.folderId),
+        ));
+      baseQuery = baseQuery.where(inArray(articles.feedId, folderFeeds));
+    }
+    if (query.isRead !== undefined) {
+      baseQuery = baseQuery.where(
+        query.isRead
+          ? eq(userArticleStates.isRead, true)
+          : sql`(${userArticleStates.isRead} IS NULL OR ${userArticleStates.isRead} = false)`,
+      );
+    }
+    if (query.isStarred !== undefined) {
+      baseQuery = baseQuery.where(eq(userArticleStates.isStarred, query.isStarred));
+    }
+
+    const orderCol = sort === 'created_at' ? articles.createdAt : articles.publishedAt;
+    const orderFn = order === 'asc' ? asc : desc;
+
+    const rows = await baseQuery
+      .orderBy(orderFn(orderCol))
+      .limit(pageSize)
+      .offset(offset);
+
+    const items: ArticleWithState[] = rows.map((r) => ({
+      ...r.article,
+      createdAt: r.article.createdAt.toISOString(),
+      publishedAt: r.article.publishedAt?.toISOString() ?? null,
+      feedTitle: r.feedTitle,
+      feedFaviconUrl: r.feedFaviconUrl,
+      isRead: r.isRead,
+      isStarred: r.isStarred,
+      isArchived: r.isArchived,
+      tags: [],
+    }));
+
+    const total = rows.length < pageSize && page === 1 ? rows.length : pageSize * page + 1;
+
+    return { items, total, page, pageSize, hasMore: rows.length === pageSize };
+  }
+
+  async getById(userId: string, articleId: string): Promise<ArticleWithState | null> {
+    const db = getDb();
+
+    const [row] = await db
+      .select({
+        article: articles,
+        feedTitle: feeds.title,
+        feedFaviconUrl: feeds.faviconUrl,
+        isRead: sql<boolean>`coalesce(${userArticleStates.isRead}, false)`,
+        isStarred: sql<boolean>`coalesce(${userArticleStates.isStarred}, false)`,
+        isArchived: sql<boolean>`coalesce(${userArticleStates.isArchived}, false)`,
+      })
+      .from(articles)
+      .innerJoin(feeds, eq(feeds.id, articles.feedId))
+      .leftJoin(
+        userArticleStates,
+        and(
+          eq(userArticleStates.articleId, articles.id),
+          eq(userArticleStates.userId, userId),
+        ),
+      )
+      .where(eq(articles.id, articleId));
+
+    if (!row) return null;
+
+    const tagRows = await db
+      .select({ id: tags.id, name: tags.name, color: tags.color })
+      .from(articleTags)
+      .innerJoin(tags, eq(tags.id, articleTags.tagId))
+      .where(and(eq(articleTags.articleId, articleId), eq(articleTags.userId, userId)));
+
+    return {
+      ...row.article,
+      createdAt: row.article.createdAt.toISOString(),
+      publishedAt: row.article.publishedAt?.toISOString() ?? null,
+      feedTitle: row.feedTitle,
+      feedFaviconUrl: row.feedFaviconUrl,
+      isRead: row.isRead,
+      isStarred: row.isStarred,
+      isArchived: row.isArchived,
+      tags: tagRows,
+    };
+  }
+
+  async markRead(userId: string, articleIds: string[]) {
+    const db = getDb();
+    for (const articleId of articleIds) {
+      await db
+        .insert(userArticleStates)
+        .values({ userId, articleId, isRead: true, readAt: new Date() })
+        .onConflictDoUpdate({
+          target: [userArticleStates.userId, userArticleStates.articleId],
+          set: { isRead: true, readAt: new Date(), updatedAt: new Date() },
+        });
+    }
+  }
+
+  async markUnread(userId: string, articleIds: string[]) {
+    const db = getDb();
+    for (const articleId of articleIds) {
+      await db
+        .insert(userArticleStates)
+        .values({ userId, articleId, isRead: false })
+        .onConflictDoUpdate({
+          target: [userArticleStates.userId, userArticleStates.articleId],
+          set: { isRead: false, readAt: null, updatedAt: new Date() },
+        });
+    }
+  }
+
+  async setStar(userId: string, articleId: string, isStarred: boolean) {
+    const db = getDb();
+    await db
+      .insert(userArticleStates)
+      .values({ userId, articleId, isStarred })
+      .onConflictDoUpdate({
+        target: [userArticleStates.userId, userArticleStates.articleId],
+        set: { isStarred, updatedAt: new Date() },
+      });
+  }
+
+  async setArchived(userId: string, articleId: string, isArchived: boolean) {
+    const db = getDb();
+    await db
+      .insert(userArticleStates)
+      .values({ userId, articleId, isArchived })
+      .onConflictDoUpdate({
+        target: [userArticleStates.userId, userArticleStates.articleId],
+        set: { isArchived, updatedAt: new Date() },
+      });
+  }
+
+  async search(userId: string, query: SearchArticlesQuery): Promise<PaginatedResult<ArticleWithState>> {
+    const db = getDb();
+    const { q, page, pageSize } = query;
+    const offset = (page - 1) * pageSize;
+
+    const subscribedFeeds = db
+      .select({ feedId: userFeedSubscriptions.feedId })
+      .from(userFeedSubscriptions)
+      .where(eq(userFeedSubscriptions.userId, userId));
+
+    const tsQuery = q.split(/\s+/).map((w) => `${w}:*`).join(' & ');
+
+    const rows = await db
+      .select({
+        article: articles,
+        feedTitle: feeds.title,
+        feedFaviconUrl: feeds.faviconUrl,
+        isRead: sql<boolean>`coalesce(${userArticleStates.isRead}, false)`,
+        isStarred: sql<boolean>`coalesce(${userArticleStates.isStarred}, false)`,
+        isArchived: sql<boolean>`coalesce(${userArticleStates.isArchived}, false)`,
+        rank: sql<number>`ts_rank(to_tsvector('english', coalesce(${articles.title}, '') || ' ' || coalesce(${articles.contentText}, '')), to_tsquery('english', ${tsQuery}))`,
+      })
+      .from(articles)
+      .innerJoin(feeds, eq(feeds.id, articles.feedId))
+      .leftJoin(
+        userArticleStates,
+        and(
+          eq(userArticleStates.articleId, articles.id),
+          eq(userArticleStates.userId, userId),
+        ),
+      )
+      .where(and(
+        inArray(articles.feedId, subscribedFeeds),
+        sql`to_tsvector('english', coalesce(${articles.title}, '') || ' ' || coalesce(${articles.contentText}, '')) @@ to_tsquery('english', ${tsQuery})`,
+      ))
+      .orderBy(sql`rank DESC`)
+      .limit(pageSize)
+      .offset(offset);
+
+    const items: ArticleWithState[] = rows.map((r) => ({
+      ...r.article,
+      createdAt: r.article.createdAt.toISOString(),
+      publishedAt: r.article.publishedAt?.toISOString() ?? null,
+      feedTitle: r.feedTitle,
+      feedFaviconUrl: r.feedFaviconUrl,
+      isRead: r.isRead,
+      isStarred: r.isStarred,
+      isArchived: r.isArchived,
+      tags: [],
+    }));
+
+    return { items, total: items.length, page, pageSize, hasMore: rows.length === pageSize };
+  }
+}
+
+export const articleService = new ArticleService();

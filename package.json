@@ -1,0 +1,29 @@
+{
+  "name": "news-reader",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "db:generate": "turbo db:generate --filter=@news-reader/backend",
+    "db:migrate": "turbo db:migrate --filter=@news-reader/backend",
+    "db:seed": "turbo db:seed --filter=@news-reader/backend"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0"
+  },
+  "packageManager": "pnpm@10.11.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "bcrypt",
+      "esbuild",
+      "msgpackr-extract"
+    ],
+    "ignoredBuiltDependencies": []
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
