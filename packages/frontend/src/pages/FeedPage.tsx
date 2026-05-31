@@ -3,12 +3,16 @@ import { ArticleList } from '../components/articles/ArticleList.js';
 import { ArticleReader } from '../components/articles/ArticleReader.js';
 import { useUiStore } from '../stores/index.js';
 
-export function FeedPage() {
+interface Props {
+  onOpenAddSources?: () => void;
+}
+
+export function FeedPage({ onOpenAddSources }: Props) {
   const { selectedArticleId } = useUiStore();
 
   return (
     <div className="flex flex-1 overflow-hidden">
-      <Sidebar />
+      <Sidebar onOpenAddSources={onOpenAddSources} />
       <div className="flex flex-1 overflow-hidden">
         <div className={`${selectedArticleId ? 'hidden lg:flex lg:w-96' : 'flex flex-1'} flex-col border-r border-border`}>
           <ArticleList />

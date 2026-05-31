@@ -21,6 +21,7 @@ import statsRoutes from './routes/stats.routes.js';
 import annotationRoutes from './routes/annotations.routes.js';
 import sharingRoutes from './routes/sharing.routes.js';
 import userRoutes from './routes/user.routes.js';
+import discoverRoutes from './routes/discover.routes.js';
 
 export async function buildApp() {
   loadConfig();
@@ -77,6 +78,7 @@ export async function buildApp() {
   await app.register(annotationRoutes, { prefix: '/api/v1/annotations' });
   await app.register(sharingRoutes, { prefix: '/api/v1/share' });
   await app.register(userRoutes, { prefix: '/api/v1/user' });
+  await app.register(discoverRoutes, { prefix: '/api/v1/discover' });
   await registerMcpRoutes(app);
 
   app.get('/api/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));

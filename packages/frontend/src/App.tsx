@@ -7,6 +7,7 @@ import { SettingsPage } from './pages/SettingsPage.js';
 import { RulesPage } from './pages/RulesPage.js';
 import { DigestPage } from './pages/DigestPage.js';
 import { StatsPage } from './pages/StatsPage.js';
+import { AddSourcesPage } from './pages/AddSourcesPage.js';
 import { useEffect, useState } from 'react';
 import { useUiStore } from './stores/index.js';
 
@@ -26,6 +27,7 @@ function AppContent() {
   const [showRules, setShowRules] = useState(false);
   const [showDigest, setShowDigest] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showAddSources, setShowAddSources] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -43,11 +45,12 @@ function AppContent() {
         onOpenDigest={() => setShowDigest(true)}
         onOpenStats={() => setShowStats(true)}
       />
-      <FeedPage />
+      <FeedPage onOpenAddSources={() => setShowAddSources(true)} />
       {showSettings && <SettingsPage onClose={() => setShowSettings(false)} />}
       {showRules && <RulesPage onClose={() => setShowRules(false)} />}
       {showDigest && <DigestPage onClose={() => setShowDigest(false)} onOpenArticle={(id) => selectArticle(id)} />}
       {showStats && <StatsPage onClose={() => setShowStats(false)} />}
+      {showAddSources && <AddSourcesPage onClose={() => setShowAddSources(false)} />}
     </div>
   );
 }

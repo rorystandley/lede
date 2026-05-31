@@ -5,7 +5,11 @@ import { useTags, useCreateTag } from '../../hooks/use-tags.js';
 import { useUiStore } from '../../stores/index.js';
 import type { FolderWithCounts } from '@news-reader/shared';
 
-export function Sidebar() {
+interface SidebarProps {
+  onOpenAddSources?: () => void;
+}
+
+export function Sidebar({ onOpenAddSources }: SidebarProps) {
   const {
     sidebarOpen, selectedFeedId, selectedFolderId, selectedTagId, showStarred,
     selectFeed, selectFolder, selectTag, setShowStarred,
@@ -170,8 +174,13 @@ export function Sidebar() {
             {ungroupedFeeds.map((feed) => (
               <FeedButton key={feed.id} feed={feed} isSelected={selectedFeedId === feed.id} onClick={() => selectFeed(feed.id)} />
             ))}
-            {feeds.length === 0 && (
-              <p className="px-2.5 py-3 text-xs text-text-tertiary text-center">No feeds yet. Click + to add one.</p>
+            {feeds.length === 0 && onOpenAddSources && (
+              <button
+                onClick={onOpenAddSources}
+                className="w-full px-2.5 py-3 text-xs text-primary-600 hover:underline text-center"
+              >
+                Browse popular sources to get started
+              </button>
             )}
           </div>
         </div>
@@ -218,6 +227,20 @@ export function Sidebar() {
           </div>
         )}
       </nav>
+
+      {onOpenAddSources && (
+        <div className="p-3 border-t border-border shrink-0">
+          <button
+            onClick={onOpenAddSources}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add Sources
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
