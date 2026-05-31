@@ -55,10 +55,17 @@ export default async function articleRoutes(app: FastifyInstance) {
   }, async (req, reply) => {
     const { articleId } = req.params as { articleId: string };
     const result = await extractionService.extractNow(articleId);
-    if (!result) return reply.status(422).send({ error: 'Could not extract content from the article URL' });
-    // Return the freshly extracted view; client should refetch the article
+
+    if (result.status === 'failed') {
+      return reply.status(422).send({
+        status: 'failed',
+        error: 'Could not get anything useful from the article URL — the site may block scrapers or require JavaScript.',
+      });
+    }
+
+    // Both 'full' and 'metadata' results updated the row — refetch and include the status.
     const fresh = await articleService.getById(req.user.id, articleId);
-    return reply.send(fresh ?? result);
+    return reply.send({ ...fresh, extractionStatus: result.status });
   });
 
   app.post('/mark-all-read', {

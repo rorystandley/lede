@@ -38,6 +38,7 @@ export function ArticleReader() {
   const [extractAttempts, setExtractAttempts] = useState(0);
   const [extractStartedAt, setExtractStartedAt] = useState<number | null>(null);
   const [lastExtractFailedAt, setLastExtractFailedAt] = useState<Date | null>(null);
+  const [lastExtractStatus, setLastExtractStatus] = useState<'full' | 'metadata' | null>(null);
   const [minDelayPending, setMinDelayPending] = useState(false);
 
   const extractMut = useMutation({
@@ -46,12 +47,14 @@ export function ArticleReader() {
       setExtractStartedAt(Date.now());
       setLastExtractFailedAt(null);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setLastExtractStatus(data.extractionStatus ?? 'full');
       qc.invalidateQueries({ queryKey: ['article', selectedArticleId] });
       qc.invalidateQueries({ queryKey: ['articles'] });
     },
     onError: () => {
       setLastExtractFailedAt(new Date());
+      setLastExtractStatus(null);
     },
     onSettled: () => {
       // Keep the loading state visible for at least 800ms so very fast failures register.
@@ -89,6 +92,7 @@ export function ArticleReader() {
     setAiTags(null);
     setExtractAttempts(0);
     setLastExtractFailedAt(null);
+    setLastExtractStatus(null);
     setMinDelayPending(false);
     extractMut.reset();
   }, [selectedArticleId]);
@@ -120,6 +124,7 @@ export function ArticleReader() {
   const isExtracting = extractMut.isPending || minDelayPending;
   const stillThin = isThinContent(article.contentHtml, article.contentText) && !isExtracting;
   const extractFailed = !isExtracting && lastExtractFailedAt !== null;
+  const onlyMetadata = !isExtracting && stillThin && lastExtractStatus === 'metadata';
 
   return (
     <div className="flex-1 overflow-y-auto bg-surface-secondary">
@@ -190,10 +195,15 @@ export function ArticleReader() {
           </div>
         </div>
 
-        {/* Extraction status — one banner that morphs between idle/loading/error */}
+        {/* Extraction status — one banner that morphs between states */}
         {article.url && (isExtracting || stillThin || extractFailed) && (
           <ExtractionBanner
-            state={isExtracting ? 'loading' : extractFailed ? 'error' : 'idle'}
+            state={
+              isExtracting ? 'loading'
+              : extractFailed ? 'error'
+              : onlyMetadata ? 'metadata'
+              : 'idle'
+            }
             host={tryHostname(article.url)}
             attempts={extractAttempts}
             lastFailedAt={lastExtractFailedAt}
@@ -341,12 +351,30 @@ function upgradeUrl(url: string): string {
  * and attempt count so retries are visible).
  */
 function ExtractionBanner({ state, host, attempts, lastFailedAt, onFetch }: {
-  state: 'idle' | 'loading' | 'error';
+  state: 'idle' | 'loading' | 'error' | 'metadata';
   host: string;
   attempts: number;
   lastFailedAt: Date | null;
   onFetch: () => void;
 }) {
+  if (state === 'metadata') {
+    return (
+      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-3 mb-4 flex items-center justify-between gap-3">
+        <div className="text-xs text-amber-800 dark:text-amber-200 flex-1">
+          We got the cover image and description from {host}, but couldn't pull the full article — the site likely requires JavaScript to render the body.
+        </div>
+        <a
+          href={`https://${host}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-2.5 py-1 text-xs font-medium border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 rounded hover:bg-amber-100 dark:hover:bg-amber-900/40 shrink-0"
+        >
+          Open original
+        </a>
+      </div>
+    );
+  }
+
   if (state === 'loading') {
     return (
       <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-3 mb-4 flex items-center gap-3">

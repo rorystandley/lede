@@ -36,5 +36,5 @@ export const articlesApi = {
     api.patch(`/articles/${articleId}/archive`, { isArchived }),
 
   extract: (articleId: string) =>
-    api.post<ArticleWithState>(`/articles/${articleId}/extract`),
+    api.post<ArticleWithState & { extractionStatus?: 'full' | 'metadata' }>(`/articles/${articleId}/extract`),
 };

@@ -16,9 +16,14 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const { accessToken } = useAuthStore.getState();
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(opts.headers as Record<string, string>),
   };
+
+  // Only set Content-Type when there's actually a body — Fastify rejects
+  // empty bodies that announce themselves as application/json.
+  if (opts.body !== undefined && opts.body !== null && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
