@@ -1,14 +1,14 @@
-import { eq } from 'drizzle-orm';
+import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
-import { users, articles, tags } from '../db/schema/index.js';
-import { createAIClient, type AIClient } from '../lib/ai-client.js';
+import { users, articles, tags, aiUsageLog } from '../db/schema/index.js';
+import { createAIClient, type AIClient, type AIUsage } from '../lib/ai-client.js';
 import { getLogger } from '../lib/logger.js';
 import { getConfig } from '../config.js';
 import crypto from 'node:crypto';
 import type { AIProvider } from '@news-reader/shared';
 
 export class AIService {
-  private async getClient(userId: string): Promise<AIClient | null> {
+  private async getClient(userId: string): Promise<{ client: AIClient; provider: AIProvider } | null> {
     const db = getDb();
     const user = await db.query.users.findFirst({
       where: (u, { eq }) => eq(u.id, userId),
@@ -17,13 +17,26 @@ export class AIService {
     if (!user?.aiProvider || !user?.aiApiKeyEnc) return null;
 
     const apiKey = this.decrypt(user.aiApiKeyEnc);
-    return createAIClient(user.aiProvider as AIProvider, apiKey);
+    return { client: createAIClient(user.aiProvider as AIProvider, apiKey), provider: user.aiProvider as AIProvider };
+  }
+
+  private async logUsage(userId: string, provider: AIProvider, operation: string, usage: AIUsage) {
+    const db = getDb();
+    await db.insert(aiUsageLog).values({
+      userId,
+      provider,
+      model: usage.model,
+      operation,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      estimatedCostUsd: usage.estimatedCostUsd.toFixed(6),
+    });
   }
 
   async summarize(userId: string, articleId: string): Promise<string | null> {
     const logger = getLogger();
-    const client = await this.getClient(userId);
-    if (!client) return null;
+    const ctx = await this.getClient(userId);
+    if (!ctx) return null;
 
     const db = getDb();
     const [article] = await db.select().from(articles).where(eq(articles.id, articleId));
@@ -33,7 +46,9 @@ export class AIService {
     if (!text) return null;
 
     try {
-      return await client.summarize(text);
+      const { result, usage } = await ctx.client.summarize(text);
+      await this.logUsage(userId, ctx.provider, 'summarize', usage);
+      return result;
     } catch (err) {
       logger.error({ userId, articleId, error: err }, 'AI summarize failed');
       return null;
@@ -42,8 +57,8 @@ export class AIService {
 
   async suggestTags(userId: string, articleId: string): Promise<string[]> {
     const logger = getLogger();
-    const client = await this.getClient(userId);
-    if (!client) return [];
+    const ctx = await this.getClient(userId);
+    if (!ctx) return [];
 
     const db = getDb();
     const [article] = await db.select().from(articles).where(eq(articles.id, articleId));
@@ -58,7 +73,9 @@ export class AIService {
     if (!text) return [];
 
     try {
-      return await client.suggestTags(text, userTags.map((t) => t.name));
+      const { result, usage } = await ctx.client.suggestTags(text, userTags.map((t) => t.name));
+      await this.logUsage(userId, ctx.provider, 'suggest_tags', usage);
+      return result;
     } catch (err) {
       logger.error({ userId, articleId, error: err }, 'AI suggest tags failed');
       return [];
@@ -67,15 +84,79 @@ export class AIService {
 
   async generateBriefing(userId: string, articleData: { title: string; summary: string }[]): Promise<string | null> {
     const logger = getLogger();
-    const client = await this.getClient(userId);
-    if (!client) return null;
+    const ctx = await this.getClient(userId);
+    if (!ctx) return null;
 
     try {
-      return await client.generateBriefing(articleData);
+      const { result, usage } = await ctx.client.generateBriefing(articleData);
+      await this.logUsage(userId, ctx.provider, 'briefing', usage);
+      return result;
     } catch (err) {
       logger.error({ userId, error: err }, 'AI briefing generation failed');
       return null;
     }
+  }
+
+  async getUsageStats(userId: string) {
+    const db = getDb();
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const monthlyRow = await db
+      .select({
+        totalCalls: sql<number>`count(*)::int`,
+        totalInputTokens: sql<number>`coalesce(sum(${aiUsageLog.inputTokens}), 0)::int`,
+        totalOutputTokens: sql<number>`coalesce(sum(${aiUsageLog.outputTokens}), 0)::int`,
+        totalCostUsd: sql<number>`coalesce(sum(${aiUsageLog.estimatedCostUsd}), 0)::float`,
+      })
+      .from(aiUsageLog)
+      .where(and(eq(aiUsageLog.userId, userId), gte(aiUsageLog.createdAt, monthStart)));
+
+    const todayRow = await db
+      .select({
+        totalCalls: sql<number>`count(*)::int`,
+        totalCostUsd: sql<number>`coalesce(sum(${aiUsageLog.estimatedCostUsd}), 0)::float`,
+      })
+      .from(aiUsageLog)
+      .where(and(eq(aiUsageLog.userId, userId), gte(aiUsageLog.createdAt, dayStart)));
+
+    const byOperation = await db
+      .select({
+        operation: aiUsageLog.operation,
+        count: sql<number>`count(*)::int`,
+        costUsd: sql<number>`coalesce(sum(${aiUsageLog.estimatedCostUsd}), 0)::float`,
+      })
+      .from(aiUsageLog)
+      .where(and(eq(aiUsageLog.userId, userId), gte(aiUsageLog.createdAt, monthStart)))
+      .groupBy(aiUsageLog.operation);
+
+    const recent = await db
+      .select()
+      .from(aiUsageLog)
+      .where(eq(aiUsageLog.userId, userId))
+      .orderBy(desc(aiUsageLog.createdAt))
+      .limit(10);
+
+    return {
+      today: { calls: todayRow[0].totalCalls, costUsd: todayRow[0].totalCostUsd },
+      thisMonth: {
+        calls: monthlyRow[0].totalCalls,
+        inputTokens: monthlyRow[0].totalInputTokens,
+        outputTokens: monthlyRow[0].totalOutputTokens,
+        costUsd: monthlyRow[0].totalCostUsd,
+      },
+      byOperation,
+      recent: recent.map((r) => ({
+        id: r.id,
+        operation: r.operation,
+        model: r.model,
+        inputTokens: r.inputTokens,
+        outputTokens: r.outputTokens,
+        costUsd: Number(r.estimatedCostUsd),
+        createdAt: r.createdAt.toISOString(),
+      })),
+    };
   }
 
   async updateUserAIConfig(userId: string, provider: AIProvider | null, apiKey: string | null) {

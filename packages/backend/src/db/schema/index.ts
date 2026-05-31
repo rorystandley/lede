@@ -7,3 +7,4 @@ export * from './rules.js';
 export * from './digests.js';
 export * from './reading-stats.js';
 export * from './annotations.js';
+export * from './ai-usage.js';

@@ -15,6 +15,13 @@
       "when": 1780220396121,
       "tag": "0001_strong_blockbuster",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780231269385,
+      "tag": "0002_clammy_firedrake",
+      "breakpoints": true
     }
   ]
 }

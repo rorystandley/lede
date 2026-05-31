@@ -248,6 +248,9 @@ export function SettingsPage({ onClose }: Props) {
             </div>
           </section>
 
+          {/* AI Usage */}
+          {aiConfig?.hasKey && <AIUsageSection />}
+
           {/* OPML */}
           <section>
             <h3 className="text-sm font-medium text-text-primary mb-3">OPML Import / Export</h3>
@@ -308,5 +311,77 @@ export function SettingsPage({ onClose }: Props) {
         </div>
       </div>
     </div>
+  );
+}
+
+function AIUsageSection() {
+  const { data: usage } = useQuery({ queryKey: ['ai-usage'], queryFn: aiApi.getUsage });
+
+  if (!usage) {
+    return (
+      <section>
+        <h3 className="text-sm font-medium text-text-primary mb-3">AI Usage</h3>
+        <p className="text-xs text-text-tertiary">Loading...</p>
+      </section>
+    );
+  }
+
+  const fmtCost = (n: number) => `$${n.toFixed(4)}`;
+  const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+
+  return (
+    <section>
+      <h3 className="text-sm font-medium text-text-primary mb-3">AI Usage</h3>
+
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-surface-secondary border border-border rounded-lg p-3">
+          <p className="text-xs text-text-tertiary uppercase tracking-wider">Today</p>
+          <p className="text-lg font-bold text-text-primary mt-1">{fmtCost(usage.today.costUsd)}</p>
+          <p className="text-xs text-text-secondary">{usage.today.calls} calls</p>
+        </div>
+        <div className="bg-surface-secondary border border-border rounded-lg p-3">
+          <p className="text-xs text-text-tertiary uppercase tracking-wider">This Month</p>
+          <p className="text-lg font-bold text-text-primary mt-1">{fmtCost(usage.thisMonth.costUsd)}</p>
+          <p className="text-xs text-text-secondary">
+            {usage.thisMonth.calls} calls · {fmtTokens(usage.thisMonth.inputTokens)}/{fmtTokens(usage.thisMonth.outputTokens)} tok
+          </p>
+        </div>
+      </div>
+
+      {usage.byOperation.length > 0 && (
+        <div className="mb-4">
+          <p className="text-xs text-text-tertiary uppercase tracking-wider mb-2">By Operation (this month)</p>
+          <div className="space-y-1">
+            {usage.byOperation.map((op) => (
+              <div key={op.operation} className="flex items-center justify-between text-xs">
+                <span className="text-text-primary capitalize">{op.operation.replace('_', ' ')}</span>
+                <span className="text-text-secondary">{op.count} · {fmtCost(op.costUsd)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {usage.recent.length > 0 && (
+        <div>
+          <p className="text-xs text-text-tertiary uppercase tracking-wider mb-2">Recent</p>
+          <div className="space-y-0.5 max-h-40 overflow-y-auto">
+            {usage.recent.map((r) => (
+              <div key={r.id} className="flex items-center justify-between text-xs py-0.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-text-primary capitalize truncate">{r.operation.replace('_', ' ')}</span>
+                  <span className="text-text-tertiary text-[10px]">{new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <span className="text-text-secondary tabular-nums">{fmtCost(r.costUsd)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {usage.thisMonth.calls === 0 && (
+        <p className="text-xs text-text-tertiary text-center py-3">No AI usage yet this month</p>
+      )}
+    </section>
   );
 }

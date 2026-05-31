@@ -36,6 +36,12 @@ export default async function aiRoutes(app: FastifyInstance) {
     return aiService.getUserAIConfig(req.user.id);
   });
 
+  app.get('/usage', {
+    schema: { tags: ['AI'], summary: 'Get AI usage stats and recent activity' },
+  }, async (req) => {
+    return aiService.getUsageStats(req.user.id);
+  });
+
   app.put('/config', {
     schema: { tags: ['AI'], summary: 'Update AI configuration' },
   }, async (req, reply) => {
