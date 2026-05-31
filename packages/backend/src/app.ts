@@ -6,6 +6,7 @@ import { loadConfig, getConfig } from './config.js';
 import errorHandler from './plugins/error-handler.plugin.js';
 import authPlugin from './plugins/auth.plugin.js';
 import rateLimitPlugin from './plugins/rate-limit.plugin.js';
+import metricsPlugin from './plugins/metrics.plugin.js';
 import authRoutes from './routes/auth.routes.js';
 import feedRoutes from './routes/feeds.routes.js';
 import articleRoutes from './routes/articles.routes.js';
@@ -25,10 +26,12 @@ import discoverRoutes from './routes/discover.routes.js';
 import pushRoutes from './routes/push.routes.js';
 import { isEmailConfigured } from './lib/email.js';
 import { isPushConfigured, initPush } from './lib/push.js';
+import { initSentry, captureException } from './lib/sentry.js';
 
 export async function buildApp() {
   loadConfig();
   const config = getConfig();
+  initSentry();
 
   const app = Fastify({
     logger: {
@@ -65,6 +68,7 @@ export async function buildApp() {
   });
 
   await app.register(rateLimitPlugin);
+  await app.register(metricsPlugin);
   await app.register(authPlugin);
 
   await app.register(authRoutes, { prefix: '/api/v1/auth' });
@@ -91,7 +95,17 @@ export async function buildApp() {
   }));
   await registerMcpRoutes(app);
 
+  // Basic liveness — is the process responsive?
   app.get('/api/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+  app.get('/api/health/live', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+
+  // Readiness — deep checks of dependencies (DB, Redis)
+  app.get('/api/health/ready', async (_req, reply) => {
+    const { checkHealth } = await import('./lib/health.js');
+    const health = await checkHealth();
+    const status = health.status === 'unhealthy' ? 503 : 200;
+    return reply.status(status).send(health);
+  });
 
   return app;
 }

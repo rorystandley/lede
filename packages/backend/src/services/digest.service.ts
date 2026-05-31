@@ -2,6 +2,7 @@ import { eq, and, sql, desc, gt } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { digests, digestArticles, articles, feeds, userFeedSubscriptions, userArticleStates, folders, users } from '../db/schema/index.js';
 import { getLogger } from '../lib/logger.js';
+import { digestsBuilt } from '../lib/metrics.js';
 import type { Digest, DigestContent, DigestSection } from '@news-reader/shared';
 
 export class DigestService {
@@ -103,6 +104,7 @@ export class DigestService {
     }
 
     logger.info({ userId, articleCount: unreadArticles.length, digestId: digest.id }, 'Digest built');
+    digestsBuilt.inc();
 
     return this.toDigest(digest);
   }

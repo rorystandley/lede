@@ -3,6 +3,7 @@ import { getDb } from '../db/client.js';
 import { users, articles, tags, aiUsageLog } from '../db/schema/index.js';
 import { createAIClient, type AIClient, type AIUsage } from '../lib/ai-client.js';
 import { getLogger } from '../lib/logger.js';
+import { aiCalls, aiTokensUsed } from '../lib/metrics.js';
 import { getConfig } from '../config.js';
 import crypto from 'node:crypto';
 import type { AIProvider } from '@news-reader/shared';
@@ -31,6 +32,9 @@ export class AIService {
       outputTokens: usage.outputTokens,
       estimatedCostUsd: usage.estimatedCostUsd.toFixed(6),
     });
+    aiCalls.inc({ provider, operation, status: 'success' });
+    aiTokensUsed.inc({ provider, kind: 'input' }, usage.inputTokens);
+    aiTokensUsed.inc({ provider, kind: 'output' }, usage.outputTokens);
   }
 
   async summarize(userId: string, articleId: string): Promise<string | null> {

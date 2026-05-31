@@ -23,6 +23,14 @@ const envSchema = z.object({
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().default('mailto:admin@example.com'),
+
+  // Sentry (optional — error tracking disabled if not set)
+  SENTRY_DSN: z.string().url().optional(),
+  SENTRY_ENVIRONMENT: z.string().default('production'),
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
+
+  // Process role — 'web', 'worker', or 'all' (default for single-process deployment)
+  PROCESS_ROLE: z.enum(['web', 'worker', 'all']).default('all'),
 });
 
 export type Env = z.infer<typeof envSchema>;
