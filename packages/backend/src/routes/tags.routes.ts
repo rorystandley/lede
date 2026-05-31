@@ -1,6 +1,12 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { createTagSchema, updateTagSchema, tagArticleSchema } from '@news-reader/shared';
 import { tagService } from '../services/tag.service.js';
+
+const applyByNameSchema = z.object({
+  names: z.array(z.string().min(1).max(100)).min(1).max(20),
+  source: z.enum(['manual', 'ai', 'rule']).default('manual'),
+});
 
 export default async function tagRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
@@ -42,5 +48,14 @@ export default async function tagRoutes(app: FastifyInstance) {
     const body = tagArticleSchema.parse(req.body);
     await tagService.tagArticle(req.user.id, articleId, body.tagIds);
     return reply.status(204).send();
+  });
+
+  app.post('/articles/:articleId/by-name', {
+    schema: { tags: ['Tags'], summary: 'Apply tags by name — upserts tags first then links to article' },
+  }, async (req) => {
+    const { articleId } = req.params as { articleId: string };
+    const body = applyByNameSchema.parse(req.body);
+    const applied = await tagService.applyTagsByName(req.user.id, articleId, body.names, body.source);
+    return { applied };
   });
 }

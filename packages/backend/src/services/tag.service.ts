@@ -68,6 +68,43 @@ export class TagService {
     await db.insert(articleTags).values({ userId, articleId, tagId, source }).onConflictDoNothing();
   }
 
+  /**
+   * Apply tags by name. Creates any tags that don't already exist for the user,
+   * then links them to the article. Returns the resolved tag rows.
+   */
+  async applyTagsByName(userId: string, articleId: string, names: string[], source: ArticleTagSource = 'ai'): Promise<Tag[]> {
+    const db = getDb();
+    const normalised = Array.from(new Set(names.map((n) => n.trim()).filter(Boolean).map((n) => n.toLowerCase())));
+    if (normalised.length === 0) return [];
+
+    // Find existing tags for this user matching any of the names
+    const existing = await db
+      .select()
+      .from(tags)
+      .where(and(eq(tags.userId, userId)));
+
+    const existingByName = new Map(existing.map((t) => [t.name.toLowerCase(), t]));
+    const resolved: typeof tags.$inferSelect[] = [];
+
+    for (const name of normalised) {
+      const match = existingByName.get(name);
+      if (match) {
+        resolved.push(match);
+        continue;
+      }
+      const [created] = await db.insert(tags).values({ userId, name }).returning();
+      resolved.push(created);
+    }
+
+    if (resolved.length > 0) {
+      await db.insert(articleTags).values(
+        resolved.map((t) => ({ userId, articleId, tagId: t.id, source })),
+      ).onConflictDoNothing();
+    }
+
+    return resolved.map((t) => this.toTag(t));
+  }
+
   async removeTagFromArticle(userId: string, articleId: string, tagId: string) {
     const db = getDb();
     await db.delete(articleTags).where(

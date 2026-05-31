@@ -147,7 +147,10 @@ export function createMcpServer() {
   }, async ({ articleId }, extra) => {
     const userId = getUserIdFromContext(extra);
     const suggestions = await aiService.suggestTags(userId, articleId);
-    return { content: [{ type: 'text', text: suggestions.length > 0 ? `Suggested tags: ${suggestions.join(', ')}` : 'No suggestions (AI may not be configured)' }] };
+    if (suggestions === null) {
+      return { content: [{ type: 'text', text: 'AI not configured for this user. Set provider and API key in Settings first.' }] };
+    }
+    return { content: [{ type: 'text', text: suggestions.length > 0 ? `Suggested tags: ${suggestions.join(', ')}` : 'No suggestions for this article.' }] };
   });
 
   server.tool('folders/list', 'List all folders', {}, async (_params, extra) => {

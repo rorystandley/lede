@@ -15,4 +15,7 @@ export const tagsApi = {
 
   setArticleTags: (articleId: string, tagIds: string[]) =>
     api.put(`/tags/articles/${articleId}`, { tagIds }),
+
+  applyByName: (articleId: string, names: string[], source: 'manual' | 'ai' | 'rule' = 'manual') =>
+    api.post<{ applied: Tag[] }>(`/tags/articles/${articleId}/by-name`, { names, source }),
 };

@@ -3,6 +3,7 @@ import { useUiStore } from '../../stores/index.js';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { aiApi, articlesApi } from '../../api/index.js';
+import { tagsApi } from '../../api/tags.api.js';
 import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
 
 /** Mirror of backend isThinContent — keep them in sync. */
@@ -30,9 +31,35 @@ export function ArticleReader() {
     onSuccess: (data) => setAiSummary(data.summary),
   });
 
+  const [tagSuggestionError, setTagSuggestionError] = useState<string | null>(null);
+  const [appliedTagNames, setAppliedTagNames] = useState<Set<string>>(new Set());
+
   const suggestTagsMut = useMutation({
     mutationFn: (articleId: string) => aiApi.suggestTags(articleId),
+    onMutate: () => {
+      setTagSuggestionError(null);
+      setAiTags(null);
+    },
     onSuccess: (data) => setAiTags(data.tags),
+    onError: (err: Error) => {
+      const msg = err.message || '';
+      if (msg.includes('400') || msg.toLowerCase().includes('not configured')) {
+        setTagSuggestionError('AI not configured. Add an API key in Settings.');
+      } else {
+        setTagSuggestionError('AI request failed. Check your API key or try again.');
+      }
+    },
+  });
+
+  const applyTagMut = useMutation({
+    mutationFn: ({ articleId, name }: { articleId: string; name: string }) =>
+      tagsApi.applyByName(articleId, [name], 'ai'),
+    onSuccess: (_data, vars) => {
+      setAppliedTagNames((s) => new Set(s).add(vars.name.toLowerCase()));
+      qc.invalidateQueries({ queryKey: ['article', selectedArticleId] });
+      qc.invalidateQueries({ queryKey: ['tags'] });
+      qc.invalidateQueries({ queryKey: ['articles-infinite'] });
+    },
   });
 
   const [extractAttempts, setExtractAttempts] = useState(0);
@@ -90,11 +117,14 @@ export function ArticleReader() {
   useEffect(() => {
     setAiSummary(null);
     setAiTags(null);
+    setTagSuggestionError(null);
+    setAppliedTagNames(new Set());
     setExtractAttempts(0);
     setLastExtractFailedAt(null);
     setLastExtractStatus(null);
     setMinDelayPending(false);
     extractMut.reset();
+    suggestTagsMut.reset();
   }, [selectedArticleId]);
 
   if (!selectedArticleId) {
@@ -165,10 +195,13 @@ export function ArticleReader() {
             <button
               onClick={() => suggestTagsMut.mutate(article.id)}
               disabled={suggestTagsMut.isPending}
-              className="px-2 py-1 text-xs rounded border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50"
+              className="px-2 py-1 text-xs rounded border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50 flex items-center gap-1.5"
               title="AI Suggest Tags"
             >
-              {suggestTagsMut.isPending ? '...' : 'Suggest Tags'}
+              {suggestTagsMut.isPending && (
+                <span className="animate-spin w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full" />
+              )}
+              {suggestTagsMut.isPending ? 'Thinking...' : 'Suggest Tags'}
             </button>
             <button
               onClick={() => starArticle.mutate({ articleId: article.id, isStarred: !article.isStarred })}
@@ -231,14 +264,60 @@ export function ArticleReader() {
         )}
 
         {/* AI Tag Suggestions */}
+        {tagSuggestionError && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-lg p-3 mb-4">
+            <p className="text-xs text-red-700 dark:text-red-300">{tagSuggestionError}</p>
+          </div>
+        )}
+        {suggestTagsMut.isSuccess && aiTags !== null && aiTags.length === 0 && (
+          <div className="bg-surface-tertiary rounded-lg p-3 mb-4">
+            <p className="text-xs text-text-secondary">No tag suggestions for this article — the AI didn't return anything useful.</p>
+          </div>
+        )}
         {aiTags && aiTags.length > 0 && (
           <div className="bg-surface-tertiary rounded-lg p-3 mb-4">
-            <span className="text-xs text-text-tertiary">Suggested tags: </span>
-            {aiTags.map((tag) => (
-              <span key={tag} className="inline-block px-2 py-0.5 text-xs rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 mr-1.5 mb-1">
-                {tag}
-              </span>
-            ))}
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs text-text-tertiary">AI-suggested tags · click to apply</span>
+              {(article.tags.some((t) => aiTags.includes(t.name.toLowerCase())) || appliedTagNames.size > 0) && (
+                <span className="text-[10px] text-text-tertiary">Applied tags appear in the sidebar</span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {aiTags.map((tag) => {
+                const alreadyOnArticle = article.tags.some((t) => t.name.toLowerCase() === tag.toLowerCase());
+                const justApplied = appliedTagNames.has(tag.toLowerCase());
+                const isApplied = alreadyOnArticle || justApplied;
+                const isApplying = applyTagMut.isPending && applyTagMut.variables?.name === tag;
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => !isApplied && applyTagMut.mutate({ articleId: article.id, name: tag })}
+                    disabled={isApplied || isApplying}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full transition-colors ${
+                      isApplied
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 cursor-default'
+                        : 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-900/50 cursor-pointer'
+                    } ${isApplying ? 'opacity-50' : ''}`}
+                  >
+                    {isApplied && (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                    {!isApplied && !isApplying && (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                    )}
+                    {isApplying && (
+                      <span className="animate-spin w-2 h-2 border-2 border-current border-t-transparent rounded-full" />
+                    )}
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 

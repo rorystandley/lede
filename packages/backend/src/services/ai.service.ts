@@ -59,10 +59,14 @@ export class AIService {
     }
   }
 
-  async suggestTags(userId: string, articleId: string): Promise<string[]> {
+  /**
+   * Returns null when AI isn't configured for the user — distinguishes that case
+   * from "configured but no useful suggestions".
+   */
+  async suggestTags(userId: string, articleId: string): Promise<string[] | null> {
     const logger = getLogger();
     const ctx = await this.getClient(userId);
-    if (!ctx) return [];
+    if (!ctx) return null;
 
     const db = getDb();
     const [article] = await db.select().from(articles).where(eq(articles.id, articleId));
@@ -82,7 +86,7 @@ export class AIService {
       return result;
     } catch (err) {
       logger.error({ userId, articleId, error: err }, 'AI suggest tags failed');
-      return [];
+      throw err;
     }
   }
 

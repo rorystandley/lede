@@ -26,8 +26,15 @@ export default async function aiRoutes(app: FastifyInstance) {
     schema: { tags: ['AI'], summary: 'Get AI-suggested tags for an article' },
   }, async (req, reply) => {
     const { articleId } = req.params as { articleId: string };
-    const suggestions = await aiService.suggestTags(req.user.id, articleId);
-    return { tags: suggestions };
+    try {
+      const suggestions = await aiService.suggestTags(req.user.id, articleId);
+      if (suggestions === null) {
+        return reply.status(400).send({ error: 'AI not configured. Add an API key in Settings.' });
+      }
+      return { tags: suggestions };
+    } catch {
+      return reply.status(500).send({ error: 'AI request failed. Check your API key or try again.' });
+    }
   });
 
   app.get('/config', {
