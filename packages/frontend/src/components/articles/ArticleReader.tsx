@@ -3,6 +3,7 @@ import { useUiStore } from '../../stores/index.js';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { aiApi, articlesApi } from '../../api/index.js';
+import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
 
 /** Mirror of backend isThinContent — keep them in sync. */
 function isThinContent(html: string | null, text: string | null): boolean {
@@ -233,7 +234,7 @@ export function ArticleReader() {
           </div>
 
           {/* Lead image */}
-          {article.imageUrl && (
+          {article.imageUrl ? (
             <img
               src={upgradeUrl(article.imageUrl)}
               alt=""
@@ -241,6 +242,10 @@ export function ArticleReader() {
               decoding="async"
               className="w-full max-h-96 object-cover rounded-lg mb-6"
             />
+          ) : (
+            <div className="w-full h-56 rounded-lg overflow-hidden mb-6">
+              <ArticlePlaceholder size="hero" seed={article.id} />
+            </div>
           )}
 
           {article.tags.length > 0 && (

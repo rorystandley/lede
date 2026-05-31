@@ -1,4 +1,5 @@
 import type { ArticleWithState } from '@news-reader/shared';
+import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
 
 interface Props {
   article: ArticleWithState;
@@ -17,8 +18,10 @@ export function ArticleCard({ article, isFocused, onClick, onStar }: Props) {
         isFocused ? 'border-primary-400 shadow-md' : 'border-border hover:shadow-sm'
       } bg-surface`}
     >
-      {article.imageUrl && (
+      {article.imageUrl ? (
         <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full h-40 object-cover" />
+      ) : (
+        <div className="w-full h-40"><ArticlePlaceholder size="card" seed={article.id} /></div>
       )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">

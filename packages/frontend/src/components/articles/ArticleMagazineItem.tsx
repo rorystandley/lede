@@ -1,4 +1,5 @@
 import type { ArticleWithState } from '@news-reader/shared';
+import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
 
 interface Props {
   article: ArticleWithState;
@@ -20,10 +21,14 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
         } bg-surface`}
       >
         <div className="flex flex-col md:flex-row">
-          {article.imageUrl && (
+          {article.imageUrl ? (
             <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full md:w-1/2 h-48 md:h-64 object-cover" />
+          ) : (
+            <div className="w-full md:w-1/2 h-48 md:h-64">
+              <ArticlePlaceholder size="card" seed={article.id} />
+            </div>
           )}
-          <div className={`p-6 flex flex-col justify-center ${article.imageUrl ? '' : 'w-full'}`}>
+          <div className="p-6 flex flex-col justify-center md:w-1/2">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-medium text-primary-600 dark:text-primary-400">{article.feedTitle}</span>
               {timeAgo && <span className="text-xs text-text-tertiary">{timeAgo}</span>}
@@ -57,8 +62,10 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
         isFocused ? 'border-primary-400 shadow-md' : 'border-border hover:shadow-sm'
       } bg-surface`}
     >
-      {article.imageUrl && (
+      {article.imageUrl ? (
         <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full h-32 object-cover" />
+      ) : (
+        <div className="w-full h-32"><ArticlePlaceholder size="card" seed={article.id} /></div>
       )}
       <div className="p-3">
         <div className="flex items-center gap-2 mb-1">

@@ -1,4 +1,5 @@
 import type { ArticleWithState } from '@news-reader/shared';
+import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
 
 interface Props {
   article: ArticleWithState;
@@ -42,8 +43,10 @@ export function ArticleListItem({ article, isFocused, isSelected, onClick, onSta
           </svg>
         </button>
 
-        {article.imageUrl && (
+        {article.imageUrl ? (
           <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-16 h-12 rounded object-cover shrink-0" />
+        ) : (
+          <div className="w-16 h-12 rounded overflow-hidden shrink-0"><ArticlePlaceholder size="thumb" seed={article.id} /></div>
         )}
       </div>
     </div>
