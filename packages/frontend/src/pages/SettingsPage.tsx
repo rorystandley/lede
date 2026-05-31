@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { opmlApi, aiApi } from '../api/index.js';
 import { userApi } from '../api/user.api.js';
+import { deliveryApi, pushApi } from '../api/push.api.js';
+import { subscribeToPush, unsubscribeFromPush, isCurrentlySubscribed, isPushSupported, getPushPermission } from '../lib/push-helper.js';
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import type { AIProvider } from '@news-reader/shared';
 
@@ -184,6 +186,9 @@ export function SettingsPage({ onClose }: Props) {
               </div>
             </div>
           </section>
+
+          {/* Delivery */}
+          <DeliverySection profile={profile} profileMut={profileMut} />
 
           {/* AI Configuration */}
           <section>
@@ -384,4 +389,141 @@ function AIUsageSection() {
       )}
     </section>
   );
+}
+
+function DeliverySection({ profile, profileMut }: {
+  profile: { email: string; digestEmail: boolean; digestPush: boolean } | undefined;
+  profileMut: { mutate: (data: Partial<{ digestEmail: boolean; digestPush: boolean }>) => void };
+}) {
+  const { data: capabilities } = useQuery({ queryKey: ['delivery-capabilities'], queryFn: deliveryApi.capabilities });
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+  const [subscribed, setSubscribed] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    isPushSupported().then(setPushSupported);
+    getPushPermission().then(setPushPermission);
+    isCurrentlySubscribed().then(setSubscribed);
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const togglePush = async () => {
+    setPushBusy(true);
+    setPushError(null);
+    try {
+      if (subscribed) {
+        await unsubscribeFromPush();
+        setSubscribed(false);
+        profileMut.mutate({ digestPush: false });
+      } else {
+        const res = await subscribeToPush();
+        if (res.ok) {
+          setSubscribed(true);
+          profileMut.mutate({ digestPush: true });
+          setPushPermission('granted');
+        } else {
+          setPushError(res.error ?? 'Unknown error');
+        }
+      }
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const sendTestPush = async () => {
+    try {
+      await pushApi.test();
+    } catch {
+      setPushError('Test push failed');
+    }
+  };
+
+  const triggerInstall = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    setInstallPrompt(null);
+  };
+
+  return (
+    <section>
+      <h3 className="text-sm font-medium text-text-primary mb-3">Delivery</h3>
+
+      {/* Email digest */}
+      <div className="mb-4 p-3 border border-border rounded-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-text-primary">Email digest</p>
+            <p className="text-xs text-text-secondary mt-0.5">
+              {capabilities?.email
+                ? `Sent to ${profile?.email ?? 'your email'} each morning`
+                : 'Server has no SMTP configured'}
+            </p>
+          </div>
+          <button
+            disabled={!capabilities?.email}
+            onClick={() => profileMut.mutate({ digestEmail: !profile?.digestEmail })}
+            className={`w-9 h-5 rounded-full transition-colors relative disabled:opacity-40 ${profile?.digestEmail ? 'bg-primary-500' : 'bg-surface-tertiary'}`}
+          >
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${profile?.digestEmail ? 'left-4.5' : 'left-0.5'}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Push notifications */}
+      <div className="mb-4 p-3 border border-border rounded-lg">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <p className="text-sm text-text-primary">Push notifications</p>
+            <p className="text-xs text-text-secondary mt-0.5">
+              {!pushSupported ? 'Not supported in this browser'
+                : !capabilities?.push ? 'Server has no VAPID keys configured'
+                : subscribed ? 'Enabled on this device'
+                : pushPermission === 'denied' ? 'Permission denied — enable in browser settings'
+                : 'Enable to get a notification when your digest is ready'}
+            </p>
+          </div>
+          <button
+            disabled={!pushSupported || !capabilities?.push || pushBusy || pushPermission === 'denied'}
+            onClick={togglePush}
+            className={`px-3 py-1.5 text-xs font-medium rounded disabled:opacity-40 ${subscribed ? 'bg-surface-tertiary text-text-primary' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
+          >
+            {pushBusy ? '...' : subscribed ? 'Disable' : 'Enable'}
+          </button>
+        </div>
+        {subscribed && (
+          <button onClick={sendTestPush} className="text-xs text-primary-600 hover:underline">
+            Send test notification
+          </button>
+        )}
+        {pushError && <p className="text-xs text-red-500 mt-1">{pushError}</p>}
+      </div>
+
+      {/* PWA install */}
+      {installPrompt && (
+        <div className="p-3 border border-primary-300 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/20 rounded-lg flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-text-primary">Install News Reader</p>
+            <p className="text-xs text-text-secondary mt-0.5">Add to your home screen for fast access</p>
+          </div>
+          <button onClick={triggerInstall} className="px-3 py-1.5 text-xs font-medium bg-primary-600 text-white rounded hover:bg-primary-700">
+            Install
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// Type for browser install prompt (not in lib.dom yet)
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }

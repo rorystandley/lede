@@ -10,6 +10,19 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   REGISTRATION_MODE: z.enum(['open', 'invite']).default('open'),
+
+  // Email (optional — digest emails disabled if not set)
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().email().optional(),
+  APP_URL: z.string().url().default('http://localhost:5173'),
+
+  // Web Push (optional — push notifications disabled if not set)
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default('mailto:admin@example.com'),
 });
 
 export type Env = z.infer<typeof envSchema>;

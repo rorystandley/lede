@@ -9,6 +9,8 @@ const updateProfileSchema = z.object({
   timezone: z.string().min(1).max(50).optional(),
   digestSchedule: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   digestEnabled: z.boolean().optional(),
+  digestEmail: z.boolean().optional(),
+  digestPush: z.boolean().optional(),
 });
 
 export default async function userRoutes(app: FastifyInstance) {
@@ -29,6 +31,8 @@ export default async function userRoutes(app: FastifyInstance) {
       timezone: user.timezone,
       digestSchedule: user.digestSchedule,
       digestEnabled: user.digestEnabled,
+      digestEmail: user.digestEmail,
+      digestPush: user.digestPush,
     };
   });
 

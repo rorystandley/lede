@@ -7,6 +7,8 @@ interface UserProfile {
   timezone: string;
   digestSchedule: string;
   digestEnabled: boolean;
+  digestEmail: boolean;
+  digestPush: boolean;
 }
 
 export const userApi = {
@@ -16,5 +18,7 @@ export const userApi = {
     timezone: string;
     digestSchedule: string;
     digestEnabled: boolean;
+    digestEmail: boolean;
+    digestPush: boolean;
   }>) => api.patch('/user/profile', data),
 };

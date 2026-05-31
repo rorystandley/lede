@@ -22,6 +22,9 @@ import annotationRoutes from './routes/annotations.routes.js';
 import sharingRoutes from './routes/sharing.routes.js';
 import userRoutes from './routes/user.routes.js';
 import discoverRoutes from './routes/discover.routes.js';
+import pushRoutes from './routes/push.routes.js';
+import { isEmailConfigured } from './lib/email.js';
+import { isPushConfigured, initPush } from './lib/push.js';
 
 export async function buildApp() {
   loadConfig();
@@ -79,6 +82,13 @@ export async function buildApp() {
   await app.register(sharingRoutes, { prefix: '/api/v1/share' });
   await app.register(userRoutes, { prefix: '/api/v1/user' });
   await app.register(discoverRoutes, { prefix: '/api/v1/discover' });
+  await app.register(pushRoutes, { prefix: '/api/v1/push' });
+
+  initPush();
+  app.get('/api/v1/delivery/capabilities', async () => ({
+    email: isEmailConfigured(),
+    push: isPushConfigured(),
+  }));
   await registerMcpRoutes(app);
 
   app.get('/api/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));

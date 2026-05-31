@@ -138,12 +138,27 @@ export class DigestService {
     return rows.map((r) => this.toDigest(r));
   }
 
-  async getUsersForDigest(): Promise<{ id: string; timezone: string; digestSchedule: string }[]> {
+  async getUsersForDigest(): Promise<{ id: string; timezone: string; digestSchedule: string; email: string; displayName: string | null; digestEmail: boolean; digestPush: boolean }[]> {
     const db = getDb();
     return db
-      .select({ id: users.id, timezone: users.timezone, digestSchedule: users.digestSchedule })
+      .select({
+        id: users.id,
+        timezone: users.timezone,
+        digestSchedule: users.digestSchedule,
+        email: users.email,
+        displayName: users.displayName,
+        digestEmail: users.digestEmail,
+        digestPush: users.digestPush,
+      })
       .from(users)
       .where(eq(users.digestEnabled, true));
+  }
+
+  async getUserForDelivery(userId: string): Promise<{ email: string; displayName: string | null; digestEmail: boolean; digestPush: boolean } | null> {
+    const db = getDb();
+    const user = await db.query.users.findFirst({ where: (u, { eq }) => eq(u.id, userId) });
+    if (!user) return null;
+    return { email: user.email, displayName: user.displayName, digestEmail: user.digestEmail, digestPush: user.digestPush };
   }
 
   private toDigest(row: typeof digests.$inferSelect): Digest {

@@ -10,6 +10,8 @@ export const users = pgTable('users', {
   aiApiKeyEnc: text('ai_api_key_enc'),
   digestSchedule: varchar('digest_schedule', { length: 20 }).notNull().default('07:00'),
   digestEnabled: boolean('digest_enabled').notNull().default(true),
+  digestEmail: boolean('digest_email').notNull().default(false),
+  digestPush: boolean('digest_push').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
