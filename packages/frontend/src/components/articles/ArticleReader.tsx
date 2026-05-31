@@ -35,13 +35,40 @@ export function ArticleReader() {
     onSuccess: (data) => setAiTags(data.tags),
   });
 
+  const [extractAttempts, setExtractAttempts] = useState(0);
+  const [extractStartedAt, setExtractStartedAt] = useState<number | null>(null);
+  const [lastExtractFailedAt, setLastExtractFailedAt] = useState<Date | null>(null);
+  const [minDelayPending, setMinDelayPending] = useState(false);
+
   const extractMut = useMutation({
     mutationFn: (articleId: string) => articlesApi.extract(articleId),
+    onMutate: () => {
+      setExtractStartedAt(Date.now());
+      setLastExtractFailedAt(null);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['article', selectedArticleId] });
       qc.invalidateQueries({ queryKey: ['articles'] });
     },
+    onError: () => {
+      setLastExtractFailedAt(new Date());
+    },
+    onSettled: () => {
+      // Keep the loading state visible for at least 800ms so very fast failures register.
+      const elapsed = extractStartedAt ? Date.now() - extractStartedAt : 1000;
+      const remaining = Math.max(0, 800 - elapsed);
+      if (remaining > 0) {
+        setMinDelayPending(true);
+        setTimeout(() => setMinDelayPending(false), remaining);
+      }
+      setExtractAttempts((n) => n + 1);
+    },
   });
+
+  const triggerExtract = (id: string) => {
+    setLastExtractFailedAt(null);
+    extractMut.mutate(id);
+  };
 
   useEffect(() => {
     if (article && !article.isRead) markRead.mutate([article.id]);
@@ -60,6 +87,10 @@ export function ArticleReader() {
   useEffect(() => {
     setAiSummary(null);
     setAiTags(null);
+    setExtractAttempts(0);
+    setLastExtractFailedAt(null);
+    setMinDelayPending(false);
+    extractMut.reset();
   }, [selectedArticleId]);
 
   if (!selectedArticleId) {
@@ -86,8 +117,9 @@ export function ArticleReader() {
     );
   }
 
-  const stillThin = isThinContent(article.contentHtml, article.contentText) && !extractMut.isPending;
-  const isExtracting = extractMut.isPending;
+  const isExtracting = extractMut.isPending || minDelayPending;
+  const stillThin = isThinContent(article.contentHtml, article.contentText) && !isExtracting;
+  const extractFailed = !isExtracting && lastExtractFailedAt !== null;
 
   return (
     <div className="flex-1 overflow-y-auto bg-surface-secondary">
@@ -106,11 +138,14 @@ export function ArticleReader() {
           <div className="flex items-center gap-1.5">
             {article.url && (
               <button
-                onClick={() => extractMut.mutate(article.id)}
+                onClick={() => triggerExtract(article.id)}
                 disabled={isExtracting}
-                className="px-2 py-1 text-xs rounded border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50"
+                className="px-2 py-1 text-xs rounded border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50 flex items-center gap-1.5"
                 title="Fetch full article from URL"
               >
+                {isExtracting && (
+                  <span className="animate-spin w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full" />
+                )}
                 {isExtracting ? 'Fetching...' : 'Fetch'}
               </button>
             )}
@@ -155,30 +190,15 @@ export function ArticleReader() {
           </div>
         </div>
 
-        {/* Extraction banner */}
-        {isExtracting && (
-          <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-3 mb-4 flex items-center gap-2">
-            <div className="animate-spin w-3.5 h-3.5 border-2 border-primary-500 border-t-transparent rounded-full" />
-            <span className="text-xs text-primary-700 dark:text-primary-300">Fetching full article from {tryHostname(article.url)}...</span>
-          </div>
-        )}
-        {!isExtracting && stillThin && article.url && (
-          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 mb-4 flex items-center justify-between gap-3">
-            <div className="text-xs text-amber-800 dark:text-amber-200">
-              This feed only includes a link. Want to fetch the full article from {tryHostname(article.url)}?
-            </div>
-            <button
-              onClick={() => extractMut.mutate(article.id)}
-              className="px-2.5 py-1 text-xs font-medium bg-amber-600 text-white rounded hover:bg-amber-700 shrink-0"
-            >
-              Fetch
-            </button>
-          </div>
-        )}
-        {extractMut.isError && (
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 mb-4">
-            <p className="text-xs text-red-600 dark:text-red-400">Could not fetch full article. The site may block scrapers or require JavaScript.</p>
-          </div>
+        {/* Extraction status — one banner that morphs between idle/loading/error */}
+        {article.url && (isExtracting || stillThin || extractFailed) && (
+          <ExtractionBanner
+            state={isExtracting ? 'loading' : extractFailed ? 'error' : 'idle'}
+            host={tryHostname(article.url)}
+            attempts={extractAttempts}
+            lastFailedAt={lastExtractFailedAt}
+            onFetch={() => triggerExtract(article.id)}
+          />
         )}
 
         {/* AI Summary Panel */}
@@ -313,4 +333,73 @@ function upgradeUrl(url: string): string {
   } catch {
     return url;
   }
+}
+
+/**
+ * Single banner that morphs between idle (offer to fetch), loading (visible spinner +
+ * minimum display time so fast failures still register), and error (with timestamp
+ * and attempt count so retries are visible).
+ */
+function ExtractionBanner({ state, host, attempts, lastFailedAt, onFetch }: {
+  state: 'idle' | 'loading' | 'error';
+  host: string;
+  attempts: number;
+  lastFailedAt: Date | null;
+  onFetch: () => void;
+}) {
+  if (state === 'loading') {
+    return (
+      <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-3 mb-4 flex items-center gap-3">
+        <div className="animate-spin w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full shrink-0" />
+        <div className="flex-1">
+          <p className="text-xs font-medium text-primary-700 dark:text-primary-300">
+            Fetching full article from {host}…
+          </p>
+          <p className="text-[11px] text-primary-600/70 dark:text-primary-400/70 mt-0.5">
+            This usually takes a couple of seconds.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (state === 'error') {
+    const time = lastFailedAt ? lastFailedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+    return (
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-lg p-3 mb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <p className="text-xs font-medium text-red-700 dark:text-red-300">
+              Couldn't fetch from {host}
+            </p>
+            <p className="text-[11px] text-red-600/80 dark:text-red-400/80 mt-0.5">
+              {attempts > 1 ? `Attempt ${attempts} failed at ${time}. ` : `Failed at ${time}. `}
+              The site may block scrapers or require JavaScript.
+            </p>
+          </div>
+          <button
+            onClick={onFetch}
+            className="px-2.5 py-1 text-xs font-medium border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/40 shrink-0"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // idle — feed is thin, offer to fetch
+  return (
+    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-3 mb-4 flex items-center justify-between gap-3">
+      <div className="text-xs text-amber-800 dark:text-amber-200 flex-1">
+        This feed only includes a link. Want to fetch the full article from <span className="font-medium">{host}</span>?
+      </div>
+      <button
+        onClick={onFetch}
+        className="px-2.5 py-1 text-xs font-medium bg-amber-600 text-white rounded hover:bg-amber-700 shrink-0"
+      >
+        Fetch
+      </button>
+    </div>
+  );
 }
