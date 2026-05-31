@@ -1,12 +1,26 @@
 import { useState, useCallback } from 'react';
-import { useFeeds, useSubscribeFeed } from '../../hooks/use-feeds.js';
-import { useFolders, useCreateFolder } from '../../hooks/use-folders.js';
-import { useTags, useCreateTag } from '../../hooks/use-tags.js';
+import { useFeeds, useSubscribeFeed, useUnsubscribeFeed, useUpdateFeed, useRefreshFeed } from '../../hooks/use-feeds.js';
+import { useFolders, useCreateFolder, useDeleteFolder } from '../../hooks/use-folders.js';
+import { useTags, useCreateTag, useDeleteTag } from '../../hooks/use-tags.js';
 import { useUiStore } from '../../stores/index.js';
+import { foldersApi } from '../../api/folders.api.js';
+import { tagsApi } from '../../api/tags.api.js';
+import { useQueryClient } from '@tanstack/react-query';
+import { ContextMenu } from '../shared/ContextMenu.js';
+import { InlineEdit } from '../shared/InlineEdit.js';
 import type { FolderWithCounts } from '@news-reader/shared';
 
 interface SidebarProps {
   onOpenAddSources?: () => void;
+}
+
+interface MenuState {
+  x: number;
+  y: number;
+  type: 'feed' | 'folder' | 'tag';
+  id: string;
+  name: string;
+  extra?: Record<string, unknown>;
 }
 
 export function Sidebar({ onOpenAddSources }: SidebarProps) {
@@ -16,12 +30,18 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
     searchQuery, setSearchQuery, isSearching, setIsSearching, clearFilters,
   } = useUiStore();
 
+  const qc = useQueryClient();
   const { data: feedsData } = useFeeds();
   const { data: foldersData } = useFolders();
   const { data: tagsData } = useTags();
   const subscribeMut = useSubscribeFeed();
+  const unsubscribeMut = useUnsubscribeFeed();
+  const updateFeedMut = useUpdateFeed();
+  const refreshFeedMut = useRefreshFeed();
   const createFolderMut = useCreateFolder();
+  const deleteFolderMut = useDeleteFolder();
   const createTagMut = useCreateTag();
+  const deleteTagMut = useDeleteTag();
 
   const [showAddFeed, setShowAddFeed] = useState(false);
   const [newUrl, setNewUrl] = useState('');
@@ -29,24 +49,57 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
   const [newFolderName, setNewFolderName] = useState('');
   const [showAddTag, setShowAddTag] = useState(false);
   const [newTagName, setNewTagName] = useState('');
+  const [menu, setMenu] = useState<MenuState | null>(null);
+  const [editing, setEditing] = useState<{ type: string; id: string } | null>(null);
 
   const feeds = feedsData?.items ?? [];
   const folders = foldersData ?? [];
   const tags = tagsData ?? [];
 
   const handleSearch = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchQuery.trim()) {
-      setIsSearching(true);
-    }
-    if (e.key === 'Escape') {
-      setSearchQuery('');
-      setIsSearching(false);
-    }
+    if (e.key === 'Enter' && searchQuery.trim()) setIsSearching(true);
+    if (e.key === 'Escape') { setSearchQuery(''); setIsSearching(false); }
   }, [searchQuery, setIsSearching, setSearchQuery]);
+
+  const openMenu = (e: React.MouseEvent, type: MenuState['type'], id: string, name: string, extra?: Record<string, unknown>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenu({ x: e.clientX, y: e.clientY, type, id, name, extra });
+  };
 
   if (!sidebarOpen) return null;
 
   const ungroupedFeeds = feeds.filter((f) => !f.folderId);
+
+  const feedMenuItems = menu?.type === 'feed' ? [
+    { label: 'Rename', onClick: () => setEditing({ type: 'feed', id: menu.id }) },
+    ...(folders.length > 0 ? [{
+      label: menu.extra?.folderId ? 'Remove from folder' : 'Move to folder...',
+      onClick: () => {
+        if (menu.extra?.folderId) {
+          updateFeedMut.mutate({ feedId: menu.id, data: { folderId: null } });
+        } else {
+          const folderName = prompt('Move to folder:\n' + folders.map((f) => f.name).join('\n'));
+          const folder = folders.find((f) => f.name.toLowerCase() === folderName?.toLowerCase());
+          if (folder) updateFeedMut.mutate({ feedId: menu.id, data: { folderId: folder.id } });
+        }
+      },
+    }] : []),
+    { label: 'Refresh now', onClick: () => refreshFeedMut.mutate(menu.id) },
+    { label: 'Unsubscribe', onClick: () => { if (confirm(`Unsubscribe from "${menu.name}"?`)) unsubscribeMut.mutate(menu.id); }, danger: true },
+  ] : [];
+
+  const folderMenuItems = menu?.type === 'folder' ? [
+    { label: 'Rename', onClick: () => setEditing({ type: 'folder', id: menu.id }) },
+    { label: 'Delete folder', onClick: () => { if (confirm(`Delete folder "${menu.name}"? Feeds will be moved out.`)) deleteFolderMut.mutate(menu.id); }, danger: true },
+  ] : [];
+
+  const tagMenuItems = menu?.type === 'tag' ? [
+    { label: 'Rename', onClick: () => setEditing({ type: 'tag', id: menu.id }) },
+    { label: 'Delete tag', onClick: () => { if (confirm(`Delete tag "${menu.name}"?`)) deleteTagMut.mutate(menu.id); }, danger: true },
+  ] : [];
+
+  const menuItems = [...feedMenuItems, ...folderMenuItems, ...tagMenuItems];
 
   return (
     <aside className="w-64 border-r border-border bg-surface-secondary flex flex-col shrink-0 h-full overflow-hidden">
@@ -61,10 +114,7 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
           className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500"
         />
         {isSearching && (
-          <button
-            onClick={() => { setSearchQuery(''); setIsSearching(false); }}
-            className="mt-1.5 text-xs text-primary-600 hover:underline"
-          >
+          <button onClick={() => { setSearchQuery(''); setIsSearching(false); }} className="mt-1.5 text-xs text-primary-600 hover:underline">
             Clear search
           </button>
         )}
@@ -117,6 +167,18 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
                   feeds={feeds}
                   selectedFeedId={selectedFeedId}
                   onSelectFeed={selectFeed}
+                  onContextMenu={openMenu}
+                  editing={editing}
+                  onSaveEdit={async (name) => {
+                    await foldersApi.update(editing!.id, { name });
+                    qc.invalidateQueries({ queryKey: ['folders'] });
+                    setEditing(null);
+                  }}
+                  onCancelEdit={() => setEditing(null)}
+                  onSaveFeedEdit={async (feedId, name) => {
+                    updateFeedMut.mutate({ feedId, data: { customTitle: name } });
+                    setEditing(null);
+                  }}
                 />
               ))}
             </div>
@@ -131,7 +193,7 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
               <button onClick={() => setShowAddFolder(!showAddFolder)} className="text-text-tertiary hover:text-text-primary" title="New folder">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
               </button>
-              <button onClick={() => setShowAddFeed(!showAddFeed)} className="text-text-tertiary hover:text-text-primary" title="Add feed">
+              <button onClick={() => setShowAddFeed(!showAddFeed)} className="text-text-tertiary hover:text-text-primary" title="Add feed by URL">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
               </button>
             </div>
@@ -141,9 +203,7 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
             <form className="px-2 mb-2" onSubmit={(e) => {
               e.preventDefault();
               if (!newFolderName.trim()) return;
-              createFolderMut.mutate({ name: newFolderName.trim() }, {
-                onSuccess: () => { setNewFolderName(''); setShowAddFolder(false); },
-              });
+              createFolderMut.mutate({ name: newFolderName.trim() }, { onSuccess: () => { setNewFolderName(''); setShowAddFolder(false); } });
             }}>
               <input type="text" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="Folder name..." autoFocus
                 className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 mb-1.5" />
@@ -157,9 +217,7 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
             <form className="px-2 mb-2" onSubmit={(e) => {
               e.preventDefault();
               if (!newUrl.trim()) return;
-              subscribeMut.mutate({ url: newUrl.trim() }, {
-                onSuccess: () => { setNewUrl(''); setShowAddFeed(false); },
-              });
+              subscribeMut.mutate({ url: newUrl.trim() }, { onSuccess: () => { setNewUrl(''); setShowAddFeed(false); } });
             }}>
               <input type="url" value={newUrl} onChange={(e) => setNewUrl(e.target.value)} placeholder="Feed URL..." autoFocus
                 className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 mb-1.5" />
@@ -172,13 +230,19 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
 
           <div className="space-y-0.5">
             {ungroupedFeeds.map((feed) => (
-              <FeedButton key={feed.id} feed={feed} isSelected={selectedFeedId === feed.id} onClick={() => selectFeed(feed.id)} />
+              <FeedButton
+                key={feed.id}
+                feed={feed}
+                isSelected={selectedFeedId === feed.id}
+                onClick={() => selectFeed(feed.id)}
+                onContextMenu={(e) => openMenu(e, 'feed', feed.id, feed.customTitle ?? feed.title ?? feed.url, { folderId: feed.folderId })}
+                isEditing={editing?.type === 'feed' && editing.id === feed.id}
+                onSaveEdit={(name) => { updateFeedMut.mutate({ feedId: feed.id, data: { customTitle: name } }); setEditing(null); }}
+                onCancelEdit={() => setEditing(null)}
+              />
             ))}
             {feeds.length === 0 && onOpenAddSources && (
-              <button
-                onClick={onOpenAddSources}
-                className="w-full px-2.5 py-3 text-xs text-primary-600 hover:underline text-center"
-              >
+              <button onClick={onOpenAddSources} className="w-full px-2.5 py-3 text-xs text-primary-600 hover:underline text-center">
                 Browse popular sources to get started
               </button>
             )}
@@ -186,32 +250,38 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
         </div>
 
         {/* Tags */}
-        {tags.length > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between px-2.5 mb-1">
-              <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider">Tags</span>
-              <button onClick={() => setShowAddTag(!showAddTag)} className="text-text-tertiary hover:text-text-primary" title="New tag">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-              </button>
-            </div>
-            {showAddTag && (
-              <form className="px-2 mb-2" onSubmit={(e) => {
-                e.preventDefault();
-                if (!newTagName.trim()) return;
-                createTagMut.mutate({ name: newTagName.trim() }, {
-                  onSuccess: () => { setNewTagName(''); setShowAddTag(false); },
-                });
-              }}>
-                <input type="text" value={newTagName} onChange={(e) => setNewTagName(e.target.value)} placeholder="Tag name..." autoFocus
-                  className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 mb-1.5" />
-                <button type="submit" className="w-full px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700">Create Tag</button>
-              </form>
-            )}
-            <div className="flex flex-wrap gap-1.5 px-2.5">
-              {tags.map((tag) => (
+        <div className="mb-4">
+          <div className="flex items-center justify-between px-2.5 mb-1">
+            <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider">Tags</span>
+            <button onClick={() => setShowAddTag(!showAddTag)} className="text-text-tertiary hover:text-text-primary" title="New tag">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            </button>
+          </div>
+          {showAddTag && (
+            <form className="px-2 mb-2" onSubmit={(e) => {
+              e.preventDefault();
+              if (!newTagName.trim()) return;
+              createTagMut.mutate({ name: newTagName.trim() }, { onSuccess: () => { setNewTagName(''); setShowAddTag(false); } });
+            }}>
+              <input type="text" value={newTagName} onChange={(e) => setNewTagName(e.target.value)} placeholder="Tag name..." autoFocus
+                className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 mb-1.5" />
+              <button type="submit" className="w-full px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700">Create Tag</button>
+            </form>
+          )}
+          <div className="flex flex-wrap gap-1.5 px-2.5">
+            {tags.map((tag) => (
+              editing?.type === 'tag' && editing.id === tag.id ? (
+                <InlineEdit
+                  key={tag.id}
+                  value={tag.name}
+                  onSave={async (name) => { await tagsApi.update(tag.id, { name }); qc.invalidateQueries({ queryKey: ['tags'] }); setEditing(null); }}
+                  onCancel={() => setEditing(null)}
+                />
+              ) : (
                 <button
                   key={tag.id}
                   onClick={() => selectTag(tag.id)}
+                  onContextMenu={(e) => openMenu(e, 'tag', tag.id, tag.name)}
                   className={`px-2 py-0.5 text-xs rounded-full transition-colors ${
                     selectedTagId === tag.id
                       ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300'
@@ -222,10 +292,13 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
                   {tag.name}
                   {tag.articleCount > 0 && <span className="ml-1 text-text-tertiary">{tag.articleCount}</span>}
                 </button>
-              ))}
-            </div>
+              )
+            ))}
+            {tags.length === 0 && (
+              <p className="text-xs text-text-tertiary py-1">No tags yet</p>
+            )}
           </div>
-        )}
+        </div>
       </nav>
 
       {onOpenAddSources && (
@@ -241,12 +314,16 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
           </button>
         </div>
       )}
+
+      {menu && menuItems.length > 0 && (
+        <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} />
+      )}
     </aside>
   );
 }
 
 function FolderItem({
-  folder, selectedFolderId, onSelect, feeds, selectedFeedId, onSelectFeed,
+  folder, selectedFolderId, onSelect, feeds, selectedFeedId, onSelectFeed, onContextMenu, editing, onSaveEdit, onCancelEdit, onSaveFeedEdit,
 }: {
   folder: FolderWithCounts;
   selectedFolderId: string | null;
@@ -254,59 +331,89 @@ function FolderItem({
   feeds: { id: string; folderId: string | null; customTitle: string | null; title: string | null; url: string; faviconUrl: string | null; unreadCount: number }[];
   selectedFeedId: string | null;
   onSelectFeed: (id: string) => void;
+  onContextMenu: (e: React.MouseEvent, type: 'feed' | 'folder' | 'tag', id: string, name: string, extra?: Record<string, unknown>) => void;
+  editing: { type: string; id: string } | null;
+  onSaveEdit: (name: string) => void;
+  onCancelEdit: () => void;
+  onSaveFeedEdit: (feedId: string, name: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const folderFeeds = feeds.filter((f) => f.folderId === folder.id);
+  const isEditing = editing?.type === 'folder' && editing.id === folder.id;
 
   return (
     <div>
-      <div className="flex items-center">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="p-1 text-text-tertiary hover:text-text-primary"
-        >
+      <div className="flex items-center" onContextMenu={(e) => onContextMenu(e, 'folder', folder.id, folder.name)}>
+        <button onClick={() => setExpanded(!expanded)} className="p-1 text-text-tertiary hover:text-text-primary">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            className={`transition-transform ${expanded ? 'rotate-90' : ''}`}
-          >
+            className={`transition-transform ${expanded ? 'rotate-90' : ''}`}>
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
-        <button
-          onClick={() => onSelect(folder.id)}
-          className={`flex-1 flex items-center justify-between px-1.5 py-1.5 text-sm rounded truncate ${
-            selectedFolderId === folder.id
-              ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
-              : 'text-text-secondary hover:bg-surface-tertiary'
-          }`}
-        >
-          <span className="truncate">{folder.name}</span>
-          {folder.unreadCount > 0 && <span className="text-xs text-text-tertiary">{folder.unreadCount}</span>}
-        </button>
+        {isEditing ? (
+          <div className="flex-1 px-1.5">
+            <InlineEdit value={folder.name} onSave={onSaveEdit} onCancel={onCancelEdit} />
+          </div>
+        ) : (
+          <button
+            onClick={() => onSelect(folder.id)}
+            className={`flex-1 flex items-center justify-between px-1.5 py-1.5 text-sm rounded truncate ${
+              selectedFolderId === folder.id
+                ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
+                : 'text-text-secondary hover:bg-surface-tertiary'
+            }`}
+          >
+            <span className="truncate">{folder.name}</span>
+            {folder.unreadCount > 0 && <span className="text-xs text-text-tertiary">{folder.unreadCount}</span>}
+          </button>
+        )}
       </div>
       {expanded && folderFeeds.length > 0 && (
         <div className="ml-5 space-y-0.5">
           {folderFeeds.map((feed) => (
-            <FeedButton key={feed.id} feed={feed} isSelected={selectedFeedId === feed.id} onClick={() => onSelectFeed(feed.id)} />
+            <FeedButton
+              key={feed.id}
+              feed={feed}
+              isSelected={selectedFeedId === feed.id}
+              onClick={() => onSelectFeed(feed.id)}
+              onContextMenu={(e) => onContextMenu(e, 'feed', feed.id, feed.customTitle ?? feed.title ?? feed.url, { folderId: feed.folderId })}
+              isEditing={editing?.type === 'feed' && editing.id === feed.id}
+              onSaveEdit={(name) => onSaveFeedEdit(feed.id, name)}
+              onCancelEdit={onCancelEdit}
+            />
           ))}
         </div>
       )}
       {expanded && folder.children.map((child) => (
         <div key={child.id} className="ml-3">
-          <FolderItem folder={child} selectedFolderId={selectedFolderId} onSelect={onSelect} feeds={feeds} selectedFeedId={selectedFeedId} onSelectFeed={onSelectFeed} />
+          <FolderItem folder={child} selectedFolderId={selectedFolderId} onSelect={onSelect} feeds={feeds} selectedFeedId={selectedFeedId} onSelectFeed={onSelectFeed} onContextMenu={onContextMenu} editing={editing} onSaveEdit={onSaveEdit} onCancelEdit={onCancelEdit} onSaveFeedEdit={onSaveFeedEdit} />
         </div>
       ))}
     </div>
   );
 }
 
-function FeedButton({ feed, isSelected, onClick }: {
+function FeedButton({ feed, isSelected, onClick, onContextMenu, isEditing, onSaveEdit, onCancelEdit }: {
   feed: { id: string; customTitle: string | null; title: string | null; url: string; faviconUrl: string | null; unreadCount: number };
   isSelected: boolean;
   onClick: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  isEditing?: boolean;
+  onSaveEdit?: (name: string) => void;
+  onCancelEdit?: () => void;
 }) {
+  if (isEditing && onSaveEdit && onCancelEdit) {
+    return (
+      <div className="px-2.5 py-1">
+        <InlineEdit value={feed.customTitle ?? feed.title ?? ''} onSave={onSaveEdit} onCancel={onCancelEdit} />
+      </div>
+    );
+  }
+
   return (
     <button
       onClick={onClick}
+      onContextMenu={onContextMenu}
       className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-sm rounded truncate ${
         isSelected ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'
       }`}

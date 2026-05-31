@@ -26,6 +26,18 @@ export default async function feedRoutes(app: FastifyInstance) {
     return reply.status(201).send(result);
   });
 
+  app.patch('/:feedId', {
+    schema: {
+      tags: ['Feeds'],
+      summary: 'Update subscription (rename, move to folder)',
+    },
+  }, async (req, reply) => {
+    const { feedId } = req.params as { feedId: string };
+    const body = updateSubscriptionSchema.parse(req.body);
+    await feedService.updateSubscription(req.user.id, feedId, body);
+    return reply.status(204).send();
+  });
+
   app.delete('/:feedId', {
     schema: {
       tags: ['Feeds'],

@@ -55,6 +55,22 @@ export class FeedService {
     return { feed, subscription: sub };
   }
 
+  async updateSubscription(userId: string, feedId: string, data: { folderId?: string | null; customTitle?: string | null; notify?: boolean }) {
+    const db = getDb();
+    const updateData: Record<string, unknown> = {};
+    if (data.folderId !== undefined) updateData.folderId = data.folderId;
+    if (data.customTitle !== undefined) updateData.customTitle = data.customTitle;
+    if (data.notify !== undefined) updateData.notify = data.notify ? 1 : 0;
+
+    await db
+      .update(userFeedSubscriptions)
+      .set(updateData)
+      .where(and(
+        eq(userFeedSubscriptions.userId, userId),
+        eq(userFeedSubscriptions.feedId, feedId),
+      ));
+  }
+
   async unsubscribe(userId: string, feedId: string) {
     const db = getDb();
     await db

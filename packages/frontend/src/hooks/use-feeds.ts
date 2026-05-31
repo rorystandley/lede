@@ -17,6 +17,18 @@ export function useSubscribeFeed() {
   });
 }
 
+export function useUpdateFeed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ feedId, data }: { feedId: string; data: { folderId?: string | null; customTitle?: string | null } }) =>
+      feedsApi.update(feedId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['feeds'] });
+      qc.invalidateQueries({ queryKey: ['folders'] });
+    },
+  });
+}
+
 export function useUnsubscribeFeed() {
   const qc = useQueryClient();
   return useMutation({

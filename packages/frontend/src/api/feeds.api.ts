@@ -14,6 +14,9 @@ export const feedsApi = {
   subscribe: (url: string, folderId?: string, customTitle?: string) =>
     api.post<{ feed: SubscribedFeed }>('/feeds', { url, folderId, customTitle }),
 
+  update: (feedId: string, data: { folderId?: string | null; customTitle?: string | null }) =>
+    api.patch(`/feeds/${feedId}`, data),
+
   unsubscribe: (feedId: string) =>
     api.delete(`/feeds/${feedId}`),
 
