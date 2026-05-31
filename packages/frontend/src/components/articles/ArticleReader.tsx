@@ -235,7 +235,7 @@ export function ArticleReader() {
           {/* Lead image */}
           {article.imageUrl && (
             <img
-              src={article.imageUrl}
+              src={upgradeUrl(article.imageUrl)}
               alt=""
               loading="lazy"
               decoding="async"
@@ -261,8 +261,8 @@ export function ArticleReader() {
           )}
 
           <div
-            className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-text-primary prose-p:text-text-secondary prose-a:text-primary-600 prose-img:rounded-lg"
-            dangerouslySetInnerHTML={{ __html: article.contentHtml ?? article.summary ?? '' }}
+            className="article-content"
+            dangerouslySetInnerHTML={{ __html: upgradeImageUrls(article.contentHtml ?? article.summary ?? '') }}
           />
         </article>
       </div>
@@ -273,4 +273,39 @@ export function ArticleReader() {
 function tryHostname(url: string | null): string {
   if (!url) return 'the source';
   try { return new URL(url).hostname; } catch { return 'the source'; }
+}
+
+/**
+ * Upgrade image URLs to higher resolution where common CDNs use
+ * query params to serve thumbnails. We patch both src and srcset.
+ * This is a one-pass regex replacement — cheap and good enough.
+ */
+function upgradeImageUrls(html: string): string {
+  if (!html) return html;
+  return html.replace(/<img\b([^>]*)>/gi, (match, attrs) => {
+    let next = attrs as string;
+    // Strip ?w=NN&h=NN size params from src
+    next = next.replace(/(src=["'])([^"']+)(["'])/i, (_m, p, url, q) => `${p}${upgradeUrl(url)}${q}`);
+    // Drop srcset entirely so the browser picks src
+    next = next.replace(/\s+srcset=["'][^"']*["']/i, '');
+    next = next.replace(/\s+sizes=["'][^"']*["']/i, '');
+    return `<img${next}>`;
+  });
+}
+
+function upgradeUrl(url: string): string {
+  try {
+    const u = new URL(url, 'https://example.com');
+    // WordPress (TechCrunch, Wired, many blogs): drop w/h/resize/quality
+    for (const k of ['w', 'h', 'resize', 'fit', 'crop', 'quality', 'q']) u.searchParams.delete(k);
+    // Substack/CDN: /image/fetch/w_NN,c_limit/...
+    const cleaned = u.toString()
+      .replace(/\/w_\d+,?/g, '/')
+      .replace(/\/h_\d+,?/g, '/')
+      .replace(/\/c_(limit|fill|crop),?/g, '/')
+      .replace(/\/q_\d+,?/g, '/');
+    return cleaned;
+  } catch {
+    return url;
+  }
 }

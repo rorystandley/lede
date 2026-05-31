@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@news-reader/shared": "workspace:*",
+    "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query": "^5.80.0",
     "@tanstack/react-virtual": "^3.13.26",
     "react": "^19.1.0",
