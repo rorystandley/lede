@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { discoverApi, type DirectoryFeed, type DetectResult } from '../api/discover.api.js';
 import { feedsApi } from '../api/index.js';
+import { useFolders } from '../hooks/use-folders.js';
+import { FolderPicker } from '../components/shared/FolderPicker.js';
 
 interface Props {
   onClose: () => void;
@@ -14,6 +16,9 @@ export function AddSourcesPage({ onClose }: Props) {
   const [customUrl, setCustomUrl] = useState('');
   const [detected, setDetected] = useState<DetectResult | null>(null);
   const [activeTab, setActiveTab] = useState<'browse' | 'url'>('browse');
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const { data: foldersData } = useFolders();
+  const folders = foldersData ?? [];
 
   const { data: directory, isLoading } = useQuery({
     queryKey: ['feed-directory', selectedCategory, searchQuery],
@@ -24,7 +29,7 @@ export function AddSourcesPage({ onClose }: Props) {
   });
 
   const subscribeMut = useMutation({
-    mutationFn: ({ url }: { url: string }) => feedsApi.subscribe(url),
+    mutationFn: ({ url, folderId }: { url: string; folderId?: string }) => feedsApi.subscribe(url, folderId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['feeds'] });
       qc.invalidateQueries({ queryKey: ['feed-directory'] });
@@ -68,6 +73,14 @@ export function AddSourcesPage({ onClose }: Props) {
             Add by URL
           </button>
         </div>
+
+        {/* Folder picker - shared across tabs */}
+        {folders.length > 0 && (
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-surface-secondary">
+            <span className="text-xs text-text-secondary whitespace-nowrap">Add to folder:</span>
+            <FolderPicker folders={folders} value={selectedFolder} onChange={setSelectedFolder} className="flex-1 text-xs" />
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto">
           {activeTab === 'browse' ? (
@@ -118,7 +131,7 @@ export function AddSourcesPage({ onClose }: Props) {
                       key={feed.url}
                       feed={feed}
                       subscribing={subscribeMut.isPending && subscribeMut.variables?.url === feed.url}
-                      onSubscribe={() => subscribeMut.mutate({ url: feed.url })}
+                      onSubscribe={() => subscribeMut.mutate({ url: feed.url, folderId: selectedFolder ?? undefined })}
                     />
                   ))}
                   {feeds.length === 0 && (
@@ -169,7 +182,7 @@ export function AddSourcesPage({ onClose }: Props) {
                           <p className="text-xs text-text-tertiary mt-1">{detected.itemCount} articles found</p>
                         </div>
                         <button
-                          onClick={() => subscribeMut.mutate({ url: detected.url })}
+                          onClick={() => subscribeMut.mutate({ url: detected.url, folderId: selectedFolder ?? undefined })}
                           disabled={subscribeMut.isPending}
                           className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 shrink-0 ml-3"
                         >
