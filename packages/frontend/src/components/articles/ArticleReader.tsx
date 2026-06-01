@@ -33,6 +33,9 @@ export function ArticleReader() {
 
   const [tagSuggestionError, setTagSuggestionError] = useState<string | null>(null);
   const [appliedTagNames, setAppliedTagNames] = useState<Set<string>>(new Set());
+  const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(new Set());
+  const dismiss = (id: string) => setDismissedBanners((s) => new Set(s).add(id));
+  const isDismissed = (id: string) => dismissedBanners.has(id);
 
   const suggestTagsMut = useMutation({
     mutationFn: (articleId: string) => aiApi.suggestTags(articleId),
@@ -118,6 +121,7 @@ export function ArticleReader() {
     setAiSummary(null);
     setAiTags(null);
     setTagSuggestionError(null);
+    setDismissedBanners(new Set());
     setAppliedTagNames(new Set());
     setExtractAttempts(0);
     setLastExtractFailedAt(null);
@@ -229,20 +233,33 @@ export function ArticleReader() {
         </div>
 
         {/* Extraction status — one banner that morphs between states */}
-        {article.url && (isExtracting || stillThin || extractFailed) && (
-          <ExtractionBanner
-            state={
-              isExtracting ? 'loading'
-              : extractFailed ? 'error'
-              : onlyMetadata ? 'metadata'
-              : 'idle'
-            }
-            host={tryHostname(article.url)}
-            attempts={extractAttempts}
-            lastFailedAt={lastExtractFailedAt}
-            onFetch={() => triggerExtract(article.id)}
-          />
-        )}
+        {(() => {
+          if (!article.url) return null;
+          const bannerState: 'loading' | 'error' | 'metadata' | 'idle' =
+            isExtracting ? 'loading'
+            : extractFailed ? 'error'
+            : onlyMetadata ? 'metadata'
+            : 'idle';
+          // Don't render anything in pure idle if the user dismissed the offer
+          if (bannerState === 'idle' && isDismissed('extract-idle')) return null;
+          if (bannerState === 'error' && isDismissed('extract-error')) return null;
+          if (bannerState === 'metadata' && isDismissed('extract-metadata')) return null;
+          if (!(isExtracting || stillThin || extractFailed)) return null;
+          return (
+            <ExtractionBanner
+              state={bannerState}
+              host={tryHostname(article.url)}
+              attempts={extractAttempts}
+              lastFailedAt={lastExtractFailedAt}
+              onFetch={() => triggerExtract(article.id)}
+              onDismiss={
+                bannerState === 'loading'
+                  ? undefined
+                  : () => dismiss(`extract-${bannerState}`)
+              }
+            />
+          );
+        })()}
 
         {/* AI Summary Panel */}
         {aiSummary && (
@@ -257,17 +274,17 @@ export function ArticleReader() {
           </div>
         )}
 
-        {summarizeMut.isError && (
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 mb-4">
-            <p className="text-xs text-red-600 dark:text-red-400">AI summarization unavailable. Configure your AI provider in Settings.</p>
-          </div>
+        {summarizeMut.isError && !isDismissed('summary-error') && (
+          <DismissibleBanner tone="error" onDismiss={() => dismiss('summary-error')}>
+            AI summarization unavailable. Configure your AI provider in Settings.
+          </DismissibleBanner>
         )}
 
         {/* AI Tag Suggestions */}
-        {tagSuggestionError && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-lg p-3 mb-4">
-            <p className="text-xs text-red-700 dark:text-red-300">{tagSuggestionError}</p>
-          </div>
+        {tagSuggestionError && !isDismissed('tag-error') && (
+          <DismissibleBanner tone="error" onDismiss={() => dismiss('tag-error')}>
+            {tagSuggestionError}
+          </DismissibleBanner>
         )}
         {suggestTagsMut.isSuccess && aiTags !== null && aiTags.length === 0 && (
           <div className="bg-surface-tertiary rounded-lg p-3 mb-4">
@@ -429,27 +446,73 @@ function upgradeUrl(url: string): string {
  * minimum display time so fast failures still register), and error (with timestamp
  * and attempt count so retries are visible).
  */
-function ExtractionBanner({ state, host, attempts, lastFailedAt, onFetch }: {
+/** Small close (×) button used inside dismissible banners. */
+function DismissButton({ onDismiss, tone }: { onDismiss: () => void; tone: 'amber' | 'red' | 'primary' | 'neutral' }) {
+  const colour = {
+    amber: 'text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40',
+    red: 'text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40',
+    primary: 'text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/40',
+    neutral: 'text-text-secondary hover:text-text-primary hover:bg-surface-tertiary',
+  }[tone];
+  return (
+    <button
+      type="button"
+      onClick={onDismiss}
+      aria-label="Dismiss"
+      className={`p-1 rounded shrink-0 ${colour}`}
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </button>
+  );
+}
+
+/** Simple dismissible single-line banner — error / info / warning. */
+function DismissibleBanner({ children, tone, onDismiss }: {
+  children: React.ReactNode;
+  tone: 'error' | 'info' | 'warning';
+  onDismiss?: () => void;
+}) {
+  const cls = {
+    error: 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300',
+    info: 'bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300',
+    warning: 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-200',
+  }[tone];
+  const dismissTone = tone === 'error' ? 'red' : tone === 'info' ? 'primary' : 'amber';
+  return (
+    <div className={`${cls} rounded-lg p-3 mb-4 flex items-start justify-between gap-3`}>
+      <div className="text-xs flex-1">{children}</div>
+      {onDismiss && <DismissButton tone={dismissTone} onDismiss={onDismiss} />}
+    </div>
+  );
+}
+
+function ExtractionBanner({ state, host, attempts, lastFailedAt, onFetch, onDismiss }: {
   state: 'idle' | 'loading' | 'error' | 'metadata';
   host: string;
   attempts: number;
   lastFailedAt: Date | null;
   onFetch: () => void;
+  onDismiss?: () => void;
 }) {
   if (state === 'metadata') {
     return (
-      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-3 mb-4 flex items-center justify-between gap-3">
+      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-3 mb-4 flex items-start justify-between gap-3">
         <div className="text-xs text-amber-800 dark:text-amber-200 flex-1">
           We got the cover image and description from {host}, but couldn't pull the full article — the site likely requires JavaScript to render the body.
         </div>
-        <a
-          href={`https://${host}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-2.5 py-1 text-xs font-medium border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 rounded hover:bg-amber-100 dark:hover:bg-amber-900/40 shrink-0"
-        >
-          Open original
-        </a>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <a
+            href={`https://${host}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2.5 py-1 text-xs font-medium border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 rounded hover:bg-amber-100 dark:hover:bg-amber-900/40"
+          >
+            Open original
+          </a>
+          {onDismiss && <DismissButton tone="amber" onDismiss={onDismiss} />}
+        </div>
       </div>
     );
   }
@@ -484,12 +547,15 @@ function ExtractionBanner({ state, host, attempts, lastFailedAt, onFetch }: {
               The site may block scrapers or require JavaScript.
             </p>
           </div>
-          <button
-            onClick={onFetch}
-            className="px-2.5 py-1 text-xs font-medium border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/40 shrink-0"
-          >
-            Try again
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={onFetch}
+              className="px-2.5 py-1 text-xs font-medium border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/40"
+            >
+              Try again
+            </button>
+            {onDismiss && <DismissButton tone="red" onDismiss={onDismiss} />}
+          </div>
         </div>
       </div>
     );
@@ -497,16 +563,19 @@ function ExtractionBanner({ state, host, attempts, lastFailedAt, onFetch }: {
 
   // idle — feed is thin, offer to fetch
   return (
-    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-3 mb-4 flex items-center justify-between gap-3">
+    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-3 mb-4 flex items-start justify-between gap-3">
       <div className="text-xs text-amber-800 dark:text-amber-200 flex-1">
         This feed only includes a link. Want to fetch the full article from <span className="font-medium">{host}</span>?
       </div>
-      <button
-        onClick={onFetch}
-        className="px-2.5 py-1 text-xs font-medium bg-amber-600 text-white rounded hover:bg-amber-700 shrink-0"
-      >
-        Fetch
-      </button>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          onClick={onFetch}
+          className="px-2.5 py-1 text-xs font-medium bg-amber-600 text-white rounded hover:bg-amber-700"
+        >
+          Fetch
+        </button>
+        {onDismiss && <DismissButton tone="amber" onDismiss={onDismiss} />}
+      </div>
     </div>
   );
 }
