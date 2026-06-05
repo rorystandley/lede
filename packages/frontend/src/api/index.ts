@@ -9,3 +9,5 @@ export { rulesApi } from './rules.api.js';
 export { digestsApi } from './digests.api.js';
 export { aiApi } from './ai.api.js';
 export { sharingApi } from './sharing.api.js';
+export { annotationsApi } from './annotations.api.js';
+export type { Annotation } from './annotations.api.js';
