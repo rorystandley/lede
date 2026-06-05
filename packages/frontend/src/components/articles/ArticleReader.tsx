@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { aiApi, articlesApi } from '../../api/index.js';
 import { tagsApi } from '../../api/tags.api.js';
 import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
+import { AnnotatedContent } from './AnnotatedContent.js';
 
 /** Mirror of backend isThinContent — keep them in sync. */
 function isThinContent(html: string | null, text: string | null): boolean {
@@ -391,9 +392,9 @@ export function ArticleReader() {
             </div>
           )}
 
-          <div
-            className="article-content"
-            dangerouslySetInnerHTML={{ __html: upgradeImageUrls(article.contentHtml ?? article.summary ?? '') }}
+          <AnnotatedContent
+            articleId={article.id}
+            html={upgradeImageUrls(article.contentHtml ?? article.summary ?? '')}
           />
         </article>
       </div>
