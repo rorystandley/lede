@@ -395,7 +395,7 @@ function DeliverySection({ profile, profileMut }: {
   profile: { email: string; digestEmail: boolean; digestPush: boolean } | undefined;
   profileMut: { mutate: (data: Partial<{ digestEmail: boolean; digestPush: boolean }>) => void };
 }) {
-  const { data: capabilities } = useQuery({ queryKey: ['delivery-capabilities'], queryFn: deliveryApi.capabilities });
+  const { data: capabilities, isLoading: capabilitiesLoading } = useQuery({ queryKey: ['delivery-capabilities'], queryFn: deliveryApi.capabilities });
   const [pushSupported, setPushSupported] = useState(false);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
   const [subscribed, setSubscribed] = useState(false);
@@ -462,9 +462,9 @@ function DeliverySection({ profile, profileMut }: {
           <div>
             <p className="text-sm text-text-primary">Email digest</p>
             <p className="text-xs text-text-secondary mt-0.5">
-              {capabilities?.email
-                ? `Sent to ${profile?.email ?? 'your email'} each morning`
-                : 'Server has no SMTP configured'}
+              {capabilitiesLoading ? 'Checking server capabilities...'
+                : capabilities?.email ? `Sent to ${profile?.email ?? 'your email'} each morning`
+                : 'Email delivery is not configured on this server'}
             </p>
           </div>
           <button
@@ -484,7 +484,8 @@ function DeliverySection({ profile, profileMut }: {
             <p className="text-sm text-text-primary">Push notifications</p>
             <p className="text-xs text-text-secondary mt-0.5">
               {!pushSupported ? 'Not supported in this browser'
-                : !capabilities?.push ? 'Server has no VAPID keys configured'
+                : capabilitiesLoading ? 'Checking server capabilities...'
+                : !capabilities?.push ? 'Push delivery is not configured on this server'
                 : subscribed ? 'Enabled on this device'
                 : pushPermission === 'denied' ? 'Permission denied — enable in browser settings'
                 : 'Enable to get a notification when your digest is ready'}
