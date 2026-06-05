@@ -89,6 +89,7 @@ export default async function discoverRoutes(app: FastifyInstance) {
         title: parsed.title,
         description: parsed.description,
         siteUrl: parsed.siteUrl,
+        feedType: parsed.feedType,
         itemCount: parsed.items.length,
         url: body.url,
       };
