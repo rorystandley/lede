@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { registerSchema, loginSchema, refreshTokenSchema, createApiKeySchema } from '@news-reader/shared';
+import { registerSchema, loginSchema, refreshTokenSchema, createApiKeySchema } from '@lede/shared';
 import { authService } from '../services/auth.service.js';
 
 export default async function authRoutes(app: FastifyInstance) {

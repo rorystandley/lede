@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ViewMode } from '@news-reader/shared';
+import type { ViewMode } from '@lede/shared';
 
 interface UiState {
   theme: 'light' | 'dark';
@@ -62,7 +62,7 @@ export const useUiStore = create<UiState>()(
       clearFilters: () => set({ selectedFeedId: null, selectedFolderId: null, selectedTagId: null, selectedArticleId: null, focusedArticleIndex: 0, isSearching: false, searchQuery: '', showStarred: false }),
     }),
     {
-      name: 'news-reader-ui',
+      name: 'lede-ui',
       partialize: (state) => ({ theme: state.theme, viewMode: state.viewMode, sidebarOpen: state.sidebarOpen }),
     },
   ),

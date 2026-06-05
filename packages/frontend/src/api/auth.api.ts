@@ -1,5 +1,5 @@
 import { api } from './client.js';
-import type { AuthTokens, AuthUser } from '@news-reader/shared';
+import type { AuthTokens, AuthUser } from '@lede/shared';
 
 interface AuthResponse {
   user: AuthUser;

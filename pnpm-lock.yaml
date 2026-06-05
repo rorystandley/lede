@@ -44,12 +44,12 @@ importers:
       '@fastify/swagger-ui':
         specifier: ^5.0.0
         version: 5.2.6
+      '@lede/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@3.25.76)
-      '@news-reader/shared':
-        specifier: workspace:*
-        version: link:../shared
       '@sentry/node':
         specifier: ^10.55.0
         version: 10.55.0
@@ -135,7 +135,7 @@ importers:
 
   packages/frontend:
     dependencies:
-      '@news-reader/shared':
+      '@lede/shared':
         specifier: workspace:*
         version: link:../shared
       '@tailwindcss/typography':

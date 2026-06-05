@@ -3,7 +3,7 @@ import { getDb } from '../db/client.js';
 import { rules, articles, userArticleStates, feeds, userFeedSubscriptions } from '../db/schema/index.js';
 import { tagService } from './tag.service.js';
 import { getLogger } from '../lib/logger.js';
-import type { RuleCondition, RuleAction, Rule } from '@news-reader/shared';
+import type { RuleCondition, RuleAction, Rule } from '@lede/shared';
 
 export class RuleService {
   async create(userId: string, data: {

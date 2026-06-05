@@ -10,7 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ContextMenu } from '../shared/ContextMenu.js';
 import { InlineEdit } from '../shared/InlineEdit.js';
 import { FolderPicker } from '../shared/FolderPicker.js';
-import type { FolderWithCounts, FeedType } from '@news-reader/shared';
+import type { FolderWithCounts, FeedType } from '@lede/shared';
 
 interface SidebarProps { onOpenAddSources?: () => void; }
 interface MenuState { x: number; y: number; type: 'feed' | 'folder' | 'tag' | 'saved-search'; id: string; name: string; extra?: Record<string, unknown>; }

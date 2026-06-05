@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { articlesApi } from '../api/index.js';
-import type { ListArticlesQuery } from '@news-reader/shared';
+import type { ListArticlesQuery } from '@lede/shared';
 
 export function useArticles(params?: Partial<ListArticlesQuery>) {
   return useQuery({

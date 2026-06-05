@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { createFolderSchema, updateFolderSchema } from '@news-reader/shared';
+import { createFolderSchema, updateFolderSchema } from '@lede/shared';
 import { folderService } from '../services/folder.service.js';
 
 export default async function folderRoutes(app: FastifyInstance) {

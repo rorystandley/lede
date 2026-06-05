@@ -1,5 +1,5 @@
 import { api } from './client.js';
-import type { Tag, TagWithCount } from '@news-reader/shared';
+import type { Tag, TagWithCount } from '@lede/shared';
 
 export const tagsApi = {
   list: () => api.get<TagWithCount[]>('/tags'),

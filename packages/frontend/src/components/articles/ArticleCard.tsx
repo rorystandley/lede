@@ -1,4 +1,4 @@
-import type { ArticleWithState } from '@news-reader/shared';
+import type { ArticleWithState } from '@lede/shared';
 import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
 
 interface Props {

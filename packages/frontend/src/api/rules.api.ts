@@ -1,5 +1,5 @@
 import { api } from './client.js';
-import type { Rule, CreateRuleInput, UpdateRuleInput } from '@news-reader/shared';
+import type { Rule, CreateRuleInput, UpdateRuleInput } from '@lede/shared';
 
 export const rulesApi = {
   list: () => api.get<Rule[]>('/rules'),

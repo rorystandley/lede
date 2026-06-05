@@ -1,5 +1,5 @@
 import { api } from './client.js';
-import type { FolderWithCounts, Folder } from '@news-reader/shared';
+import type { FolderWithCounts, Folder } from '@lede/shared';
 
 export const foldersApi = {
   list: () => api.get<FolderWithCounts[]>('/folders'),

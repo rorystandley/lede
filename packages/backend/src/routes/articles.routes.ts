@@ -6,7 +6,7 @@ import {
   starArticleSchema,
   archiveArticleSchema,
   searchArticlesQuerySchema,
-} from '@news-reader/shared';
+} from '@lede/shared';
 import { articleService } from '../services/article.service.js';
 import { extractionService } from '../services/extraction.service.js';
 import { accessControlService } from '../services/access-control.service.js';

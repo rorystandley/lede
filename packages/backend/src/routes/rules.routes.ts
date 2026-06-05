@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { createRuleSchema, updateRuleSchema } from '@news-reader/shared';
+import { createRuleSchema, updateRuleSchema } from '@lede/shared';
 import { ruleService } from '../services/rule.service.js';
 
 export default async function rulesRoutes(app: FastifyInstance) {

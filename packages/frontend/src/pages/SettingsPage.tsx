@@ -4,7 +4,7 @@ import { userApi } from '../api/user.api.js';
 import { deliveryApi, pushApi } from '../api/push.api.js';
 import { subscribeToPush, unsubscribeFromPush, isCurrentlySubscribed, isPushSupported, getPushPermission } from '../lib/push-helper.js';
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
-import type { AIProvider } from '@news-reader/shared';
+import type { AIProvider } from '@lede/shared';
 
 interface Props {
   onClose: () => void;
@@ -58,7 +58,7 @@ export function SettingsPage({ onClose }: Props) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'news-reader-export.opml';
+      a.download = 'lede-export.opml';
       a.click();
       URL.revokeObjectURL(url);
     } catch {

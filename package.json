@@ -1,14 +1,14 @@
 {
-  "name": "news-reader",
+  "name": "lede",
   "private": true,
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
-    "db:generate": "turbo db:generate --filter=@news-reader/backend",
-    "db:migrate": "turbo db:migrate --filter=@news-reader/backend",
-    "db:seed": "turbo db:seed --filter=@news-reader/backend"
+    "db:generate": "turbo db:generate --filter=@lede/backend",
+    "db:migrate": "turbo db:migrate --filter=@lede/backend",
+    "db:seed": "turbo db:seed --filter=@lede/backend"
   },
   "devDependencies": {
     "turbo": "^2.5.0",

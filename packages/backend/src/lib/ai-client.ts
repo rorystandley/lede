@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
-import type { AIProvider } from '@news-reader/shared';
+import type { AIProvider } from '@lede/shared';
 
 export interface AIUsage {
   model: string;

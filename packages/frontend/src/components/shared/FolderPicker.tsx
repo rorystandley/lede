@@ -1,4 +1,4 @@
-import type { FolderWithCounts } from '@news-reader/shared';
+import type { FolderWithCounts } from '@lede/shared';
 
 interface Props {
   folders: FolderWithCounts[];

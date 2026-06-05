@@ -1,4 +1,4 @@
-import type { DigestContent } from '@news-reader/shared';
+import type { DigestContent } from '@lede/shared';
 
 export function renderDigestEmail(content: DigestContent, displayName: string | null, appUrl: string): { html: string; text: string; subject: string } {
   const date = new Date(content.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });

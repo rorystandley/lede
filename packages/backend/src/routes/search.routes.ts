@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { searchArticlesQuerySchema } from '@news-reader/shared';
+import { searchArticlesQuerySchema } from '@lede/shared';
 import { articleService } from '../services/article.service.js';
 import { savedSearchService } from '../services/saved-search.service.js';
 

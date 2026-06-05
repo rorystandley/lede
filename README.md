@@ -25,7 +25,7 @@ Inoreader is excellent — and expensive at scale. This is an open, self-hosted 
 ```bash
 # Clone and bootstrap
 git clone <repo>
-cd news-reader
+cd lede
 cp .env.example .env
 
 # Start Postgres + Redis

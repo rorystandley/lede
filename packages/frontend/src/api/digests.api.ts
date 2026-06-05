@@ -1,5 +1,5 @@
 import { api } from './client.js';
-import type { Digest } from '@news-reader/shared';
+import type { Digest } from '@lede/shared';
 
 export const digestsApi = {
   latest: () => api.get<Digest>('/digests/latest'),

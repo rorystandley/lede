@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { rulesApi } from '../api/index.js';
 import { useTags } from '../hooks/use-tags.js';
 import { useFeeds } from '../hooks/use-feeds.js';
-import type { RuleCondition, RuleAction, Rule } from '@news-reader/shared';
+import type { RuleCondition, RuleAction, Rule } from '@lede/shared';
 
 interface Props {
   onClose: () => void;

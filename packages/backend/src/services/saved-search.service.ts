@@ -3,7 +3,7 @@ import { getDb } from '../db/client.js';
 import { savedSearches } from '../db/schema/index.js';
 import { articleService } from './article.service.js';
 import { getLogger } from '../lib/logger.js';
-import type { SavedSearch, SearchFilters } from '@news-reader/shared';
+import type { SavedSearch, SearchFilters } from '@lede/shared';
 
 export class SavedSearchService {
   async create(userId: string, data: {

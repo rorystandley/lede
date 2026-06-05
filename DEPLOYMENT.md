@@ -26,8 +26,8 @@ sudo usermod -aG docker $USER
 ### Pull and configure
 
 ```bash
-git clone <repo> /opt/news-reader
-cd /opt/news-reader
+git clone <repo> /opt/lede
+cd /opt/lede
 cp .env.example .env
 # Edit .env — set JWT_SECRET, JWT_REFRESH_SECRET, ENCRYPTION_KEY to random strings
 openssl rand -hex 32  # use for each secret
@@ -86,7 +86,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml exec app node pa
 ### Updates
 
 ```bash
-cd /opt/news-reader
+cd /opt/lede
 git pull
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.yml -f docker-compose.prod.yml exec app node packages/backend/dist/db/migrate.js
@@ -99,7 +99,7 @@ Good for global multi-region or if you don't want to manage a VPS.
 `fly.toml`:
 
 ```toml
-app = "news-reader"
+app = "lede"
 primary_region = "lhr"
 
 [build]

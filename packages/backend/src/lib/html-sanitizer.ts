@@ -88,7 +88,7 @@ export function sanitizeArticleImageUrl(url: string | null | undefined): string 
 
   try {
     const isRelative = !/^[a-z][a-z0-9+.-]*:/i.test(value);
-    const parsed = new URL(value, 'https://news-reader.local');
+    const parsed = new URL(value, 'https://lede.local');
 
     if (isRelative || parsed.protocol === 'http:' || parsed.protocol === 'https:') {
       return value;

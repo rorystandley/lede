@@ -3,7 +3,7 @@ import { getDb } from '../db/client.js';
 import { articles, userArticleStates, feeds, userFeedSubscriptions, articleTags, tags } from '../db/schema/index.js';
 import { sanitizeArticleDisplayHtml, sanitizeArticleImageUrl } from '../lib/html-sanitizer.js';
 import { accessControlService } from './access-control.service.js';
-import type { ArticleWithState, PaginatedResult, ListArticlesQuery, SearchArticlesQuery } from '@news-reader/shared';
+import type { ArticleWithState, PaginatedResult, ListArticlesQuery, SearchArticlesQuery } from '@lede/shared';
 
 export class ArticleService {
   async list(userId: string, query: ListArticlesQuery): Promise<PaginatedResult<ArticleWithState>> {

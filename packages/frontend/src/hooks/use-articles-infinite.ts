@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { articlesApi } from '../api/index.js';
-import type { ListArticlesQuery } from '@news-reader/shared';
+import type { ListArticlesQuery } from '@lede/shared';
 
 export function useArticlesInfinite(params?: Omit<Partial<ListArticlesQuery>, 'page'>) {
   return useInfiniteQuery({

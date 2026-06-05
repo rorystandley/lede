@@ -1,5 +1,5 @@
 import { api } from './client.js';
-import type { SubscribedFeed, PaginatedResult } from '@news-reader/shared';
+import type { SubscribedFeed, PaginatedResult } from '@lede/shared';
 
 export const feedsApi = {
   list: (params?: { folderId?: string; page?: number; pageSize?: number }) => {

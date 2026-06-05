@@ -24,6 +24,6 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ user: null, accessToken: null, refreshToken: null }),
       isAuthenticated: () => !!get().accessToken,
     }),
-    { name: 'news-reader-auth' },
+    { name: 'lede-auth' },
   ),
 );

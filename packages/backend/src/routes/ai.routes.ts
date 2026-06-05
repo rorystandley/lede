@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { aiService } from '../services/ai.service.js';
 import { ResourceNotFoundError } from '../services/access-control.service.js';
-import { AI_PROVIDERS } from '@news-reader/shared';
+import { AI_PROVIDERS } from '@lede/shared';
 
 const configureAISchema = z.object({
   provider: z.enum(AI_PROVIDERS).nullable(),

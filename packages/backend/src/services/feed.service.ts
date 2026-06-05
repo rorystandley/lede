@@ -4,7 +4,7 @@ import { feeds, userFeedSubscriptions, articles, userArticleStates } from '../db
 import { parseFeed } from '../lib/feed-parser.js';
 import { articleHtmlToText, sanitizeArticleDisplayHtml, sanitizeArticleImageUrl } from '../lib/html-sanitizer.js';
 import { accessControlService, ResourceNotFoundError } from './access-control.service.js';
-import type { SubscribedFeed, PaginatedResult, FeedType } from '@news-reader/shared';
+import type { SubscribedFeed, PaginatedResult, FeedType } from '@lede/shared';
 
 function countWords(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { createTagSchema, updateTagSchema, tagArticleSchema } from '@news-reader/shared';
+import { createTagSchema, updateTagSchema, tagArticleSchema } from '@lede/shared';
 import { tagService } from '../services/tag.service.js';
 
 const applyByNameSchema = z.object({

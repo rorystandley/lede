@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { savedSearchesApi } from '../api/index.js';
-import type { CreateSavedSearchInput, UpdateSavedSearchInput } from '@news-reader/shared';
+import type { CreateSavedSearchInput, UpdateSavedSearchInput } from '@lede/shared';
 
 export function useSavedSearches() {
   return useQuery({

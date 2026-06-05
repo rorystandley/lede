@@ -21,7 +21,7 @@ export default async function opmlRoutes(app: FastifyInstance) {
     const opml = await opmlService.exportOpml(req.user.id);
     return reply
       .header('Content-Type', 'application/xml')
-      .header('Content-Disposition', 'attachment; filename="news-reader-export.opml"')
+      .header('Content-Disposition', 'attachment; filename="lede-export.opml"')
       .send(opml);
   });
 }

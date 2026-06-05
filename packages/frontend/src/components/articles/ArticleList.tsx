@@ -10,7 +10,7 @@ import { ArticleListItem } from './ArticleListItem.js';
 import { ArticleCard } from './ArticleCard.js';
 import { ArticleMagazineItem } from './ArticleMagazineItem.js';
 import { articlesApi, feedsApi } from '../../api/index.js';
-import type { ArticleWithState } from '@news-reader/shared';
+import type { ArticleWithState } from '@lede/shared';
 
 export function ArticleList() {
   const qc = useQueryClient();

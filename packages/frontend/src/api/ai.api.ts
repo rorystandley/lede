@@ -1,5 +1,5 @@
 import { api } from './client.js';
-import type { AIProvider } from '@news-reader/shared';
+import type { AIProvider } from '@lede/shared';
 
 interface AIUsageStats {
   today: { calls: number; costUsd: number };

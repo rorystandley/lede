@@ -1,5 +1,5 @@
 import { api } from './client.js';
-import type { SavedSearch, CreateSavedSearchInput, UpdateSavedSearchInput } from '@news-reader/shared';
+import type { SavedSearch, CreateSavedSearchInput, UpdateSavedSearchInput } from '@lede/shared';
 
 export const savedSearchesApi = {
   list: () => api.get<SavedSearch[]>('/search/saved'),

@@ -1,5 +1,5 @@
 import Parser from 'rss-parser';
-import type { FeedType } from '@news-reader/shared';
+import type { FeedType } from '@lede/shared';
 
 const parser = new Parser({
   timeout: 15000,

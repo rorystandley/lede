@@ -2,7 +2,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { tags, articleTags } from '../db/schema/index.js';
 import { accessControlService, ResourceNotFoundError } from './access-control.service.js';
-import type { Tag, TagWithCount, ArticleTagSource } from '@news-reader/shared';
+import type { Tag, TagWithCount, ArticleTagSource } from '@lede/shared';
 
 export class TagService {
   async create(userId: string, name: string, color?: string) {

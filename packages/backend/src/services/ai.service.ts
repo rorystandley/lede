@@ -7,7 +7,7 @@ import { aiCalls, aiTokensUsed } from '../lib/metrics.js';
 import { getConfig } from '../config.js';
 import { accessControlService, ResourceNotFoundError } from './access-control.service.js';
 import crypto from 'node:crypto';
-import type { AIProvider } from '@news-reader/shared';
+import type { AIProvider } from '@lede/shared';
 
 export class AIService {
   private async getClient(userId: string): Promise<{ client: AIClient; provider: AIProvider } | null> {

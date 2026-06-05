@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useUiStore } from '../stores/index.js';
-import type { ArticleWithState } from '@news-reader/shared';
+import type { ArticleWithState } from '@lede/shared';
 
 interface UseKeyboardNavOpts {
   articles: ArticleWithState[];

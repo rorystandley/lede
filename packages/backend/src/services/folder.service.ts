@@ -1,7 +1,7 @@
 import { eq, and, count, sql } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { folders, userFeedSubscriptions, articles, userArticleStates } from '../db/schema/index.js';
-import type { Folder, FolderWithCounts } from '@news-reader/shared';
+import type { Folder, FolderWithCounts } from '@lede/shared';
 
 export class FolderService {
   async create(userId: string, name: string, parentId?: string | null) {

@@ -4,7 +4,7 @@ import { eq, and, gt, lte } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { users, apiKeys, refreshTokens } from '../db/schema/index.js';
 import { getConfig } from '../config.js';
-import { API_KEY_PREFIX } from '@news-reader/shared';
+import { API_KEY_PREFIX } from '@lede/shared';
 
 const SALT_ROUNDS = 12;
 const REFRESH_TOKEN_BYTES = 48;

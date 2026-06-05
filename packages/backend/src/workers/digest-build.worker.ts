@@ -6,7 +6,7 @@ import { sendEmail, isEmailConfigured } from '../lib/email.js';
 import { sendPushToUser, isPushConfigured } from '../lib/push.js';
 import { renderDigestEmail } from '../lib/digest-email-template.js';
 import { getConfig } from '../config.js';
-import type { Digest, DigestContent } from '@news-reader/shared';
+import type { Digest, DigestContent } from '@lede/shared';
 
 interface DigestBuildJob {
   userId?: string;

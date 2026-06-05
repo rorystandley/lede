@@ -23,23 +23,23 @@ Redis holds BullMQ queue state. Loss is acceptable — pending jobs just don't r
 Quick and dirty for a personal deployment:
 
 ```bash
-# /etc/cron.daily/news-reader-backup
+# /etc/cron.daily/lede-backup
 #!/bin/bash
 set -e
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-BACKUP_DIR=/var/backups/news-reader
+BACKUP_DIR=/var/backups/lede
 mkdir -p "$BACKUP_DIR"
 
-docker compose -f /opt/news-reader/docker-compose.yml exec -T postgres \
+docker compose -f /opt/lede/docker-compose.yml exec -T postgres \
   pg_dump -U newsreader newsreader \
-  | gzip > "$BACKUP_DIR/news-reader-$TIMESTAMP.sql.gz"
+  | gzip > "$BACKUP_DIR/lede-$TIMESTAMP.sql.gz"
 
 # Keep 30 days
-find "$BACKUP_DIR" -name 'news-reader-*.sql.gz' -mtime +30 -delete
+find "$BACKUP_DIR" -name 'lede-*.sql.gz' -mtime +30 -delete
 ```
 
 ```bash
-sudo chmod +x /etc/cron.daily/news-reader-backup
+sudo chmod +x /etc/cron.daily/lede-backup
 ```
 
 ### Off-site backup to S3 or compatible
@@ -47,16 +47,16 @@ sudo chmod +x /etc/cron.daily/news-reader-backup
 The risk with local-only backups is the same VPS dying. Push to S3, Backblaze B2 (cheaper), or any S3-compatible store.
 
 ```bash
-# /etc/cron.daily/news-reader-backup
+# /etc/cron.daily/lede-backup
 #!/bin/bash
 set -e
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
-docker compose -f /opt/news-reader/docker-compose.yml exec -T postgres \
+docker compose -f /opt/lede/docker-compose.yml exec -T postgres \
   pg_dump -U newsreader newsreader \
   | gzip \
   | gpg --encrypt --recipient backup@yourdomain.com \
-  | aws s3 cp - s3://your-backup-bucket/news-reader/$TIMESTAMP.sql.gz.gpg
+  | aws s3 cp - s3://your-backup-bucket/lede/$TIMESTAMP.sql.gz.gpg
 ```
 
 Use `--storage-class STANDARD_IA` or `INTELLIGENT_TIERING` to cut storage costs.
@@ -68,7 +68,7 @@ Cost for ~50 MB dumps × 30 days × S3 Standard-IA = ~$0.02/mo. Backblaze B2 is 
 The pipe through `gpg --encrypt` above means the backup is encrypted at rest. You need the private key to restore. Export the public key once:
 
 ```bash
-gpg --export --armor backup@yourdomain.com > /opt/news-reader/backup-pubkey.asc
+gpg --export --armor backup@yourdomain.com > /opt/lede/backup-pubkey.asc
 ```
 
 Store the private key somewhere safe and separate (1Password, a USB stick in a drawer, etc.) — without it the backups are useless.
@@ -95,7 +95,7 @@ docker compose exec postgres psql -U newsreader -c "DROP DATABASE newsreader;"
 docker compose exec postgres psql -U newsreader -c "CREATE DATABASE newsreader;"
 
 # Restore
-gunzip -c /var/backups/news-reader/news-reader-20260101-030000.sql.gz \
+gunzip -c /var/backups/lede/lede-20260101-030000.sql.gz \
   | docker compose exec -T postgres psql -U newsreader newsreader
 
 # Restart
@@ -105,7 +105,7 @@ docker compose start app
 ### From an encrypted S3 backup
 
 ```bash
-aws s3 cp s3://your-backup-bucket/news-reader/20260101-030000.sql.gz.gpg - \
+aws s3 cp s3://your-backup-bucket/lede/20260101-030000.sql.gz.gpg - \
   | gpg --decrypt \
   | gunzip \
   | docker compose exec -T postgres psql -U newsreader newsreader
@@ -160,7 +160,7 @@ For dumps larger than a few hundred MB, parallel dump speeds things up:
 ```bash
 docker compose exec postgres pg_dump -U newsreader -j 4 -Fd newsreader -f /tmp/dump
 docker compose cp postgres:/tmp/dump ./dump
-tar czf news-reader.tar.gz dump
+tar czf lede.tar.gz dump
 ```
 
 `-Fd` (directory format) + `-j 4` runs four parallel workers. Restore with `pg_restore -j 4`.

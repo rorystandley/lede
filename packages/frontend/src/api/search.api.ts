@@ -1,5 +1,5 @@
 import { api } from './client.js';
-import type { ArticleWithState, PaginatedResult } from '@news-reader/shared';
+import type { ArticleWithState, PaginatedResult } from '@lede/shared';
 
 function toQuery(params: Record<string, unknown>): string {
   const query = new URLSearchParams();

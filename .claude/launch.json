@@ -4,7 +4,7 @@
     {
       "name": "frontend",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@news-reader/frontend", "dev", "--port", "5173"],
+      "runtimeArgs": ["--filter", "@lede/frontend", "dev", "--port", "5173"],
       "port": 5173
     }
   ]

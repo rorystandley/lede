@@ -14,17 +14,17 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS build-shared
 COPY packages/shared/ ./packages/shared/
 COPY tsconfig.base.json ./
-RUN pnpm --filter @news-reader/shared build
+RUN pnpm --filter @lede/shared build
 
 # Build frontend
 FROM build-shared AS build-frontend
 COPY packages/frontend/ ./packages/frontend/
-RUN pnpm --filter @news-reader/frontend build
+RUN pnpm --filter @lede/frontend build
 
 # Build backend
 FROM build-shared AS build-backend
 COPY packages/backend/ ./packages/backend/
-RUN pnpm --filter @news-reader/backend build
+RUN pnpm --filter @lede/backend build
 
 # Production image
 FROM base AS production

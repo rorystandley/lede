@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { digestsApi } from '../api/index.js';
-import type { DigestContent, DigestArticleSummary } from '@news-reader/shared';
+import type { DigestContent, DigestArticleSummary } from '@lede/shared';
 
 interface Props {
   onClose: () => void;

@@ -4,7 +4,7 @@ import { digests, digestArticles, articles, feeds, userFeedSubscriptions, userAr
 import { getLogger } from '../lib/logger.js';
 import { digestsBuilt } from '../lib/metrics.js';
 import { aiService } from './ai.service.js';
-import type { Digest, DigestContent, DigestSection } from '@news-reader/shared';
+import type { Digest, DigestContent, DigestSection } from '@lede/shared';
 
 export class DigestService {
   async buildDigest(userId: string): Promise<Digest> {

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { subscribeFeedSchema, updateSubscriptionSchema, listFeedsQuerySchema } from '@news-reader/shared';
+import { subscribeFeedSchema, updateSubscriptionSchema, listFeedsQuerySchema } from '@lede/shared';
 import { feedService } from '../services/feed.service.js';
 
 export default async function feedRoutes(app: FastifyInstance) {
