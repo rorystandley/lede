@@ -244,7 +244,7 @@ export class ArticleService {
         isRead: sql<boolean>`coalesce(${userArticleStates.isRead}, false)`,
         isStarred: sql<boolean>`coalesce(${userArticleStates.isStarred}, false)`,
         isArchived: sql<boolean>`coalesce(${userArticleStates.isArchived}, false)`,
-        rank: sql<number>`ts_rank(to_tsvector('english', coalesce(${articles.title}, '') || ' ' || coalesce(${articles.contentText}, '')), to_tsquery('english', ${tsQuery}))`,
+        rank: sql<number>`ts_rank(to_tsvector('english', coalesce(${articles.title}, '') || ' ' || coalesce(${articles.contentText}, '')), to_tsquery('english', ${tsQuery}))`.as('search_rank'),
       })
       .from(articles)
       .innerJoin(feeds, eq(feeds.id, articles.feedId))
@@ -259,7 +259,7 @@ export class ArticleService {
         inArray(articles.feedId, subscribedFeeds),
         sql`to_tsvector('english', coalesce(${articles.title}, '') || ' ' || coalesce(${articles.contentText}, '')) @@ to_tsquery('english', ${tsQuery})`,
       ))
-      .orderBy(sql`rank DESC`)
+      .orderBy(sql`search_rank DESC`)
       .limit(pageSize)
       .offset(offset);
 
