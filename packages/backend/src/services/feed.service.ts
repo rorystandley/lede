@@ -55,7 +55,7 @@ export class FeedService {
     return { feed, subscription: sub };
   }
 
-  async updateSubscription(userId: string, feedId: string, data: { folderId?: string | null; customTitle?: string | null; notify?: boolean }) {
+  async updateSubscription(userId: string, feedId: string, data: { folderId?: string | null; customTitle?: string | null; notify?: boolean; refreshInterval?: number }) {
     const db = getDb();
     const updateData: Record<string, unknown> = {};
     if (data.folderId !== undefined) updateData.folderId = data.folderId;
@@ -69,6 +69,13 @@ export class FeedService {
         eq(userFeedSubscriptions.userId, userId),
         eq(userFeedSubscriptions.feedId, feedId),
       ));
+
+    if (data.refreshInterval !== undefined) {
+      await db
+        .update(feeds)
+        .set({ refreshInterval: data.refreshInterval, updatedAt: new Date() })
+        .where(eq(feeds.id, feedId));
+    }
   }
 
   async unsubscribe(userId: string, feedId: string) {

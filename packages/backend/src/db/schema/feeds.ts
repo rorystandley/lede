@@ -13,7 +13,7 @@ export const feeds = pgTable('feeds', {
   lastFetchedAt: timestamp('last_fetched_at', { withTimezone: true }),
   lastError: text('last_error'),
   errorCount: integer('error_count').notNull().default(0),
-  refreshInterval: integer('refresh_interval').notNull().default(3600),
+  refreshInterval: integer('refresh_interval').notNull().default(60),
   etag: varchar('etag', { length: 255 }),
   lastModified: varchar('last_modified', { length: 255 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
