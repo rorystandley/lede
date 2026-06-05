@@ -36,7 +36,12 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
     if (refreshed) {
       headers['Authorization'] = `Bearer ${useAuthStore.getState().accessToken}`;
       const retry = await fetch(`${BASE_URL}${path}`, { ...opts, headers });
-      if (!retry.ok) throw new ApiError(retry.status, await retry.text());
+      if (!retry.ok) {
+        const retryText = await retry.text();
+        let retryMsg = retryText;
+        try { const j = JSON.parse(retryText); if (j.message) retryMsg = j.message; } catch { /* not JSON */ }
+        throw new ApiError(retry.status, retryMsg);
+      }
       if (retry.status === 204) return undefined as T;
       return retry.json();
     }
@@ -46,7 +51,12 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 
   if (!res.ok) {
     const text = await res.text();
-    throw new ApiError(res.status, text);
+    let message = text;
+    try {
+      const json = JSON.parse(text);
+      if (json.message) message = json.message;
+    } catch { /* response wasn't JSON, use raw text */ }
+    throw new ApiError(res.status, message);
   }
 
   if (res.status === 204) return undefined as T;

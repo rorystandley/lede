@@ -8,18 +8,26 @@ import { API_KEY_PREFIX } from '@news-reader/shared';
 
 const SALT_ROUNDS = 12;
 
+class HttpError extends Error {
+  statusCode: number;
+  constructor(statusCode: number, message: string) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
+
 export class AuthService {
   async register(email: string, password: string, displayName?: string) {
     const config = getConfig();
     if (config.REGISTRATION_MODE === 'invite') {
-      throw new Error('Registration is invite-only');
+      throw new HttpError(403, 'Registration is invite-only');
     }
 
     const db = getDb();
     const existing = await db.query.users.findFirst({
       where: (u, { eq }) => eq(u.email, email),
     });
-    if (existing) throw new Error('Email already registered');
+    if (existing) throw new HttpError(409, 'Email already registered');
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     const [user] = await db.insert(users).values({
@@ -36,10 +44,10 @@ export class AuthService {
     const user = await db.query.users.findFirst({
       where: (u, { eq }) => eq(u.email, email),
     });
-    if (!user) throw new Error('Invalid credentials');
+    if (!user) throw new HttpError(401, 'Invalid credentials');
 
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) throw new Error('Invalid credentials');
+    if (!valid) throw new HttpError(401, 'Invalid credentials');
 
     return { id: user.id, email: user.email };
   }
