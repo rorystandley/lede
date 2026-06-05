@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config({ path: '../../.env' });
 import { loadConfig, getConfig } from './config.js';
 import { setupRecurringJobs, closeQueues } from './queues/index.js';
 import { createFeedRefreshWorker } from './workers/feed-refresh.worker.js';
