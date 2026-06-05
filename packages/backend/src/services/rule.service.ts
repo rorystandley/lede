@@ -89,7 +89,7 @@ export class RuleService {
 
       if (ruleMatches) {
         logger.info({ ruleId: rule.id, articleId, ruleName: rule.name }, 'Rule matched');
-        await this.executeActions(userId, articleId, actions);
+        await this.executeActions(userId, articleId, actions, rule.id);
         await db.update(rules).set({
           runCount: rule.runCount + 1,
           lastRunAt: new Date(),
@@ -148,7 +148,7 @@ export class RuleService {
     }
   }
 
-  private async executeActions(userId: string, articleId: string, actions: RuleAction[]) {
+  private async executeActions(userId: string, articleId: string, actions: RuleAction[], ruleId: string) {
     const db = getDb();
 
     for (const action of actions) {
@@ -187,17 +187,75 @@ export class RuleService {
           break;
         case 'webhook':
           if (action.url) {
-            try {
-              await fetch(action.url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ articleId, userId, action: 'rule_match' }),
-              });
-            } catch { /* webhook failures are non-fatal */ }
+            await this.executeWebhook(action.url, { articleId, userId, action: 'rule_match' }, ruleId);
           }
           break;
       }
     }
+  }
+
+  /** Strip query params from a URL so secrets are not logged. */
+  private sanitizeUrl(url: string): string {
+    try {
+      const parsed = new URL(url);
+      parsed.search = '';
+      return parsed.toString();
+    } catch {
+      return '<invalid-url>';
+    }
+  }
+
+  /**
+   * Fire a webhook with a 10-second timeout and up to 2 retries
+   * (exponential backoff: 1 s, then 4 s).
+   */
+  private async executeWebhook(url: string, payload: Record<string, unknown>, ruleId: string) {
+    const logger = getLogger();
+    const maxAttempts = 3;
+    const backoffMs = [1_000, 4_000]; // delays before retry 2 and 3
+    const sanitizedUrl = this.sanitizeUrl(url);
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(10_000),
+        });
+
+        if (res.ok) {
+          logger.debug({ ruleId, url: sanitizedUrl, status: res.status, attempt }, 'Webhook delivered');
+          return;
+        }
+
+        // Non-2xx — treat as a retriable failure
+        if (attempt < maxAttempts) {
+          logger.debug({ ruleId, url: sanitizedUrl, status: res.status, attempt }, 'Webhook returned non-2xx, retrying');
+          await this.sleep(backoffMs[attempt - 1]);
+        } else {
+          logger.warn(
+            { ruleId, url: sanitizedUrl, status: res.status, attempt },
+            `Webhook failed after ${maxAttempts} attempts: HTTP ${res.status}`,
+          );
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (attempt < maxAttempts) {
+          logger.debug({ ruleId, url: sanitizedUrl, error: message, attempt }, 'Webhook request error, retrying');
+          await this.sleep(backoffMs[attempt - 1]);
+        } else {
+          logger.warn(
+            { ruleId, url: sanitizedUrl, error: message, attempt },
+            `Webhook failed after ${maxAttempts} attempts: ${message}`,
+          );
+        }
+      }
+    }
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private toRule(row: typeof rules.$inferSelect): Rule {
