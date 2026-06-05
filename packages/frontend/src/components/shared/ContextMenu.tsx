@@ -1,10 +1,18 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+interface SubItem {
+  label: string;
+  value: string | number;
+  active?: boolean;
+}
 
 interface MenuItem {
   label: string;
   onClick: () => void;
   danger?: boolean;
   icon?: React.ReactNode;
+  children?: SubItem[];
+  onChildClick?: (value: string | number) => void;
 }
 
 interface Props {
@@ -16,6 +24,7 @@ interface Props {
 
 export function ContextMenu({ x, y, items, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -43,14 +52,41 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
   return (
     <div ref={ref} style={style} className="w-44 bg-surface border border-border rounded-lg shadow-lg py-1 animate-in fade-in">
       {items.map((item, i) => (
-        <button
-          key={i}
-          onClick={() => { item.onClick(); onClose(); }}
-          className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left hover:bg-surface-tertiary ${item.danger ? 'text-red-500 hover:text-red-600' : 'text-text-primary'}`}
-        >
-          {item.icon}
-          {item.label}
-        </button>
+        <div key={i}>
+          <button
+            onClick={() => {
+              if (item.children) {
+                setExpandedIndex(expandedIndex === i ? null : i);
+              } else {
+                item.onClick();
+                onClose();
+              }
+            }}
+            className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left hover:bg-surface-tertiary ${item.danger ? 'text-red-500 hover:text-red-600' : 'text-text-primary'}`}
+          >
+            {item.icon}
+            <span className="flex-1">{item.label}</span>
+            {item.children && (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${expandedIndex === i ? 'rotate-90' : ''}`}><polyline points="9 18 15 12 9 6" /></svg>
+            )}
+          </button>
+          {item.children && expandedIndex === i && (
+            <div className="py-0.5 bg-surface-secondary">
+              {item.children.map((child) => (
+                <button
+                  key={child.value}
+                  onClick={() => { item.onChildClick?.(child.value); onClose(); }}
+                  className={`w-full flex items-center gap-2 px-5 py-1 text-xs text-left hover:bg-surface-tertiary ${child.active ? 'text-primary-600 font-medium' : 'text-text-secondary'}`}
+                >
+                  {child.active && (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>
+                  )}
+                  {child.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       ))}
     </div>
   );

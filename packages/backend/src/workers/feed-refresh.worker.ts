@@ -1,5 +1,5 @@
 import { Worker, type Job } from 'bullmq';
-import { eq, lt, or, isNull } from 'drizzle-orm';
+import { eq, or, isNull, sql } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { feeds } from '../db/schema/index.js';
 import { feedService } from '../services/feed.service.js';
@@ -45,17 +45,14 @@ export function createFeedRefreshWorker() {
       }
 
       const db = getDb();
-      const now = new Date();
+      const DEFAULT_REFRESH_MINUTES = 60;
       const staleFeeds = await db
         .select({ id: feeds.id, refreshInterval: feeds.refreshInterval })
         .from(feeds)
         .where(
           or(
             isNull(feeds.lastFetchedAt),
-            lt(
-              feeds.lastFetchedAt,
-              new Date(now.getTime() - 3600 * 1000),
-            ),
+            sql`${feeds.lastFetchedAt} < now() - make_interval(mins => COALESCE(NULLIF(${feeds.refreshInterval}, 0), ${DEFAULT_REFRESH_MINUTES}))`,
           ),
         );
 

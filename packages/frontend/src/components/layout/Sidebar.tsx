@@ -61,12 +61,30 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
   if (!sidebarOpen) return null;
   const ungroupedFeeds = feeds.filter((f) => !f.folderId);
 
+  const refreshIntervalOptions = [
+    { label: '15 minutes', value: 15 },
+    { label: '30 minutes', value: 30 },
+    { label: '1 hour', value: 60 },
+    { label: '2 hours', value: 120 },
+    { label: '6 hours', value: 360 },
+    { label: '12 hours', value: 720 },
+    { label: '24 hours', value: 1440 },
+  ];
+
+  const currentRefreshInterval = menu?.type === 'feed' ? (menu.extra?.refreshInterval as number | undefined) : undefined;
+
   const feedMenuItems = menu?.type === 'feed' ? [
     { label: 'Rename', onClick: () => setEditing({ type: 'feed', id: menu.id }) },
     ...(folders.length > 0 ? [{ label: menu.extra?.folderId ? 'Remove from folder' : 'Move to folder...', onClick: () => {
       if (menu.extra?.folderId) { updateFeedMut.mutate({ feedId: menu.id, data: { folderId: null } }); }
       else { const n = prompt('Move to folder:\n' + folders.map(f => f.name).join('\n')); const f = folders.find(f => f.name.toLowerCase() === n?.toLowerCase()); if (f) updateFeedMut.mutate({ feedId: menu.id, data: { folderId: f.id } }); }
     }}] : []),
+    {
+      label: 'Refresh interval',
+      onClick: () => {},
+      children: refreshIntervalOptions.map((opt) => ({ ...opt, active: currentRefreshInterval === opt.value })),
+      onChildClick: (value: string | number) => { updateFeedMut.mutate({ feedId: menu.id, data: { refreshInterval: value as number } }); },
+    },
     { label: 'Refresh now', onClick: () => refreshFeedMut.mutate(menu.id) },
     { label: 'Unsubscribe', onClick: () => { if (confirm(`Unsubscribe from "${menu.name}"?`)) unsubscribeMut.mutate(menu.id); }, danger: true },
   ] : [];
@@ -146,7 +164,7 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
             className={`space-y-0.5 min-h-[24px] rounded transition-colors ${dragOverFolder === '__none__' ? 'bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-300' : ''}`}>
             {ungroupedFeeds.map((feed) => (
               <FeedButton key={feed.id} feed={feed} isSelected={selectedFeedId === feed.id} onClick={() => selectFeed(feed.id)}
-                onContextMenu={(e) => openMenu(e, 'feed', feed.id, feed.customTitle ?? feed.title ?? feed.url, { folderId: feed.folderId })}
+                onContextMenu={(e) => openMenu(e, 'feed', feed.id, feed.customTitle ?? feed.title ?? feed.url, { folderId: feed.folderId, refreshInterval: feed.refreshInterval })}
                 isEditing={editing?.type === 'feed' && editing.id === feed.id} onSaveEdit={(name) => { updateFeedMut.mutate({ feedId: feed.id, data: { customTitle: name } }); setEditing(null); }} onCancelEdit={() => setEditing(null)} draggable />
             ))}
             {feeds.length === 0 && onOpenAddSources && <button onClick={onOpenAddSources} className="w-full px-2.5 py-3 text-xs text-primary-600 hover:underline text-center">Browse popular sources to get started</button>}
@@ -194,7 +212,7 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
 
 function FolderItem({ folder, selectedFolderId, onSelect, feeds, selectedFeedId, onSelectFeed, onContextMenu, editing, onSaveEdit, onCancelEdit, onSaveFeedEdit, onDropFeed, dragOverFolder, setDragOverFolder }: {
   folder: FolderWithCounts; selectedFolderId: string | null; onSelect: (id: string) => void;
-  feeds: { id: string; folderId: string | null; customTitle: string | null; title: string | null; url: string; faviconUrl: string | null; unreadCount: number }[];
+  feeds: { id: string; folderId: string | null; customTitle: string | null; title: string | null; url: string; faviconUrl: string | null; unreadCount: number; refreshInterval: number }[];
   selectedFeedId: string | null; onSelectFeed: (id: string) => void;
   onContextMenu: (e: React.MouseEvent, type: 'feed' | 'folder' | 'tag', id: string, name: string, extra?: Record<string, unknown>) => void;
   editing: { type: string; id: string } | null; onSaveEdit: (name: string) => void; onCancelEdit: () => void; onSaveFeedEdit: (feedId: string, name: string) => void;
@@ -223,7 +241,7 @@ function FolderItem({ folder, selectedFolderId, onSelect, feeds, selectedFeedId,
       </div>
       {expanded && <div className="ml-5 space-y-0.5 min-h-[4px]">
         {folderFeeds.map((feed) => <FeedButton key={feed.id} feed={feed} isSelected={selectedFeedId === feed.id} onClick={() => onSelectFeed(feed.id)}
-          onContextMenu={(e) => onContextMenu(e, 'feed', feed.id, feed.customTitle ?? feed.title ?? feed.url, { folderId: feed.folderId })}
+          onContextMenu={(e) => onContextMenu(e, 'feed', feed.id, feed.customTitle ?? feed.title ?? feed.url, { folderId: feed.folderId, refreshInterval: feed.refreshInterval })}
           isEditing={editing?.type === 'feed' && editing.id === feed.id} onSaveEdit={(name) => onSaveFeedEdit(feed.id, name)} onCancelEdit={onCancelEdit} draggable />)}
       </div>}
       {expanded && folder.children.map((child) => <div key={child.id} className="ml-3">

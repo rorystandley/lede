@@ -20,7 +20,7 @@ export function useSubscribeFeed() {
 export function useUpdateFeed() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ feedId, data }: { feedId: string; data: { folderId?: string | null; customTitle?: string | null } }) =>
+    mutationFn: ({ feedId, data }: { feedId: string; data: { folderId?: string | null; customTitle?: string | null; refreshInterval?: number } }) =>
       feedsApi.update(feedId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['feeds'] });

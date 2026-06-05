@@ -10,6 +10,7 @@ export const updateSubscriptionSchema = z.object({
   folderId: z.string().uuid().nullable().optional(),
   customTitle: z.string().max(500).nullable().optional(),
   notify: z.boolean().optional(),
+  refreshInterval: z.number().int().min(1).optional(),
 });
 
 export const listFeedsQuerySchema = z.object({
