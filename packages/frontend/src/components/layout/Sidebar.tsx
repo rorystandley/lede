@@ -9,7 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ContextMenu } from '../shared/ContextMenu.js';
 import { InlineEdit } from '../shared/InlineEdit.js';
 import { FolderPicker } from '../shared/FolderPicker.js';
-import type { FolderWithCounts } from '@news-reader/shared';
+import type { FolderWithCounts, FeedType } from '@news-reader/shared';
 
 interface SidebarProps { onOpenAddSources?: () => void; }
 interface MenuState { x: number; y: number; type: 'feed' | 'folder' | 'tag'; id: string; name: string; extra?: Record<string, unknown>; }
@@ -194,7 +194,7 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
 
 function FolderItem({ folder, selectedFolderId, onSelect, feeds, selectedFeedId, onSelectFeed, onContextMenu, editing, onSaveEdit, onCancelEdit, onSaveFeedEdit, onDropFeed, dragOverFolder, setDragOverFolder }: {
   folder: FolderWithCounts; selectedFolderId: string | null; onSelect: (id: string) => void;
-  feeds: { id: string; folderId: string | null; customTitle: string | null; title: string | null; url: string; faviconUrl: string | null; unreadCount: number }[];
+  feeds: { id: string; folderId: string | null; customTitle: string | null; title: string | null; url: string; faviconUrl: string | null; feedType: FeedType; unreadCount: number }[];
   selectedFeedId: string | null; onSelectFeed: (id: string) => void;
   onContextMenu: (e: React.MouseEvent, type: 'feed' | 'folder' | 'tag', id: string, name: string, extra?: Record<string, unknown>) => void;
   editing: { type: string; id: string } | null; onSaveEdit: (name: string) => void; onCancelEdit: () => void; onSaveFeedEdit: (feedId: string, name: string) => void;
@@ -233,8 +233,10 @@ function FolderItem({ folder, selectedFolderId, onSelect, feeds, selectedFeedId,
   );
 }
 
+const FEED_TYPE_LABELS: Record<FeedType, string> = { rss: 'RSS', atom: 'Atom', json: 'JSON', newsletter: 'Newsletter', web_monitor: 'Monitor' };
+
 function FeedButton({ feed, isSelected, onClick, onContextMenu, isEditing, onSaveEdit, onCancelEdit, draggable }: {
-  feed: { id: string; customTitle: string | null; title: string | null; url: string; faviconUrl: string | null; unreadCount: number };
+  feed: { id: string; customTitle: string | null; title: string | null; url: string; faviconUrl: string | null; feedType: FeedType; unreadCount: number };
   isSelected: boolean; onClick: () => void; onContextMenu?: (e: React.MouseEvent) => void;
   isEditing?: boolean; onSaveEdit?: (name: string) => void; onCancelEdit?: () => void; draggable?: boolean;
 }) {
@@ -242,9 +244,11 @@ function FeedButton({ feed, isSelected, onClick, onContextMenu, isEditing, onSav
   return (
     <button onClick={onClick} onContextMenu={onContextMenu} draggable={draggable}
       onDragStart={(e) => { e.dataTransfer.setData('feedId', feed.id); e.dataTransfer.effectAllowed = 'move'; }}
-      className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-sm rounded truncate ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${isSelected ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}>
+      className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-sm rounded truncate ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${isSelected ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}
+      title={`${feed.customTitle ?? feed.title ?? feed.url} (${FEED_TYPE_LABELS[feed.feedType]})`}>
       {feed.faviconUrl ? <img src={feed.faviconUrl} alt="" className="w-4 h-4 rounded" /> : <span className="w-4 h-4 rounded bg-primary-100 dark:bg-primary-800 flex items-center justify-center text-[10px] text-primary-600">{(feed.customTitle ?? feed.title ?? 'F')[0]}</span>}
       <span className="truncate flex-1 text-left">{feed.customTitle ?? feed.title ?? feed.url}</span>
+      {feed.feedType !== 'rss' && <span className="shrink-0 px-1 py-px text-[9px] font-medium uppercase leading-tight rounded bg-surface-tertiary text-text-tertiary">{FEED_TYPE_LABELS[feed.feedType]}</span>}
       {feed.unreadCount > 0 && <span className="text-xs text-text-tertiary">{feed.unreadCount}</span>}
     </button>
   );

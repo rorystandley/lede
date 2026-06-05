@@ -25,7 +25,7 @@ export class FeedService {
         title: parsed.title,
         description: parsed.description,
         siteUrl: parsed.siteUrl,
-        feedType: 'rss',
+        feedType: parsed.feedType,
       }).returning();
 
       if (parsed.items.length > 0) {
@@ -144,6 +144,7 @@ export class FeedService {
         title: parsed.title ?? feed.title,
         description: parsed.description ?? feed.description,
         siteUrl: parsed.siteUrl ?? feed.siteUrl,
+        feedType: parsed.feedType,
         lastFetchedAt: new Date(),
         lastError: null,
         errorCount: 0,
