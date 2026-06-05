@@ -3,6 +3,7 @@ import { getDb } from '../db/client.js';
 import { digests, digestArticles, articles, feeds, userFeedSubscriptions, userArticleStates, folders, users } from '../db/schema/index.js';
 import { getLogger } from '../lib/logger.js';
 import { digestsBuilt } from '../lib/metrics.js';
+import { aiService } from './ai.service.js';
 import type { Digest, DigestContent, DigestSection } from '@news-reader/shared';
 
 export class DigestService {
@@ -77,9 +78,23 @@ export class DigestService {
 
     const totalWords = unreadArticles.reduce((sum, r) => sum + r.article.wordCount, 0);
 
+    // Generate AI briefing if the user has an AI provider configured
+    let briefing: string | null = null;
+    if (unreadArticles.length > 0) {
+      try {
+        const articleData = unreadArticles.map((r) => ({
+          title: r.article.title ?? 'Untitled',
+          summary: r.article.summary?.slice(0, 300) ?? '',
+        }));
+        briefing = await aiService.generateBriefing(userId, articleData);
+      } catch (err) {
+        logger.warn({ userId, error: err }, 'AI briefing generation failed, skipping');
+      }
+    }
+
     const content: DigestContent = {
       date: new Date().toISOString().split('T')[0],
-      briefing: null,
+      briefing,
       sections: Array.from(sectionMap.values()),
       stats: {
         totalArticles: unreadArticles.length,
