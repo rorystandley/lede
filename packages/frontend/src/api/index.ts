@@ -8,3 +8,4 @@ export { opmlApi } from './opml.api.js';
 export { rulesApi } from './rules.api.js';
 export { digestsApi } from './digests.api.js';
 export { aiApi } from './ai.api.js';
+export { savedSearchesApi } from './saved-searches.api.js';

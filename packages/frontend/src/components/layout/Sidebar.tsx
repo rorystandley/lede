@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useFeeds, useSubscribeFeed, useUnsubscribeFeed, useUpdateFeed, useRefreshFeed } from '../../hooks/use-feeds.js';
 import { useFolders, useCreateFolder, useDeleteFolder } from '../../hooks/use-folders.js';
 import { useTags, useCreateTag, useDeleteTag } from '../../hooks/use-tags.js';
+import { useSavedSearches, useCreateSavedSearch, useUpdateSavedSearch, useDeleteSavedSearch } from '../../hooks/use-saved-searches.js';
 import { useUiStore } from '../../stores/index.js';
 import { foldersApi } from '../../api/folders.api.js';
 import { tagsApi } from '../../api/tags.api.js';
@@ -12,7 +13,7 @@ import { FolderPicker } from '../shared/FolderPicker.js';
 import type { FolderWithCounts } from '@news-reader/shared';
 
 interface SidebarProps { onOpenAddSources?: () => void; }
-interface MenuState { x: number; y: number; type: 'feed' | 'folder' | 'tag'; id: string; name: string; extra?: Record<string, unknown>; }
+interface MenuState { x: number; y: number; type: 'feed' | 'folder' | 'tag' | 'saved-search'; id: string; name: string; extra?: Record<string, unknown>; }
 
 export function Sidebar({ onOpenAddSources }: SidebarProps) {
   const { sidebarOpen, selectedFeedId, selectedFolderId, selectedTagId, showStarred, selectFeed, selectFolder, selectTag, setShowStarred, searchQuery, setSearchQuery, isSearching, setIsSearching, clearFilters } = useUiStore();
@@ -28,6 +29,10 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
   const deleteFolderMut = useDeleteFolder();
   const createTagMut = useCreateTag();
   const deleteTagMut = useDeleteTag();
+  const { data: savedSearchesData } = useSavedSearches();
+  const createSavedSearchMut = useCreateSavedSearch();
+  const updateSavedSearchMut = useUpdateSavedSearch();
+  const deleteSavedSearchMut = useDeleteSavedSearch();
 
   const [showAddFeed, setShowAddFeed] = useState(false);
   const [newUrl, setNewUrl] = useState('');
@@ -43,11 +48,24 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
   const feeds = feedsData?.items ?? [];
   const folders = foldersData ?? [];
   const tags = tagsData ?? [];
+  const savedSearches = savedSearchesData ?? [];
 
   const handleSearch = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) setIsSearching(true);
     if (e.key === 'Escape') { setSearchQuery(''); setIsSearching(false); }
   }, [searchQuery, setIsSearching, setSearchQuery]);
+
+  const handleSaveSearch = useCallback(() => {
+    if (!searchQuery.trim()) return;
+    const name = prompt('Name for this saved search:', searchQuery.trim());
+    if (!name) return;
+    createSavedSearchMut.mutate({ name, query: searchQuery.trim() });
+  }, [searchQuery, createSavedSearchMut]);
+
+  const handleExecuteSavedSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    setIsSearching(true);
+  }, [setSearchQuery, setIsSearching]);
 
   const openMenu = (e: React.MouseEvent, type: MenuState['type'], id: string, name: string, extra?: Record<string, unknown>) => {
     e.preventDefault(); e.stopPropagation(); setMenu({ x: e.clientX, y: e.clientY, type, id, name, extra });
@@ -78,14 +96,31 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
     { label: 'Rename', onClick: () => setEditing({ type: 'tag', id: menu.id }) },
     { label: 'Delete tag', onClick: () => { if (confirm(`Delete "${menu.name}"?`)) deleteTagMut.mutate(menu.id); }, danger: true },
   ] : [];
-  const menuItems = [...feedMenuItems, ...folderMenuItems, ...tagMenuItems];
+  const savedSearchMenuItems = menu?.type === 'saved-search' ? [
+    { label: menu.extra?.isMonitor ? 'Disable monitor' : 'Enable monitor', onClick: () => updateSavedSearchMut.mutate({ id: menu.id, data: { isMonitor: !menu.extra?.isMonitor } }) },
+    { label: 'Delete saved search', onClick: () => { if (confirm(`Delete "${menu.name}"?`)) deleteSavedSearchMut.mutate(menu.id); }, danger: true },
+  ] : [];
+  const menuItems = [...feedMenuItems, ...folderMenuItems, ...tagMenuItems, ...savedSearchMenuItems];
 
   return (
     <aside className="w-64 border-r border-border bg-surface-secondary flex flex-col shrink-0 h-full overflow-hidden">
       <div className="p-3 border-b border-border">
         <input data-search-input type="text" placeholder="Search... (press /)" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleSearch}
           className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500" />
-        {isSearching && <button onClick={() => { setSearchQuery(''); setIsSearching(false); }} className="mt-1.5 text-xs text-primary-600 hover:underline">Clear search</button>}
+        {isSearching && (
+          <div className="mt-1.5 flex items-center gap-2">
+            <button onClick={() => { setSearchQuery(''); setIsSearching(false); }} className="text-xs text-primary-600 hover:underline">Clear search</button>
+            <button
+              onClick={handleSaveSearch}
+              disabled={createSavedSearchMut.isPending}
+              className="flex items-center gap-1 text-xs text-text-secondary hover:text-primary-600"
+              title="Save this search"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
+              {createSavedSearchMut.isPending ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        )}
       </div>
 
       <nav className="flex-1 overflow-y-auto p-2">
@@ -99,6 +134,31 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill={showStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>Starred
           </button>
         </div>
+
+        {/* Saved Searches */}
+        {savedSearches.length > 0 && (
+          <div className="mb-4">
+            <div className="px-2.5 mb-1"><span className="text-xs font-medium text-text-tertiary uppercase tracking-wider">Saved Searches</span></div>
+            <div className="space-y-0.5">
+              {savedSearches.map((ss) => (
+                <button
+                  key={ss.id}
+                  onClick={() => handleExecuteSavedSearch(ss.query)}
+                  onContextMenu={(e) => openMenu(e, 'saved-search', ss.id, ss.name, { isMonitor: ss.isMonitor })}
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-sm rounded truncate ${isSearching && searchQuery === ss.query ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                  <span className="truncate flex-1 text-left">{ss.name}</span>
+                  {ss.isMonitor && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-primary-500" title="Monitored">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Folders */}
         {folders.length > 0 && (
