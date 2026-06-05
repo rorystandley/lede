@@ -2,7 +2,7 @@ import { useArticle, useMarkRead, useStarArticle } from '../../hooks/use-article
 import { useUiStore } from '../../stores/index.js';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { aiApi, articlesApi } from '../../api/index.js';
+import { aiApi, articlesApi, sharingApi } from '../../api/index.js';
 import { tagsApi } from '../../api/tags.api.js';
 import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
 
@@ -25,6 +25,39 @@ export function ArticleReader() {
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiTags, setAiTags] = useState<string[] | null>(null);
   const autoExtractedRef = useRef<Set<string>>(new Set());
+  const [shareStatus, setShareStatus] = useState<'idle' | 'loading' | 'shared' | 'error'>('idle');
+  const shareTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const handleShare = async (articleId: string) => {
+    if (shareStatus === 'loading') return;
+    setShareStatus('loading');
+    try {
+      const data = await sharingApi.getShareData(articleId);
+      // Try native Web Share API first
+      if (navigator.share) {
+        await navigator.share({
+          title: data.title,
+          text: data.summary ?? undefined,
+          url: data.shareUrl,
+        });
+      } else {
+        // Fallback: copy share URL to clipboard
+        await navigator.clipboard.writeText(data.shareUrl);
+      }
+      setShareStatus('shared');
+      clearTimeout(shareTimerRef.current);
+      shareTimerRef.current = setTimeout(() => setShareStatus('idle'), 2000);
+    } catch (err: unknown) {
+      // User cancelled the native share dialog — not an error
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setShareStatus('idle');
+        return;
+      }
+      setShareStatus('error');
+      clearTimeout(shareTimerRef.current);
+      shareTimerRef.current = setTimeout(() => setShareStatus('idle'), 3000);
+    }
+  };
 
   const summarizeMut = useMutation({
     mutationFn: (articleId: string) => aiApi.summarize(articleId),
@@ -127,6 +160,8 @@ export function ArticleReader() {
     setLastExtractFailedAt(null);
     setLastExtractStatus(null);
     setMinDelayPending(false);
+    setShareStatus('idle');
+    clearTimeout(shareTimerRef.current);
     extractMut.reset();
     suggestTagsMut.reset();
   }, [selectedArticleId]);
@@ -215,6 +250,38 @@ export function ArticleReader() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill={article.isStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
+            </button>
+            <button
+              onClick={() => handleShare(article.id)}
+              disabled={shareStatus === 'loading'}
+              className={`p-1.5 rounded ${
+                shareStatus === 'shared' ? 'text-green-500'
+                : shareStatus === 'error' ? 'text-red-500'
+                : 'text-text-tertiary hover:text-text-primary'
+              }`}
+              aria-label={
+                shareStatus === 'shared' ? 'Link copied!'
+                : shareStatus === 'error' ? 'Share failed'
+                : 'Share article'
+              }
+              title={
+                shareStatus === 'shared' ? 'Link copied!'
+                : shareStatus === 'error' ? 'Share failed'
+                : 'Share article'
+              }
+            >
+              {shareStatus === 'loading' ? (
+                <span className="block w-4 h-4 animate-spin border-2 border-current border-t-transparent rounded-full" />
+              ) : shareStatus === 'shared' ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+              )}
             </button>
             {article.url && (
               <a
