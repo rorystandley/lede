@@ -146,7 +146,7 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
         <div className="space-y-0.5 mb-4">
           <button onClick={() => clearFilters()} className={`w-full flex items-center justify-between px-2.5 py-1.5 text-sm rounded ${!selectedFeedId && !selectedFolderId && !selectedTagId && !showStarred && !isSearching ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}>
             <span className="flex items-center gap-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></svg>All Articles</span>
-            <span className="text-xs">{feeds.reduce((s, f) => s + f.unreadCount, 0) || ''}</span>
+            <span className="text-xs min-w-[1.5rem] text-right shrink-0">{feeds.reduce((s, f) => s + f.unreadCount, 0) || ''}</span>
           </button>
           <button onClick={() => setShowStarred(true)} className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-sm rounded ${showStarred ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill={showStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>Starred
@@ -179,9 +179,21 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
         )}
 
         {/* Folders */}
-        {folders.length > 0 && (
-          <div className="mb-4">
-            <div className="px-2.5 mb-1"><span className="text-xs font-medium text-text-tertiary uppercase tracking-wider">Folders</span></div>
+        <div className="mb-4">
+          <div className="flex items-center justify-between px-2.5 mb-1">
+            <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider">Folders</span>
+            <span className="min-w-[1.5rem] flex justify-end shrink-0"><button onClick={() => setShowAddFolder(!showAddFolder)} className="w-5 h-5 flex items-center justify-center rounded bg-surface-tertiary text-text-tertiary hover:bg-primary-100 hover:text-primary-600 dark:hover:bg-primary-900/30 dark:hover:text-primary-300 transition-colors" title="New folder"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg></button></span>
+          </div>
+          {showAddFolder && (
+            <form className="px-2 mb-2" onSubmit={(e) => { e.preventDefault(); if (!newFolderName.trim()) return; createFolderMut.mutate({ name: newFolderName.trim() }, { onSuccess: () => { setNewFolderName(''); setShowAddFolder(false); } }); }}>
+              <input type="text" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') { setNewFolderName(''); setShowAddFolder(false); } }} placeholder="Folder name..." autoFocus className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 mb-1.5" />
+              <div className="flex gap-1.5">
+                <button type="submit" disabled={createFolderMut.isPending} className="flex-1 px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">{createFolderMut.isPending ? 'Creating...' : 'Create Folder'}</button>
+                <button type="button" onClick={() => { setNewFolderName(''); setShowAddFolder(false); }} className="px-2 py-1 text-xs text-text-secondary bg-surface border border-border rounded hover:bg-surface-tertiary">Cancel</button>
+              </div>
+            </form>
+          )}
+          {folders.length > 0 && (
             <div className="space-y-0.5">
               {folders.map((folder) => (
                 <FolderItem key={folder.id} folder={folder} selectedFolderId={selectedFolderId} onSelect={selectFolder} feeds={feeds} selectedFeedId={selectedFeedId} onSelectFeed={selectFeed} onContextMenu={openMenu}
@@ -190,31 +202,24 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
                   onDropFeed={handleDrop} dragOverFolder={dragOverFolder} setDragOverFolder={setDragOverFolder} />
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Feeds (ungrouped) */}
         <div className="mb-4">
           <div className="flex items-center justify-between px-2.5 mb-1">
             <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider">Feeds</span>
-            <div className="flex gap-1">
-              <button onClick={() => setShowAddFolder(!showAddFolder)} className="text-text-tertiary hover:text-text-primary" title="New folder"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg></button>
-              <button onClick={() => setShowAddFeed(!showAddFeed)} className="text-text-tertiary hover:text-text-primary" title="Add feed by URL"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg></button>
-            </div>
+            <span className="min-w-[1.5rem] flex justify-end shrink-0"><button onClick={() => setShowAddFeed(!showAddFeed)} className="w-5 h-5 flex items-center justify-center rounded bg-surface-tertiary text-text-tertiary hover:bg-primary-100 hover:text-primary-600 dark:hover:bg-primary-900/30 dark:hover:text-primary-300 transition-colors" title="Add feed by URL"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg></button></span>
           </div>
-
-          {showAddFolder && (
-            <form className="px-2 mb-2" onSubmit={(e) => { e.preventDefault(); if (!newFolderName.trim()) return; createFolderMut.mutate({ name: newFolderName.trim() }, { onSuccess: () => { setNewFolderName(''); setShowAddFolder(false); } }); }}>
-              <input type="text" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="Folder name..." autoFocus className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 mb-1.5" />
-              <button type="submit" disabled={createFolderMut.isPending} className="w-full px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">{createFolderMut.isPending ? 'Creating...' : 'Create Folder'}</button>
-            </form>
-          )}
 
           {showAddFeed && (
             <form className="px-2 mb-2" onSubmit={(e) => { e.preventDefault(); if (!newUrl.trim()) return; subscribeMut.mutate({ url: newUrl.trim(), folderId: newFeedFolder ?? undefined }, { onSuccess: () => { setNewUrl(''); setNewFeedFolder(null); setShowAddFeed(false); } }); }}>
-              <input type="url" value={newUrl} onChange={(e) => setNewUrl(e.target.value)} placeholder="Feed URL..." autoFocus className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 mb-1.5" />
+              <input type="url" value={newUrl} onChange={(e) => setNewUrl(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') { setNewUrl(''); setNewFeedFolder(null); setShowAddFeed(false); } }} placeholder="Feed URL..." autoFocus className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 mb-1.5" />
               {folders.length > 0 && <FolderPicker folders={folders} value={newFeedFolder} onChange={setNewFeedFolder} className="w-full mb-1.5" />}
-              <button type="submit" disabled={subscribeMut.isPending} className="w-full px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">{subscribeMut.isPending ? 'Adding...' : 'Add Feed'}</button>
+              <div className="flex gap-1.5">
+                <button type="submit" disabled={subscribeMut.isPending} className="flex-1 px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">{subscribeMut.isPending ? 'Adding...' : 'Add Feed'}</button>
+                <button type="button" onClick={() => { setNewUrl(''); setNewFeedFolder(null); setShowAddFeed(false); }} className="px-2 py-1 text-xs text-text-secondary bg-surface border border-border rounded hover:bg-surface-tertiary">Cancel</button>
+              </div>
               {subscribeMut.isError && <p className="text-xs text-red-500 mt-1">{subscribeMut.error?.message}</p>}
             </form>
           )}
@@ -235,12 +240,15 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
         <div className="mb-4">
           <div className="flex items-center justify-between px-2.5 mb-1">
             <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider">Tags</span>
-            <button onClick={() => setShowAddTag(!showAddTag)} className="text-text-tertiary hover:text-text-primary" title="New tag"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg></button>
+            <span className="min-w-[1.5rem] flex justify-end shrink-0"><button onClick={() => setShowAddTag(!showAddTag)} className="w-5 h-5 flex items-center justify-center rounded bg-surface-tertiary text-text-tertiary hover:bg-primary-100 hover:text-primary-600 dark:hover:bg-primary-900/30 dark:hover:text-primary-300 transition-colors" title="New tag"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg></button></span>
           </div>
           {showAddTag && (
             <form className="px-2 mb-2" onSubmit={(e) => { e.preventDefault(); if (!newTagName.trim()) return; createTagMut.mutate({ name: newTagName.trim() }, { onSuccess: () => { setNewTagName(''); setShowAddTag(false); } }); }}>
-              <input type="text" value={newTagName} onChange={(e) => setNewTagName(e.target.value)} placeholder="Tag name..." autoFocus className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 mb-1.5" />
-              <button type="submit" className="w-full px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700">Create Tag</button>
+              <input type="text" value={newTagName} onChange={(e) => setNewTagName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') { setNewTagName(''); setShowAddTag(false); } }} placeholder="Tag name..." autoFocus className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 mb-1.5" />
+              <div className="flex gap-1.5">
+                <button type="submit" className="flex-1 px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700">Create Tag</button>
+                <button type="button" onClick={() => { setNewTagName(''); setShowAddTag(false); }} className="px-2 py-1 text-xs text-text-secondary bg-surface border border-border rounded hover:bg-surface-tertiary">Cancel</button>
+              </div>
             </form>
           )}
           <div className="flex flex-wrap gap-1.5 px-2.5">
@@ -285,24 +293,25 @@ function FolderItem({ folder, selectedFolderId, onSelect, feeds, selectedFeedId,
 
   return (
     <div>
-      <div className={`flex items-center rounded transition-colors ${isDragOver ? 'bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-300' : ''}`}
+      <div className={`flex items-center gap-1 px-2.5 py-1.5 rounded transition-colors ${isDragOver ? 'bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-300' : ''} ${isEditing ? '' : selectedFolderId === folder.id ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}
         onContextMenu={(e) => onContextMenu(e, 'folder', folder.id, folder.name)}
         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolder(folder.id); }}
         onDragLeave={(e) => { e.stopPropagation(); setDragOverFolder(null); }}
         onDrop={(e) => { e.preventDefault(); e.stopPropagation(); const fid = e.dataTransfer.getData('feedId'); if (fid) onDropFeed(fid, folder.id); }}>
-        <button onClick={() => setExpanded(!expanded)} className="p-1 text-text-tertiary hover:text-text-primary">
+        <button onClick={() => setExpanded(!expanded)} className="shrink-0 w-4 h-4 flex items-center justify-center text-text-tertiary hover:text-text-primary">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${expanded ? 'rotate-90' : ''}`}><polyline points="9 18 15 12 9 6" /></svg>
         </button>
-        {isEditing ? <div className="flex-1 px-1.5"><InlineEdit value={folder.name} onSave={onSaveEdit} onCancel={onCancelEdit} /></div> : (
-          <button onClick={() => onSelect(folder.id)} className={`flex-1 flex items-center justify-between px-1.5 py-1.5 text-sm rounded truncate ${selectedFolderId === folder.id ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}>
-            <span className="truncate">{folder.name}</span>{folder.unreadCount > 0 && <span className="text-xs text-text-tertiary">{folder.unreadCount}</span>}
+        {isEditing ? <div className="flex-1 min-w-0"><InlineEdit value={folder.name} onSave={onSaveEdit} onCancel={onCancelEdit} /></div> : (
+          <button onClick={() => onSelect(folder.id)} className="flex-1 min-w-0 flex items-center gap-2 text-sm text-left">
+            <span className="truncate">{folder.name}</span>
           </button>
         )}
+        {!isEditing && folder.unreadCount > 0 && <span className="text-xs text-text-tertiary min-w-[1.5rem] text-right shrink-0">{folder.unreadCount}</span>}
       </div>
-      {expanded && <div className="ml-5 space-y-0.5 min-h-[4px]">
+      {expanded && <div className="space-y-0.5 min-h-[4px]">
         {folderFeeds.map((feed) => <FeedButton key={feed.id} feed={feed} isSelected={selectedFeedId === feed.id} onClick={() => onSelectFeed(feed.id)}
           onContextMenu={(e) => onContextMenu(e, 'feed', feed.id, feed.customTitle ?? feed.title ?? feed.url, { folderId: feed.folderId, refreshInterval: feed.refreshInterval })}
-          isEditing={editing?.type === 'feed' && editing.id === feed.id} onSaveEdit={(name) => onSaveFeedEdit(feed.id, name)} onCancelEdit={onCancelEdit} draggable />)}
+          isEditing={editing?.type === 'feed' && editing.id === feed.id} onSaveEdit={(name) => onSaveFeedEdit(feed.id, name)} onCancelEdit={onCancelEdit} draggable indent />)}
       </div>}
       {expanded && folder.children.map((child) => <div key={child.id} className="ml-3">
         <FolderItem folder={child} selectedFolderId={selectedFolderId} onSelect={onSelect} feeds={feeds} selectedFeedId={selectedFeedId} onSelectFeed={onSelectFeed} onContextMenu={onContextMenu} editing={editing} onSaveEdit={onSaveEdit} onCancelEdit={onCancelEdit} onSaveFeedEdit={onSaveFeedEdit} onDropFeed={onDropFeed} dragOverFolder={dragOverFolder} setDragOverFolder={setDragOverFolder} />
@@ -313,21 +322,21 @@ function FolderItem({ folder, selectedFolderId, onSelect, feeds, selectedFeedId,
 
 const FEED_TYPE_LABELS: Record<FeedType, string> = { rss: 'RSS', atom: 'Atom', json: 'JSON', newsletter: 'Newsletter', web_monitor: 'Monitor' };
 
-function FeedButton({ feed, isSelected, onClick, onContextMenu, isEditing, onSaveEdit, onCancelEdit, draggable }: {
+function FeedButton({ feed, isSelected, onClick, onContextMenu, isEditing, onSaveEdit, onCancelEdit, draggable, indent }: {
   feed: { id: string; customTitle: string | null; title: string | null; url: string; faviconUrl: string | null; feedType: FeedType; unreadCount: number };
   isSelected: boolean; onClick: () => void; onContextMenu?: (e: React.MouseEvent) => void;
-  isEditing?: boolean; onSaveEdit?: (name: string) => void; onCancelEdit?: () => void; draggable?: boolean;
+  isEditing?: boolean; onSaveEdit?: (name: string) => void; onCancelEdit?: () => void; draggable?: boolean; indent?: boolean;
 }) {
-  if (isEditing && onSaveEdit && onCancelEdit) return <div className="px-2.5 py-1"><InlineEdit value={feed.customTitle ?? feed.title ?? ''} onSave={onSaveEdit} onCancel={onCancelEdit} /></div>;
+  if (isEditing && onSaveEdit && onCancelEdit) return <div className={`${indent ? 'pl-7 pr-2.5' : 'px-2.5'} py-1`}><InlineEdit value={feed.customTitle ?? feed.title ?? ''} onSave={onSaveEdit} onCancel={onCancelEdit} /></div>;
   return (
     <button onClick={onClick} onContextMenu={onContextMenu} draggable={draggable}
       onDragStart={(e) => { e.dataTransfer.setData('feedId', feed.id); e.dataTransfer.effectAllowed = 'move'; }}
-      className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-sm rounded truncate ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${isSelected ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}
+      className={`w-full flex items-center gap-2 ${indent ? 'pl-7 pr-2.5' : 'px-2.5'} py-1.5 text-sm rounded truncate ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${isSelected ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}
       title={`${feed.customTitle ?? feed.title ?? feed.url} (${FEED_TYPE_LABELS[feed.feedType]})`}>
-      {feed.faviconUrl ? <img src={feed.faviconUrl} alt="" className="w-4 h-4 rounded" /> : <span className="w-4 h-4 rounded bg-primary-100 dark:bg-primary-800 flex items-center justify-center text-[10px] text-primary-600">{(feed.customTitle ?? feed.title ?? 'F')[0]}</span>}
+      {feed.faviconUrl ? <img src={feed.faviconUrl} alt="" className="w-4 h-4 rounded shrink-0" /> : <span className="w-4 h-4 rounded bg-primary-100 dark:bg-primary-800 flex items-center justify-center text-[10px] text-primary-600 shrink-0">{(feed.customTitle ?? feed.title ?? 'F')[0]}</span>}
       <span className="truncate flex-1 text-left">{feed.customTitle ?? feed.title ?? feed.url}</span>
       {feed.feedType !== 'rss' && <span className="shrink-0 px-1 py-px text-[9px] font-medium uppercase leading-tight rounded bg-surface-tertiary text-text-tertiary">{FEED_TYPE_LABELS[feed.feedType]}</span>}
-      {feed.unreadCount > 0 && <span className="text-xs text-text-tertiary">{feed.unreadCount}</span>}
+      {feed.unreadCount > 0 && <span className="text-xs text-text-tertiary min-w-[1.5rem] text-right shrink-0">{feed.unreadCount}</span>}
     </button>
   );
 }

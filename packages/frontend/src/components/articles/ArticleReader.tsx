@@ -198,7 +198,7 @@ export function ArticleReader() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-surface-secondary">
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => selectArticle(null)}

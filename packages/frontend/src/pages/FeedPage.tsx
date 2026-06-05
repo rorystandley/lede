@@ -14,7 +14,7 @@ export function FeedPage({ onOpenAddSources }: Props) {
     <div className="flex flex-1 overflow-hidden">
       <Sidebar onOpenAddSources={onOpenAddSources} />
       <div className="flex flex-1 overflow-hidden">
-        <div className={`${selectedArticleId ? 'hidden lg:flex lg:w-96' : 'flex flex-1'} flex-col border-r border-border`}>
+        <div className={`${selectedArticleId ? 'hidden' : 'flex flex-1'} flex-col border-r border-border`}>
           <ArticleList />
         </div>
         {selectedArticleId && <ArticleReader />}
