@@ -9,3 +9,4 @@ export * from './reading-stats.js';
 export * from './annotations.js';
 export * from './ai-usage.js';
 export * from './push-subscriptions.js';
+export * from './saved-searches.js';

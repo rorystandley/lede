@@ -15,5 +15,21 @@ export interface SavedSearch {
   query: string;
   filters: SearchFilters | null;
   isMonitor: boolean;
+  lastCheckedAt: string | null;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSavedSearchInput {
+  name: string;
+  query: string;
+  filters?: SearchFilters;
+  isMonitor?: boolean;
+}
+
+export interface UpdateSavedSearchInput {
+  name?: string;
+  query?: string;
+  filters?: SearchFilters | null;
+  isMonitor?: boolean;
 }
