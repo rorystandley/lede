@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { aiService } from '../services/ai.service.js';
+import { ResourceNotFoundError } from '../services/access-control.service.js';
 import { AI_PROVIDERS } from '@news-reader/shared';
 
 const configureAISchema = z.object({
@@ -32,7 +33,8 @@ export default async function aiRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'AI not configured. Add an API key in Settings.' });
       }
       return { tags: suggestions };
-    } catch {
+    } catch (err) {
+      if (err instanceof ResourceNotFoundError) throw err;
       return reply.status(500).send({ error: 'AI request failed. Check your API key or try again.' });
     }
   });

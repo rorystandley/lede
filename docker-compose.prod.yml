@@ -1,14 +1,14 @@
 # Production overrides — use with: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-# Splits app into separate web and worker services. Both share the same image
-# but use PROCESS_ROLE to determine their behaviour.
+# Runs one low-cost app container. The image contains the backend, workers, and
+# built React frontend; PROCESS_ROLE=all keeps background jobs in-process.
 
 services:
-  web:
+  app:
     build: .
     restart: unless-stopped
     env_file: .env
     environment:
-      PROCESS_ROLE: web
+      PROCESS_ROLE: all
       DATABASE_URL: postgresql://newsreader:newsreader@postgres:5432/newsreader
       REDIS_URL: redis://redis:6379
       NODE_ENV: production
@@ -22,17 +22,3 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-
-  worker:
-    build: .
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      PROCESS_ROLE: worker
-      DATABASE_URL: postgresql://newsreader:newsreader@postgres:5432/newsreader
-      REDIS_URL: redis://redis:6379
-      NODE_ENV: production
-    depends_on:
-      - postgres
-      - redis
-    command: ["node", "packages/backend/dist/worker.js"]

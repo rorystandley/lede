@@ -9,6 +9,7 @@ import {
 } from '@news-reader/shared';
 import { articleService } from '../services/article.service.js';
 import { extractionService } from '../services/extraction.service.js';
+import { accessControlService } from '../services/access-control.service.js';
 
 const markAllReadSchema = z.object({
   feedId: z.string().uuid().optional(),
@@ -54,6 +55,8 @@ export default async function articleRoutes(app: FastifyInstance) {
     schema: { tags: ['Articles'], summary: 'Re-extract full article content from URL' },
   }, async (req, reply) => {
     const { articleId } = req.params as { articleId: string };
+    await accessControlService.assertArticleAccessible(req.user.id, articleId);
+
     const result = await extractionService.extractNow(articleId);
 
     if (result.status === 'failed') {

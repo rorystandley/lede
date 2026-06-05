@@ -13,7 +13,7 @@ import type { FastifyInstance } from 'fastify';
 
 export function createMcpServer() {
   const server = new McpServer({
-    name: 'news-reader',
+    name: 'lede',
     version: '0.1.0',
   });
 
@@ -46,8 +46,9 @@ export function createMcpServer() {
 
   server.tool('feeds/refresh', 'Trigger immediate refresh of a feed', {
     feedId: z.string().uuid().describe('Feed ID to refresh'),
-  }, async ({ feedId }) => {
-    const result = await feedService.refreshFeed(feedId);
+  }, async ({ feedId }, extra) => {
+    const userId = getUserIdFromContext(extra);
+    const result = await feedService.refreshFeed(feedId, { userId });
     return { content: [{ type: 'text', text: `Refreshed: ${result.newArticles} new articles` }] };
   });
 

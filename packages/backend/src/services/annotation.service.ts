@@ -1,6 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { annotations } from '../db/schema/index.js';
+import { accessControlService } from './access-control.service.js';
 
 export class AnnotationService {
   async create(userId: string, articleId: string, data: {
@@ -11,6 +12,8 @@ export class AnnotationService {
     color?: string;
   }) {
     const db = getDb();
+    await accessControlService.assertArticleAccessible(userId, articleId);
+
     const [annotation] = await db.insert(annotations).values({
       userId,
       articleId,
@@ -25,6 +28,8 @@ export class AnnotationService {
 
   async listForArticle(userId: string, articleId: string) {
     const db = getDb();
+    await accessControlService.assertArticleAccessible(userId, articleId);
+
     return db
       .select()
       .from(annotations)
@@ -34,6 +39,8 @@ export class AnnotationService {
 
   async delete(userId: string, annotationId: string) {
     const db = getDb();
+    await accessControlService.assertAnnotationAccessible(userId, annotationId);
+
     await db.delete(annotations).where(
       and(eq(annotations.id, annotationId), eq(annotations.userId, userId)),
     );
@@ -41,6 +48,8 @@ export class AnnotationService {
 
   async update(userId: string, annotationId: string, data: { content?: string; color?: string }) {
     const db = getDb();
+    await accessControlService.assertAnnotationAccessible(userId, annotationId);
+
     const [updated] = await db
       .update(annotations)
       .set({ ...data, updatedAt: new Date() })

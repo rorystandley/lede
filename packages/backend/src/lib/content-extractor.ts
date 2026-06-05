@@ -1,4 +1,5 @@
 import { extract } from '@extractus/article-extractor';
+import { sanitizeArticleHtml, sanitizeArticleImageUrl } from './html-sanitizer.js';
 
 export interface ExtractedContent {
   title: string | null;
@@ -49,9 +50,9 @@ export async function extractArticleContent(url: string): Promise<ExtractedConte
 
     return {
       title: article.title ?? null,
-      content: article.content ? upgradeContentImages(article.content) : null,
+      content: sanitizeArticleHtml(article.content ? upgradeContentImages(article.content) : null),
       author: article.author ?? null,
-      image: article.image ? upgradeUrl(article.image) : null,
+      image: sanitizeArticleImageUrl(article.image ? upgradeUrl(article.image) : null),
     };
   } catch {
     return null;

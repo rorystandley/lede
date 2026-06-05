@@ -4,10 +4,7 @@ import { articles } from '../db/schema/index.js';
 import { extractArticleContent } from '../lib/content-extractor.js';
 import { fetchPageMetadata } from '../lib/page-metadata.js';
 import { getLogger } from '../lib/logger.js';
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-}
+import { articleHtmlToText, sanitizeArticleHtml, sanitizeArticleImageUrl } from '../lib/html-sanitizer.js';
 
 function countWords(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;
@@ -39,20 +36,22 @@ export class ExtractionService {
 
     // --- Stage 1: full readability extraction ---
     const extracted = await extractArticleContent(article.url);
-    if (extracted?.content) {
-      const contentText = stripHtml(extracted.content);
+    const extractedContentHtml = sanitizeArticleHtml(extracted?.content);
+    if (extractedContentHtml) {
+      const contentHtml = extractedContentHtml;
+      const contentText = articleHtmlToText(contentHtml);
       const wordCount = countWords(contentText);
-      const imageUrl = extracted.image ?? article.imageUrl;
+      const imageUrl = sanitizeArticleImageUrl(extracted?.image) ?? sanitizeArticleImageUrl(article.imageUrl);
 
       await db.update(articles).set({
-        contentHtml: extracted.content,
+        contentHtml,
         contentText,
         wordCount,
         imageUrl,
       }).where(eq(articles.id, articleId));
 
       logger.info({ articleId, words: wordCount }, 'Full extraction succeeded');
-      return { status: 'full', contentHtml: extracted.content, contentText, wordCount, imageUrl };
+      return { status: 'full', contentHtml, contentText, wordCount, imageUrl };
     }
 
     logger.info({ articleId }, 'Full extraction returned nothing — trying metadata fallback');
@@ -65,10 +64,10 @@ export class ExtractionService {
 
     if (metadata && gainedSomething) {
       // Strip any previously prepended metadata block so re-runs don't duplicate.
-      const META_MARKER_OPEN = '<!-- nr:meta -->';
-      const META_MARKER_CLOSE = '<!-- /nr:meta -->';
       const stripExistingMeta = (html: string) =>
-        html.replace(new RegExp(`${META_MARKER_OPEN}[\\s\\S]*?${META_MARKER_CLOSE}\\s*`, 'g'), '');
+        html
+          .replace(/<!-- nr:meta -->[\s\S]*?<!-- \/nr:meta -->\s*/g, '')
+          .replace(/<aside\s+data-nr-meta=["']true["'][^>]*>[\s\S]*?<\/aside>\s*/gi, '');
 
       const baseHtml = stripExistingMeta(article.contentHtml ?? '');
       const blocks: string[] = [];
@@ -77,15 +76,16 @@ export class ExtractionService {
       }
 
       const synthHtml = blocks.length > 0
-        ? `${META_MARKER_OPEN}\n${blocks.join('\n')}\n${META_MARKER_CLOSE}\n${baseHtml}`
+        ? `<aside data-nr-meta="true">\n${blocks.join('\n')}\n</aside>\n${baseHtml}`
         : baseHtml;
-      const synthText = stripHtml(synthHtml);
+      const sanitizedSynthHtml = sanitizeArticleHtml(synthHtml);
+      const synthText = articleHtmlToText(sanitizedSynthHtml);
 
       await db.update(articles).set({
-        contentHtml: synthHtml || article.contentHtml,
+        contentHtml: sanitizedSynthHtml || sanitizeArticleHtml(article.contentHtml),
         contentText: synthText || article.contentText,
         wordCount: countWords(synthText),
-        imageUrl: newImage,
+        imageUrl: sanitizeArticleImageUrl(newImage),
       }).where(eq(articles.id, articleId));
 
       logger.info({ articleId, hasImage: !!metadata.image, hasDescription: !!newDescription }, 'Metadata fallback succeeded');

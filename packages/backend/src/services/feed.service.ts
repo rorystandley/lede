@@ -2,11 +2,9 @@ import { eq, and, sql, count } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { feeds, userFeedSubscriptions, articles, userArticleStates } from '../db/schema/index.js';
 import { parseFeed } from '../lib/feed-parser.js';
+import { articleHtmlToText, sanitizeArticleDisplayHtml, sanitizeArticleImageUrl } from '../lib/html-sanitizer.js';
+import { accessControlService, ResourceNotFoundError } from './access-control.service.js';
 import type { SubscribedFeed, PaginatedResult, FeedType } from '@news-reader/shared';
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-}
 
 function countWords(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;
@@ -57,18 +55,22 @@ export class FeedService {
 
   async updateSubscription(userId: string, feedId: string, data: { folderId?: string | null; customTitle?: string | null; notify?: boolean; refreshInterval?: number }) {
     const db = getDb();
+    await accessControlService.assertFeedSubscribed(userId, feedId);
+
     const updateData: Record<string, unknown> = {};
     if (data.folderId !== undefined) updateData.folderId = data.folderId;
     if (data.customTitle !== undefined) updateData.customTitle = data.customTitle;
     if (data.notify !== undefined) updateData.notify = data.notify ? 1 : 0;
 
-    await db
-      .update(userFeedSubscriptions)
-      .set(updateData)
-      .where(and(
-        eq(userFeedSubscriptions.userId, userId),
-        eq(userFeedSubscriptions.feedId, feedId),
-      ));
+    if (Object.keys(updateData).length > 0) {
+      await db
+        .update(userFeedSubscriptions)
+        .set(updateData)
+        .where(and(
+          eq(userFeedSubscriptions.userId, userId),
+          eq(userFeedSubscriptions.feedId, feedId),
+        ));
+    }
 
     if (data.refreshInterval !== undefined) {
       await db
@@ -80,6 +82,8 @@ export class FeedService {
 
   async unsubscribe(userId: string, feedId: string) {
     const db = getDb();
+    await accessControlService.assertFeedSubscribed(userId, feedId);
+
     await db
       .delete(userFeedSubscriptions)
       .where(and(
@@ -138,10 +142,18 @@ export class FeedService {
     return { items, total, page, pageSize, hasMore: offset + pageSize < total };
   }
 
-  async refreshFeed(feedId: string): Promise<{ newArticles: number; newArticleIds: string[] }> {
+  async listSubscribedFeedIds(userId: string): Promise<string[]> {
+    return accessControlService.listSubscribedFeedIds(userId);
+  }
+
+  async refreshFeed(feedId: string, opts: { userId?: string } = {}): Promise<{ newArticles: number; newArticleIds: string[] }> {
     const db = getDb();
+    if (opts.userId) {
+      await accessControlService.assertFeedSubscribed(opts.userId, feedId);
+    }
+
     const [feed] = await db.select().from(feeds).where(eq(feeds.id, feedId));
-    if (!feed) throw new Error('Feed not found');
+    if (!feed) throw new ResourceNotFoundError('Feed');
 
     try {
       const parsed = await parseFeed(feed.url);
@@ -175,7 +187,8 @@ export class FeedService {
     const insertedIds: string[] = [];
 
     for (const item of items) {
-      const contentText = item.contentHtml ? stripHtml(item.contentHtml) : (item.summary ?? '');
+      const contentHtml = sanitizeArticleDisplayHtml(item.contentHtml, item.summary);
+      const contentText = contentHtml ? articleHtmlToText(contentHtml) : (item.summary ?? '');
       const wordCount = countWords(contentText);
 
       try {
@@ -186,9 +199,9 @@ export class FeedService {
           title: item.title,
           author: item.author,
           summary: item.summary,
-          contentHtml: item.contentHtml,
+          contentHtml,
           contentText: contentText || null,
-          imageUrl: item.imageUrl,
+          imageUrl: sanitizeArticleImageUrl(item.imageUrl),
           publishedAt: item.publishedAt,
           wordCount,
         }).onConflictDoNothing().returning({ id: articles.id });

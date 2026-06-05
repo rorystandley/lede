@@ -1,6 +1,7 @@
-import { eq, and, count, sql } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { tags, articleTags } from '../db/schema/index.js';
+import { accessControlService, ResourceNotFoundError } from './access-control.service.js';
 import type { Tag, TagWithCount, ArticleTagSource } from '@news-reader/shared';
 
 export class TagService {
@@ -16,17 +17,21 @@ export class TagService {
 
   async update(userId: string, tagId: string, data: { name?: string; color?: string | null }) {
     const db = getDb();
+    await accessControlService.assertTagsOwned(userId, [tagId]);
+
     const [tag] = await db
       .update(tags)
       .set(data)
       .where(and(eq(tags.id, tagId), eq(tags.userId, userId)))
       .returning();
-    if (!tag) throw new Error('Tag not found');
+    if (!tag) throw new ResourceNotFoundError('Tag');
     return this.toTag(tag);
   }
 
   async delete(userId: string, tagId: string) {
     const db = getDb();
+    await accessControlService.assertTagsOwned(userId, [tagId]);
+
     await db.delete(articleTags).where(and(eq(articleTags.tagId, tagId), eq(articleTags.userId, userId)));
     await db.delete(tags).where(and(eq(tags.id, tagId), eq(tags.userId, userId)));
   }
@@ -39,6 +44,7 @@ export class TagService {
         articleCount: sql<number>`(
           SELECT count(*)::int FROM article_tags at2
           WHERE at2.tag_id = ${tags.id}
+          AND at2.user_id = ${userId}
         )`,
       })
       .from(tags)
@@ -53,6 +59,9 @@ export class TagService {
 
   async tagArticle(userId: string, articleId: string, tagIds: string[], source: ArticleTagSource = 'manual') {
     const db = getDb();
+    await accessControlService.assertArticleAccessible(userId, articleId);
+    await accessControlService.assertTagsOwned(userId, tagIds);
+
     await db.delete(articleTags).where(
       and(eq(articleTags.userId, userId), eq(articleTags.articleId, articleId)),
     );
@@ -65,6 +74,9 @@ export class TagService {
 
   async addTagToArticle(userId: string, articleId: string, tagId: string, source: ArticleTagSource = 'manual') {
     const db = getDb();
+    await accessControlService.assertArticleAccessible(userId, articleId);
+    await accessControlService.assertTagsOwned(userId, [tagId]);
+
     await db.insert(articleTags).values({ userId, articleId, tagId, source }).onConflictDoNothing();
   }
 
@@ -74,6 +86,8 @@ export class TagService {
    */
   async applyTagsByName(userId: string, articleId: string, names: string[], source: ArticleTagSource = 'ai'): Promise<Tag[]> {
     const db = getDb();
+    await accessControlService.assertArticleAccessible(userId, articleId);
+
     const normalised = Array.from(new Set(names.map((n) => n.trim()).filter(Boolean).map((n) => n.toLowerCase())));
     if (normalised.length === 0) return [];
 
@@ -107,6 +121,9 @@ export class TagService {
 
   async removeTagFromArticle(userId: string, articleId: string, tagId: string) {
     const db = getDb();
+    await accessControlService.assertArticleAccessible(userId, articleId);
+    await accessControlService.assertTagsOwned(userId, [tagId]);
+
     await db.delete(articleTags).where(
       and(eq(articleTags.userId, userId), eq(articleTags.articleId, articleId), eq(articleTags.tagId, tagId)),
     );
@@ -114,6 +131,8 @@ export class TagService {
 
   async getArticleTags(userId: string, articleId: string) {
     const db = getDb();
+    await accessControlService.assertArticleAccessible(userId, articleId);
+
     return db
       .select({ id: tags.id, name: tags.name, color: tags.color })
       .from(articleTags)

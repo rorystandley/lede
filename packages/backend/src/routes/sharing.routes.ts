@@ -1,10 +1,11 @@
 import type { FastifyInstance } from 'fastify';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
-import { articles, feeds } from '../db/schema/index.js';
+import { articles, feeds, userFeedSubscriptions } from '../db/schema/index.js';
 
 export default async function sharingRoutes(app: FastifyInstance) {
-  // Public share link — no auth required
+  app.addHook('preHandler', app.authenticate);
+
   app.get('/article/:articleId', {
     schema: { tags: ['Sharing'], summary: 'Get shareable article data' },
   }, async (req, reply) => {
@@ -22,6 +23,13 @@ export default async function sharingRoutes(app: FastifyInstance) {
       })
       .from(articles)
       .innerJoin(feeds, eq(feeds.id, articles.feedId))
+      .innerJoin(
+        userFeedSubscriptions,
+        and(
+          eq(userFeedSubscriptions.feedId, articles.feedId),
+          eq(userFeedSubscriptions.userId, req.user.id),
+        ),
+      )
       .where(eq(articles.id, articleId));
 
     if (!row) return reply.status(404).send({ error: 'Article not found' });
@@ -33,7 +41,7 @@ export default async function sharingRoutes(app: FastifyInstance) {
       summary: row.summary,
       publishedAt: row.publishedAt?.toISOString() ?? null,
       feedTitle: row.feedTitle,
-      shareUrl: `${req.protocol}://${req.hostname}/share/article/${articleId}`,
+      shareUrl: row.url ?? `${req.protocol}://${req.hostname}`,
     };
   });
 }

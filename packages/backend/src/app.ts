@@ -1,7 +1,12 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import fastifyStatic from '@fastify/static';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { loadConfig, getConfig } from './config.js';
 import errorHandler from './plugins/error-handler.plugin.js';
 import authPlugin from './plugins/auth.plugin.js';
@@ -28,6 +33,58 @@ import { isEmailConfigured } from './lib/email.js';
 import { isPushConfigured, initPush } from './lib/push.js';
 import { initSentry, captureException } from './lib/sentry.js';
 
+const backendOwnedPrefixes = ['/api', '/mcp', '/metrics'];
+const frontendDistPath = join(dirname(fileURLToPath(import.meta.url)), '../../frontend/dist');
+
+function getPathname(url: string): string {
+  try {
+    return new URL(url, 'http://localhost').pathname;
+  } catch {
+    return url.split('?')[0] || '/';
+  }
+}
+
+function isBackendOwnedPath(pathname: string): boolean {
+  return backendOwnedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function acceptsHtml(request: FastifyRequest): boolean {
+  const accept = request.headers.accept;
+  return !accept || accept.includes('text/html');
+}
+
+async function registerFrontendRoutes(app: FastifyInstance, isProduction: boolean) {
+  const frontendIndexPath = join(frontendDistPath, 'index.html');
+  if (!existsSync(frontendIndexPath)) {
+    if (isProduction) {
+      app.log.warn({ frontendDistPath }, 'Frontend build not found; serving backend routes only');
+    }
+    return;
+  }
+
+  await app.register(fastifyStatic, {
+    root: frontendDistPath,
+    prefix: '/',
+    wildcard: false,
+  });
+
+  app.route({
+    method: ['GET', 'HEAD'],
+    url: '/*',
+    schema: { hide: true },
+    handler: (request: FastifyRequest, reply: FastifyReply) => {
+      const pathname = getPathname(request.url);
+      if (isBackendOwnedPath(pathname) || !acceptsHtml(request)) {
+        return reply.callNotFound();
+      }
+
+      return reply.sendFile('index.html', { maxAge: 0, immutable: false });
+    },
+  });
+
+  app.log.info({ frontendDistPath }, 'Serving frontend build from backend process');
+}
+
 export async function buildApp() {
   loadConfig();
   const config = getConfig();
@@ -46,7 +103,7 @@ export async function buildApp() {
     openapi: {
       openapi: '3.1.0',
       info: {
-        title: 'News Reader API',
+        title: 'lede API',
         version: '0.1.0',
         description: 'A self-hosted news reader with RSS feed management, article reading, and AI-powered digests.',
       },
@@ -106,6 +163,8 @@ export async function buildApp() {
     const status = health.status === 'unhealthy' ? 503 : 200;
     return reply.status(status).send(health);
   });
+
+  await registerFrontendRoutes(app, config.NODE_ENV === 'production');
 
   return app;
 }

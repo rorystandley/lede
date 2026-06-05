@@ -1,12 +1,17 @@
 import bcrypt from 'bcrypt';
 import crypto from 'node:crypto';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, gt, lte } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { users, apiKeys, refreshTokens } from '../db/schema/index.js';
 import { getConfig } from '../config.js';
 import { API_KEY_PREFIX } from '@news-reader/shared';
 
 const SALT_ROUNDS = 12;
+const REFRESH_TOKEN_BYTES = 48;
+
+function digestToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 class HttpError extends Error {
   statusCode: number;
@@ -54,28 +59,37 @@ export class AuthService {
 
   async createRefreshToken(userId: string): Promise<string> {
     const db = getDb();
-    const token = crypto.randomBytes(48).toString('base64url');
+    const token = crypto.randomBytes(REFRESH_TOKEN_BYTES).toString('base64url');
+    const tokenDigest = digestToken(token);
     const tokenHash = await bcrypt.hash(token, SALT_ROUNDS);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    await db.insert(refreshTokens).values({ userId, tokenHash, expiresAt });
+    await db.insert(refreshTokens).values({ userId, tokenDigest, tokenHash, expiresAt });
     return token;
   }
 
   async verifyRefreshToken(token: string): Promise<{ userId: string } | null> {
     const db = getDb();
-    const rows = await db
+    const now = new Date();
+    const tokenDigest = digestToken(token);
+
+    await db.delete(refreshTokens).where(lte(refreshTokens.expiresAt, now));
+
+    const [row] = await db
       .select()
       .from(refreshTokens)
-      .where(and());
+      .where(and(
+        eq(refreshTokens.tokenDigest, tokenDigest),
+        gt(refreshTokens.expiresAt, now)
+      ))
+      .limit(1);
 
-    for (const row of rows) {
-      if (row.expiresAt < new Date()) continue;
-      if (await bcrypt.compare(token, row.tokenHash)) {
-        await db.delete(refreshTokens).where(eq(refreshTokens.id, row.id));
-        return { userId: row.userId };
-      }
+    if (!row) return null;
+    if (await bcrypt.compare(token, row.tokenHash)) {
+      await db.delete(refreshTokens).where(eq(refreshTokens.id, row.id));
+      return { userId: row.userId };
     }
+
     return null;
   }
 

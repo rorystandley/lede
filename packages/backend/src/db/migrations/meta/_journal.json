@@ -36,6 +36,13 @@
       "when": 1780663758671,
       "tag": "0004_crazy_chronomancer",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1780676500603,
+      "tag": "0005_many_living_mummy",
+      "breakpoints": true
     }
   ]
 }

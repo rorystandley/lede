@@ -1,10 +1,11 @@
 import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
-import { users, articles, tags, aiUsageLog } from '../db/schema/index.js';
+import { users, tags, aiUsageLog } from '../db/schema/index.js';
 import { createAIClient, type AIClient, type AIUsage } from '../lib/ai-client.js';
 import { getLogger } from '../lib/logger.js';
 import { aiCalls, aiTokensUsed } from '../lib/metrics.js';
 import { getConfig } from '../config.js';
+import { accessControlService, ResourceNotFoundError } from './access-control.service.js';
 import crypto from 'node:crypto';
 import type { AIProvider } from '@news-reader/shared';
 
@@ -39,12 +40,11 @@ export class AIService {
 
   async summarize(userId: string, articleId: string): Promise<string | null> {
     const logger = getLogger();
+    const article = await accessControlService.getAccessibleArticle(userId, articleId);
+    if (!article) throw new ResourceNotFoundError('Article');
+
     const ctx = await this.getClient(userId);
     if (!ctx) return null;
-
-    const db = getDb();
-    const [article] = await db.select().from(articles).where(eq(articles.id, articleId));
-    if (!article) return null;
 
     const text = article.contentText ?? article.summary ?? article.title ?? '';
     if (!text) return null;
@@ -65,13 +65,13 @@ export class AIService {
    */
   async suggestTags(userId: string, articleId: string): Promise<string[] | null> {
     const logger = getLogger();
+    const article = await accessControlService.getAccessibleArticle(userId, articleId);
+    if (!article) throw new ResourceNotFoundError('Article');
+
     const ctx = await this.getClient(userId);
     if (!ctx) return null;
 
     const db = getDb();
-    const [article] = await db.select().from(articles).where(eq(articles.id, articleId));
-    if (!article) return [];
-
     const userTags = await db
       .select({ name: tags.name })
       .from(tags)

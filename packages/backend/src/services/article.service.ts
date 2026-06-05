@@ -1,6 +1,8 @@
 import { eq, and, desc, asc, sql, count, inArray } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { articles, userArticleStates, feeds, userFeedSubscriptions, articleTags, tags } from '../db/schema/index.js';
+import { sanitizeArticleDisplayHtml, sanitizeArticleImageUrl } from '../lib/html-sanitizer.js';
+import { accessControlService } from './access-control.service.js';
 import type { ArticleWithState, PaginatedResult, ListArticlesQuery, SearchArticlesQuery } from '@news-reader/shared';
 
 export class ArticleService {
@@ -8,11 +10,6 @@ export class ArticleService {
     const db = getDb();
     const { page, pageSize, sort, order } = query;
     const offset = (page - 1) * pageSize;
-
-    const subscribedFeeds = db
-      .select({ feedId: userFeedSubscriptions.feedId })
-      .from(userFeedSubscriptions)
-      .where(eq(userFeedSubscriptions.userId, userId));
 
     let baseQuery = db
       .select({
@@ -25,6 +22,13 @@ export class ArticleService {
       })
       .from(articles)
       .innerJoin(feeds, eq(feeds.id, articles.feedId))
+      .innerJoin(
+        userFeedSubscriptions,
+        and(
+          eq(userFeedSubscriptions.feedId, articles.feedId),
+          eq(userFeedSubscriptions.userId, userId),
+        ),
+      )
       .leftJoin(
         userArticleStates,
         and(
@@ -32,7 +36,6 @@ export class ArticleService {
           eq(userArticleStates.userId, userId),
         ),
       )
-      .where(inArray(articles.feedId, subscribedFeeds))
       .$dynamic();
 
     if (query.feedId) {
@@ -69,6 +72,8 @@ export class ArticleService {
 
     const items: ArticleWithState[] = rows.map((r) => ({
       ...r.article,
+      contentHtml: sanitizeArticleDisplayHtml(r.article.contentHtml, r.article.summary),
+      imageUrl: sanitizeArticleImageUrl(r.article.imageUrl),
       createdAt: r.article.createdAt.toISOString(),
       publishedAt: r.article.publishedAt?.toISOString() ?? null,
       feedTitle: r.feedTitle,
@@ -98,6 +103,13 @@ export class ArticleService {
       })
       .from(articles)
       .innerJoin(feeds, eq(feeds.id, articles.feedId))
+      .innerJoin(
+        userFeedSubscriptions,
+        and(
+          eq(userFeedSubscriptions.feedId, articles.feedId),
+          eq(userFeedSubscriptions.userId, userId),
+        ),
+      )
       .leftJoin(
         userArticleStates,
         and(
@@ -117,6 +129,8 @@ export class ArticleService {
 
     return {
       ...row.article,
+      contentHtml: sanitizeArticleDisplayHtml(row.article.contentHtml, row.article.summary),
+      imageUrl: sanitizeArticleImageUrl(row.article.imageUrl),
       createdAt: row.article.createdAt.toISOString(),
       publishedAt: row.article.publishedAt?.toISOString() ?? null,
       feedTitle: row.feedTitle,
@@ -130,19 +144,26 @@ export class ArticleService {
 
   async markRead(userId: string, articleIds: string[]) {
     const db = getDb();
-    for (const articleId of articleIds) {
+    const accessibleArticleIds = await accessControlService.assertArticlesAccessible(userId, articleIds);
+    const now = new Date();
+
+    for (const articleId of accessibleArticleIds) {
       await db
         .insert(userArticleStates)
-        .values({ userId, articleId, isRead: true, readAt: new Date() })
+        .values({ userId, articleId, isRead: true, readAt: now })
         .onConflictDoUpdate({
           target: [userArticleStates.userId, userArticleStates.articleId],
-          set: { isRead: true, readAt: new Date(), updatedAt: new Date() },
+          set: { isRead: true, readAt: now, updatedAt: now },
         });
     }
   }
 
   async markAllRead(userId: string, scope: { feedId?: string; folderId?: string; tagId?: string }): Promise<number> {
     const db = getDb();
+    if (scope.feedId) {
+      await accessControlService.assertFeedSubscribed(userId, scope.feedId);
+    }
+
     // Find unread article IDs in scope
     const subscribedFeeds = db
       .select({ feedId: userFeedSubscriptions.feedId })
@@ -182,19 +203,24 @@ export class ArticleService {
 
   async markUnread(userId: string, articleIds: string[]) {
     const db = getDb();
-    for (const articleId of articleIds) {
+    const accessibleArticleIds = await accessControlService.assertArticlesAccessible(userId, articleIds);
+    const now = new Date();
+
+    for (const articleId of accessibleArticleIds) {
       await db
         .insert(userArticleStates)
         .values({ userId, articleId, isRead: false })
         .onConflictDoUpdate({
           target: [userArticleStates.userId, userArticleStates.articleId],
-          set: { isRead: false, readAt: null, updatedAt: new Date() },
+          set: { isRead: false, readAt: null, updatedAt: now },
         });
     }
   }
 
   async setStar(userId: string, articleId: string, isStarred: boolean) {
     const db = getDb();
+    await accessControlService.assertArticleAccessible(userId, articleId);
+
     await db
       .insert(userArticleStates)
       .values({ userId, articleId, isStarred })
@@ -206,6 +232,8 @@ export class ArticleService {
 
   async setArchived(userId: string, articleId: string, isArchived: boolean) {
     const db = getDb();
+    await accessControlService.assertArticleAccessible(userId, articleId);
+
     await db
       .insert(userArticleStates)
       .values({ userId, articleId, isArchived })
@@ -265,6 +293,8 @@ export class ArticleService {
 
     const items: ArticleWithState[] = rows.map((r) => ({
       ...r.article,
+      contentHtml: sanitizeArticleDisplayHtml(r.article.contentHtml, r.article.summary),
+      imageUrl: sanitizeArticleImageUrl(r.article.imageUrl),
       createdAt: r.article.createdAt.toISOString(),
       publishedAt: r.article.publishedAt?.toISOString() ?? null,
       feedTitle: r.feedTitle,

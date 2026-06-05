@@ -54,8 +54,11 @@ export default async function feedRoutes(app: FastifyInstance) {
   }, async (req) => {
     const { getFeedRefreshQueue } = await import('../queues/index.js');
     const queue = getFeedRefreshQueue();
-    await queue.add('refresh-all', {});
-    return { queued: true };
+    const feedIds = await feedService.listSubscribedFeedIds(req.user.id);
+    for (const feedId of feedIds) {
+      await queue.add('refresh', { feedId });
+    }
+    return { queued: true, count: feedIds.length };
   });
 
   app.post('/:feedId/refresh', {
@@ -65,6 +68,6 @@ export default async function feedRoutes(app: FastifyInstance) {
     },
   }, async (req) => {
     const { feedId } = req.params as { feedId: string };
-    return feedService.refreshFeed(feedId);
+    return feedService.refreshFeed(feedId, { userId: req.user.id });
   });
 }

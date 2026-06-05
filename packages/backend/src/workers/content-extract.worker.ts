@@ -3,16 +3,13 @@ import { eq } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { articles } from '../db/schema/index.js';
 import { extractArticleContent } from '../lib/content-extractor.js';
+import { articleHtmlToText, sanitizeArticleImageUrl } from '../lib/html-sanitizer.js';
 import { getLogger } from '../lib/logger.js';
 import { getRedisOpts } from '../queues/index.js';
 
 interface ContentExtractJob {
   articleId: string;
   force?: boolean;
-}
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }
 
 function countWords(text: string): number {
@@ -54,13 +51,13 @@ export function createContentExtractWorker() {
         return;
       }
 
-      const contentText = stripHtml(extracted.content);
+      const contentText = articleHtmlToText(extracted.content);
 
       await db.update(articles).set({
         contentHtml: extracted.content,
         contentText,
         wordCount: countWords(contentText),
-        imageUrl: extracted.image ?? article.imageUrl,
+        imageUrl: sanitizeArticleImageUrl(extracted.image) ?? sanitizeArticleImageUrl(article.imageUrl),
       }).where(eq(articles.id, articleId));
 
       logger.info({ articleId, chars: extracted.content.length, words: countWords(contentText) }, 'Content extracted');

@@ -40,12 +40,14 @@ COPY --from=build-backend /app/packages/backend/package.json ./packages/backend/
 COPY --from=build-backend /app/packages/backend/drizzle.config.ts ./packages/backend/
 COPY --from=build-backend /app/packages/backend/src/db/migrations ./packages/backend/src/db/migrations
 
+# Fastify serves this built React app from the production backend process.
 COPY --from=build-frontend /app/packages/frontend/dist ./packages/frontend/dist
 
 COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV PROCESS_ROLE=all
 EXPOSE 3000
 
 CMD ["node", "packages/backend/dist/index.js"]
