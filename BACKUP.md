@@ -1,6 +1,6 @@
 # Backup & Restore
 
-How to back up News Reader data and restore it. Two things to back up: the Postgres database (everything) and the Redis data (transient — optional).
+How to back up lede data and restore it. Two things to back up: the Postgres database (everything) and the Redis data (transient — optional).
 
 ## What's in the database
 
@@ -136,7 +136,7 @@ Consider a monthly cron to email yourself the OPML:
 # Personal touch: monthly OPML email
 curl -s http://localhost:3000/api/v1/opml/export \
   -H "Authorization: Bearer $API_KEY" \
-  | mail -s "News Reader OPML backup" you@example.com
+  | mail -s "lede OPML backup" you@example.com
 ```
 
 ## Disaster recovery checklist

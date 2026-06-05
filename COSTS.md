@@ -1,6 +1,6 @@
 # Costs
 
-What it actually costs to run News Reader, broken down by component. All prices in USD as of 2026.
+What it actually costs to run lede, broken down by component. All prices in USD as of 2026.
 
 ## TL;DR
 
@@ -103,10 +103,10 @@ The app tracks usage and shows it in Settings → AI Usage. Each user can see ex
 
 | Service | Cost/mo | Notes |
 |---------|---------|-------|
-| **News Reader (self-hosted)** | $5 + your AI key | Full control, your data, BYOAI |
+| **lede (self-hosted)** | $5 + your AI key | Full control, your data, BYOAI |
 | Inoreader Pro | $9.99 | 1000 sources, no AI summaries on cheaper tiers |
 | Feedly Pro+ | $12 | AI features bundled but limited |
 | Feedbin | $5 | Simpler feature set, no AI |
 | NewsBlur Premium | $36/yr | Open source, similar features, fewer integrations |
 
-News Reader is roughly the cost of Feedbin with the feature set of Inoreader Pro, plus you get AI features metered to your actual usage.
+lede is roughly the cost of Feedbin with the feature set of Inoreader Pro, plus you get AI features metered to your actual usage.

@@ -1,7 +1,7 @@
-// News Reader service worker
+// lede service worker
 // Handles offline caching of static assets and incoming push notifications
 
-const CACHE_NAME = 'news-reader-v1';
+const CACHE_NAME = 'lede-v2';
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.svg', '/icon-512.svg'];
 
 self.addEventListener('install', (event) => {
@@ -42,10 +42,10 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: 'News Reader', body: event.data.text() };
+    payload = { title: 'lede', body: event.data.text() };
   }
   event.waitUntil(
-    self.registration.showNotification(payload.title || 'News Reader', {
+    self.registration.showNotification(payload.title || 'lede', {
       body: payload.body || '',
       icon: '/icon-192.svg',
       badge: '/icon-192.svg',

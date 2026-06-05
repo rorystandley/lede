@@ -511,7 +511,7 @@ function DeliverySection({ profile, profileMut }: {
       {installPrompt && (
         <div className="p-3 border border-primary-300 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/20 rounded-lg flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-text-primary">Install News Reader</p>
+            <p className="text-sm font-medium text-text-primary">Install lede</p>
             <p className="text-xs text-text-secondary mt-0.5">Add to your home screen for fast access</p>
           </div>
           <button onClick={triggerInstall} className="px-3 py-1.5 text-xs font-medium bg-primary-600 text-white rounded hover:bg-primary-700">

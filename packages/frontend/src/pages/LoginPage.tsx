@@ -30,9 +30,12 @@ export function LoginPage() {
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-text-primary">News Reader</h1>
-          <p className="text-sm text-text-secondary mt-1">Your personal feed reader</p>
+        <div className="flex flex-col items-center text-center mb-8">
+          <img src="/icon.svg" alt="lede" width={56} height={56} className="rounded-2xl shadow-sm mb-3" />
+          <h1 className="text-3xl font-bold tracking-tight text-text-primary lowercase">
+            lede<span style={{ color: '#12B981' }}>.</span>
+          </h1>
+          <p className="text-sm text-text-secondary mt-1">Sift the noise, keep the story</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-surface-secondary border border-border rounded-lg p-6 space-y-4">

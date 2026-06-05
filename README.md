@@ -1,4 +1,4 @@
-# News Reader
+# lede
 
 A self-hosted news feed reader inspired by Inoreader, built for both humans (web UI) and AI agents (REST API + MCP server). Subscribe to RSS/Atom feeds, organise them in folders, search across articles, automate with rules, and get a personalised morning briefing every day.
 
@@ -72,6 +72,7 @@ The backend services layer is the single source of business logic — REST route
 - [COSTS.md](./COSTS.md) — Hosting + AI provider costs at different scales
 - [SECURITY.md](./SECURITY.md) — Hardening checklist, TLS, secrets, API keys
 - [BACKUP.md](./BACKUP.md) — pg_dump cron, restore procedures, OPML export
+- [PRODUCTION_REVIEW.md](./PRODUCTION_REVIEW.md) — production findings, lowest-cost infra, and fix workstreams
 
 ## API & MCP
 

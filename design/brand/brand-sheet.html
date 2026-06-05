@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>lede — brand sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#F6F7F9;color:#14151A;font-family:Inter,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1000px;margin:0 auto;padding:54px 28px 100px;}
+  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#8A90A0;margin:0 0 26px;}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:#7A8090;font-weight:600;margin:54px 0 16px;border-top:1px solid #E6E8ED;padding-top:22px;}
+  .hero{display:flex;align-items:center;gap:26px;}
+  .hero img{width:96px;height:96px;border-radius:24px;box-shadow:0 16px 40px rgba(18,185,129,.28);}
+  .word{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:76px;letter-spacing:-0.03em;line-height:1;}
+  .word .d{color:#12B981;}
+  .tagline{color:#5b6170;font-size:16px;margin:14px 0 0;}
+
+  .sizes{display:flex;align-items:flex-end;gap:30px;background:#fff;border:1px solid #ECEDF1;border-radius:18px;padding:30px;}
+  .sizes .s{display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .sizes .s img{image-rendering:auto;}
+  .sizes .s span{font-size:11px;color:#9499A6;}
+
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+  .card{border-radius:18px;padding:26px;display:flex;flex-direction:column;align-items:center;gap:14px;}
+  .card.light{background:#fff;border:1px solid #ECEDF1;}
+  .card.dark{background:#0F1117;}
+  .card .lbl{font-size:11px;color:#9499A6;}
+  .card img{width:84px;height:84px;}
+  .sq{border-radius:19px;}
+  .circle{border-radius:50%;}
+
+  .pal{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
+  .sw{border-radius:14px;overflow:hidden;border:1px solid rgba(0,0,0,.06);background:#fff;}
+  .sw .chip{height:70px;}
+  .sw .meta{padding:9px 10px;}
+  .sw .nm{font-size:12px;font-weight:600;}
+  .sw .hx{font-size:11px;color:#9499A6;font-variant-numeric:tabular-nums;}
+
+  .files{background:#fff;border:1px solid #ECEDF1;border-radius:16px;padding:8px 4px;}
+  .files .f{display:flex;justify-content:space-between;padding:9px 16px;font-size:13px;border-bottom:1px solid #F2F3F6;}
+  .files .f:last-child{border-bottom:none;}
+  .files .f code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#14151A;}
+  .files .f span{color:#9499A6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">lede · brand sheet · locked</p>
+
+  <div class="hero">
+    <img src="icon.svg" alt="lede icon"/>
+    <div>
+      <div class="word">lede<span class="d">.</span></div>
+      <p class="tagline">Sift the noise, keep the story.</p>
+    </div>
+  </div>
+
+  <h2>Favicon — real PNG output, shown at actual size</h2>
+  <div class="sizes">
+    <div class="s"><img src="icon-16.png" width="16" height="16"/><span>16</span></div>
+    <div class="s"><img src="icon-32.png" width="32" height="32"/><span>32</span></div>
+    <div class="s"><img src="icon-48.png" width="48" height="48"/><span>48</span></div>
+    <div class="s"><img src="icon-64.png" width="64" height="64"/><span>64</span></div>
+    <div class="s"><img src="icon-128.png" width="128" height="128"/><span>128</span></div>
+  </div>
+
+  <h2>App icon — light, dark, squircle &amp; maskable safe-zone</h2>
+  <div class="cards">
+    <div class="card light"><img class="sq" src="icon.svg"/><span class="lbl">squircle · light</span></div>
+    <div class="card dark"><img class="sq" src="icon.svg"/><span class="lbl">squircle · dark</span></div>
+    <div class="card light"><img class="sq" src="lede-icon-light.svg"/><span class="lbl">light variant</span></div>
+    <div class="card light"><img class="circle" src="icon-512.png"/><span class="lbl">maskable (circle crop)</span></div>
+  </div>
+
+  <h2>Palette</h2>
+  <div class="pal">
+    <div class="sw"><div class="chip" style="background:#12B981"></div><div class="meta"><div class="nm">Emerald</div><div class="hx">#12B981</div></div></div>
+    <div class="sw"><div class="chip" style="background:#0E9F6E"></div><div class="meta"><div class="nm">Emerald dk</div><div class="hx">#0E9F6E</div></div></div>
+    <div class="sw"><div class="chip" style="background:#34D399"></div><div class="meta"><div class="nm">Mint</div><div class="hx">#34D399</div></div></div>
+    <div class="sw"><div class="chip" style="background:#14151A"></div><div class="meta"><div class="nm">Ink</div><div class="hx">#14151A</div></div></div>
+    <div class="sw"><div class="chip" style="background:#C4C9D2"></div><div class="meta"><div class="nm">Mute</div><div class="hx">#C4C9D2</div></div></div>
+    <div class="sw"><div class="chip" style="background:#FFFFFF;box-shadow:inset 0 0 0 1px #ECEDF1"></div><div class="meta"><div class="nm">Paper</div><div class="hx">#FFFFFF</div></div></div>
+  </div>
+
+  <h2>Shipped to <code style="font-family:ui-monospace,monospace">packages/frontend/public/</code></h2>
+  <div class="files">
+    <div class="f"><code>favicon.svg</code><span>squircle vector · browser tab</span></div>
+    <div class="f"><code>favicon.ico</code><span>16 · 32 · 48 multi-res</span></div>
+    <div class="f"><code>apple-touch-icon.png</code><span>180×180 · iOS home screen</span></div>
+    <div class="f"><code>icon.svg</code><span>app icon · purpose any</span></div>
+    <div class="f"><code>icon-192.svg / .png</code><span>PWA · maskable</span></div>
+    <div class="f"><code>icon-512.svg / .png</code><span>PWA · maskable</span></div>
+    <div class="f"><code>manifest.webmanifest</code><span>name, theme #12B981, icons</span></div>
+  </div>
+</div>
+</body>
+</html>

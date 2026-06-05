@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Lede">
+  <defs>
+    <radialGradient id="sheen" cx="0.28" cy="0.22" r="0.95">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="114" fill="#FB4D3D"/>
+  <rect width="512" height="512" rx="114" fill="url(#sheen)"/>
+  <rect x="140" y="160" width="236" height="44" rx="22" fill="#FFFFFF"/>
+  <rect x="140" y="242" width="196" height="26" rx="13" fill="#FFFFFF" fill-opacity="0.5"/>
+  <rect x="140" y="284" width="214" height="26" rx="13" fill="#FFFFFF" fill-opacity="0.5"/>
+  <rect x="140" y="326" width="150" height="26" rx="13" fill="#FFFFFF" fill-opacity="0.5"/>
+</svg>

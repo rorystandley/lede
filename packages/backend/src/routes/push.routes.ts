@@ -51,7 +51,7 @@ export default async function pushRoutes(app: FastifyInstance) {
     schema: { tags: ['Push'], summary: 'Send a test push to verify the subscription' },
   }, async (req) => {
     const sent = await sendPushToUser(req.user.id, {
-      title: 'News Reader',
+      title: 'lede',
       body: 'Push notifications are working!',
       tag: 'test',
     });

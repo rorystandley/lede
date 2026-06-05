@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Siftory — icon concepts</title>
+<style>
+  :root { --ink:#0b0b12; --muted:#6b7280; }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; background:#0b0b12; color:#e8e8f0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:1040px; margin:0 auto; padding:56px 28px 96px; }
+  header { margin-bottom:48px; }
+  .brand { display:flex; align-items:center; gap:18px; }
+  .brand svg { width:64px; height:64px; border-radius:16px; filter:drop-shadow(0 8px 24px rgba(0,0,0,.45)); }
+  .brand .name { font-size:38px; font-weight:700; letter-spacing:-0.02em; }
+  .brand .name b { font-weight:700; }
+  .tag { color:var(--muted); margin:10px 0 0; font-size:15px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.14em; color:#9aa0b4; font-weight:600; margin:48px 0 18px; }
+  .rec { color:#FFD680; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; }
+  .card { border-radius:20px; padding:28px; display:flex; flex-direction:column; align-items:center; gap:18px; border:1px solid rgba(255,255,255,.06); }
+  .card.dark { background:#15151f; }
+  .card.light { background:#f4f5f9; }
+  .card .lbl { font-size:12px; color:var(--muted); }
+  .card.light .lbl { color:#8a8fa3; }
+  .ico-lg { width:140px; height:140px; border-radius:30px; }
+  .sizes { display:flex; align-items:flex-end; gap:20px; }
+  .sizes .s { display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .sizes .s span { font-size:11px; color:var(--muted); }
+  .s64 { width:64px; height:64px; border-radius:15px; }
+  .s32 { width:32px; height:32px; border-radius:8px; }
+  .s16 { width:16px; height:16px; border-radius:4px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:center; }
+  .note { color:var(--muted); font-size:13px; line-height:1.6; max-width:62ch; }
+  .pill { display:inline-block; font-size:11px; padding:3px 9px; border-radius:999px; background:rgba(255,214,128,.14); color:#FFD680; margin-left:10px; vertical-align:middle; }
+</style>
+</head>
+<body>
+
+<!-- ============ symbol library ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+  <!-- shared accents per symbol kept unique to avoid id clashes -->
+
+  <!-- DISTILL (ink & gold) -->
+  <linearGradient id="d_bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2C2558"/><stop offset="0.55" stop-color="#1A1538"/><stop offset="1" stop-color="#100C24"/></linearGradient>
+  <radialGradient id="d_glow" cx="0.3" cy="0.24" r="0.95"><stop offset="0" stop-color="#fff" stop-opacity="0.16"/><stop offset="0.5" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <linearGradient id="d_mark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#D7DAF4"/></linearGradient>
+  <linearGradient id="d_acc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD680"/><stop offset="1" stop-color="#F0A636"/></linearGradient>
+  <filter id="d_soft" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="9" flood-color="#000" flood-opacity="0.28"/></filter>
+  <symbol id="ico-distill" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="114" fill="url(#d_bg)"/>
+    <rect width="512" height="512" rx="114" fill="url(#d_glow)"/>
+    <g filter="url(#d_soft)">
+      <rect x="136" y="146" width="240" height="36" rx="18" fill="url(#d_mark)"/>
+      <rect x="174" y="208" width="164" height="36" rx="18" fill="url(#d_mark)"/>
+      <rect x="212" y="270" width="88" height="36" rx="18" fill="url(#d_mark)"/>
+      <circle cx="256" cy="350" r="15" fill="url(#d_acc)"/>
+    </g>
+    <rect x="0.75" y="0.75" width="510.5" height="510.5" rx="113.25" fill="none" stroke="#fff" stroke-opacity="0.08"/>
+  </symbol>
+
+  <!-- DISTILL (indigo) -->
+  <linearGradient id="i_bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6E7BFF"/><stop offset="0.5" stop-color="#5246E6"/><stop offset="1" stop-color="#7C3AED"/></linearGradient>
+  <radialGradient id="i_glow" cx="0.3" cy="0.24" r="0.95"><stop offset="0" stop-color="#fff" stop-opacity="0.22"/><stop offset="0.5" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <linearGradient id="i_mark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#E7E9FF"/></linearGradient>
+  <filter id="i_soft" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="9" flood-color="#1A1147" flood-opacity="0.30"/></filter>
+  <symbol id="ico-indigo" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="114" fill="url(#i_bg)"/>
+    <rect width="512" height="512" rx="114" fill="url(#i_glow)"/>
+    <g filter="url(#i_soft)">
+      <rect x="136" y="146" width="240" height="36" rx="18" fill="url(#i_mark)"/>
+      <rect x="174" y="208" width="164" height="36" rx="18" fill="url(#i_mark)"/>
+      <rect x="212" y="270" width="88" height="36" rx="18" fill="url(#i_mark)"/>
+      <circle cx="256" cy="350" r="15" fill="url(#d_acc)"/>
+    </g>
+    <rect x="0.75" y="0.75" width="510.5" height="510.5" rx="113.25" fill="none" stroke="#fff" stroke-opacity="0.10"/>
+  </symbol>
+
+  <!-- FUNNEL -->
+  <symbol id="ico-funnel" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="114" fill="url(#d_bg)"/>
+    <rect width="512" height="512" rx="114" fill="url(#d_glow)"/>
+    <circle cx="206" cy="150" r="9" fill="#fff" fill-opacity="0.45"/>
+    <circle cx="256" cy="142" r="9" fill="#fff" fill-opacity="0.45"/>
+    <circle cx="306" cy="150" r="9" fill="#fff" fill-opacity="0.45"/>
+    <g filter="url(#d_soft)">
+      <path d="M156 176 L356 176 L290 266 L290 320 Q290 332 278 332 L234 332 Q222 332 222 320 L222 266 Z" fill="url(#d_mark)"/>
+      <circle cx="256" cy="366" r="14" fill="url(#d_acc)"/>
+    </g>
+    <rect x="0.75" y="0.75" width="510.5" height="510.5" rx="113.25" fill="none" stroke="#fff" stroke-opacity="0.08"/>
+  </symbol>
+
+  <!-- SIEVE -->
+  <clipPath id="s_screen"><circle cx="256" cy="248" r="82"/></clipPath>
+  <symbol id="ico-sieve" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="114" fill="url(#d_bg)"/>
+    <rect width="512" height="512" rx="114" fill="url(#d_glow)"/>
+    <circle cx="256" cy="120" r="11" fill="#fff" fill-opacity="0.45"/>
+    <g filter="url(#d_soft)">
+      <circle cx="256" cy="248" r="94" fill="none" stroke="url(#d_mark)" stroke-width="22"/>
+      <g clip-path="url(#s_screen)">
+        <rect x="150" y="214" width="212" height="15" rx="7.5" fill="url(#d_mark)"/>
+        <rect x="150" y="248" width="212" height="15" rx="7.5" fill="url(#d_mark)"/>
+        <rect x="150" y="282" width="212" height="15" rx="7.5" fill="url(#d_mark)"/>
+      </g>
+      <circle cx="256" cy="390" r="15" fill="url(#d_acc)"/>
+    </g>
+    <rect x="0.75" y="0.75" width="510.5" height="510.5" rx="113.25" fill="none" stroke="#fff" stroke-opacity="0.08"/>
+  </symbol>
+</defs>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg><use href="#ico-distill"/></svg>
+      <div class="name">Sift<b style="color:#FFD680">o</b>ry</div>
+    </div>
+    <p class="tag">Sift the noise. Keep the story. — icon concepts (preview only, not wired into the app)</p>
+  </header>
+
+  <h2>Concept 1 · “Distill” <span class="pill">recommended</span></h2>
+  <p class="note">Three pills taper from many to few — the feed being sifted — resolving to a single gold dot: the story worth keeping. Geometric, scales cleanly to favicon size, and the gold accent gives it an editorial, premium feel.</p>
+  <div class="grid" style="margin-top:18px">
+    <div class="card dark"><svg class="ico-lg"><use href="#ico-distill"/></svg><span class="lbl">on dark</span></div>
+    <div class="card light"><svg class="ico-lg"><use href="#ico-distill"/></svg><span class="lbl">on light</span></div>
+    <div class="card dark">
+      <div class="sizes">
+        <div class="s"><svg class="s64"><use href="#ico-distill"/></svg><span>64</span></div>
+        <div class="s"><svg class="s32"><use href="#ico-distill"/></svg><span>32</span></div>
+        <div class="s"><svg class="s16"><use href="#ico-distill"/></svg><span>16</span></div>
+      </div>
+      <span class="lbl">legibility at small sizes</span>
+    </div>
+  </div>
+
+  <h2>Colorway · Indigo</h2>
+  <p class="note">Same mark, a vivid modern-SaaS gradient instead of the dark editorial ink. Gold dot retained for contrast.</p>
+  <div class="grid" style="margin-top:18px">
+    <div class="card dark"><svg class="ico-lg"><use href="#ico-indigo"/></svg><span class="lbl">on dark</span></div>
+    <div class="card light"><svg class="ico-lg"><use href="#ico-indigo"/></svg><span class="lbl">on light</span></div>
+    <div class="card dark">
+      <div class="sizes">
+        <div class="s"><svg class="s64"><use href="#ico-indigo"/></svg><span>64</span></div>
+        <div class="s"><svg class="s32"><use href="#ico-indigo"/></svg><span>32</span></div>
+        <div class="s"><svg class="s16"><use href="#ico-indigo"/></svg><span>16</span></div>
+      </div>
+      <span class="lbl">legibility at small sizes</span>
+    </div>
+  </div>
+
+  <h2>Concept 2 · “Funnel”</h2>
+  <p class="note">More literal: incoming stories drop into a filter and one distilled result falls out. Reads instantly as “sift,” a touch more illustrative.</p>
+  <div class="row" style="margin-top:18px">
+    <div class="card dark"><svg class="ico-lg"><use href="#ico-funnel"/></svg><span class="lbl">on dark</span></div>
+    <div class="card light"><svg class="ico-lg"><use href="#ico-funnel"/></svg><span class="lbl">on light</span></div>
+  </div>
+
+  <h2>Concept 3 · “Sieve”</h2>
+  <p class="note">A literal sieve/screen with mesh. Friendly and obvious, though the fine mesh softens below ~24px.</p>
+  <div class="row" style="margin-top:18px">
+    <div class="card dark"><svg class="ico-lg"><use href="#ico-sieve"/></svg><span class="lbl">on dark</span></div>
+    <div class="card light"><svg class="ico-lg"><use href="#ico-sieve"/></svg><span class="lbl">on light</span></div>
+  </div>
+</div>
+
+</body>
+</html>

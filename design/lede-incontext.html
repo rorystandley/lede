@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>lede — in context</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#EEF0F3;color:#14151A;font-family:Inter,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1140px;margin:0 auto;padding:48px 28px 90px;}
+  .h{font-family:Inter;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#8A90A0;margin:0 0 26px;}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:30px;}
+  .col h3{font-family:Inter;font-weight:600;font-size:13px;color:#6B7180;text-align:center;margin:0 0 14px;letter-spacing:.04em;}
+
+  /* faux browser window */
+  .win{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(20,21,26,.16);border:1px solid #E3E5EA;}
+  .bar{height:40px;background:#F3F4F7;border-bottom:1px solid #E7E9EE;display:flex;align-items:center;padding:0 14px;gap:8px;}
+  .dot{width:11px;height:11px;border-radius:50%;}
+  .tab{margin-left:14px;height:26px;background:#fff;border:1px solid #E2E4E9;border-bottom:none;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:7px;padding:0 12px;font-size:12px;color:#5b6170;}
+  .tab svg{width:14px;height:14px;border-radius:4px;}
+
+  /* app */
+  .app{padding:0;}
+  .appbar{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid #EEF0F3;}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .brand svg{width:30px;height:30px;border-radius:8px;}
+  .wm{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:22px;letter-spacing:-0.03em;}
+  .wm .d{color:var(--accent);}
+  .btn{background:var(--accent);color:#fff;font-weight:600;font-size:13px;border:none;border-radius:9px;padding:9px 14px;}
+  .nav{display:flex;gap:22px;padding:13px 20px 0;font-size:13.5px;color:#8A90A0;font-weight:500;}
+  .nav .on{color:#14151A;font-weight:600;position:relative;padding-bottom:11px;}
+  .nav .on:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2.5px;border-radius:2px;background:var(--accent);}
+  .nav .x{padding-bottom:11px;}
+
+  .body{padding:18px 20px 22px;}
+  .kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#9499A6;margin-bottom:14px;}
+
+  .lead{border-left:3px solid var(--accent);padding:2px 0 6px 14px;margin-bottom:6px;}
+  .lead .tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,#fff);padding:3px 8px;border-radius:6px;margin-bottom:9px;}
+  .lead h2{font-family:Inter;font-weight:700;font-size:20px;line-height:1.25;margin:0 0 7px;letter-spacing:-0.01em;}
+  .lead p{margin:0;color:#6B7180;font-size:13.5px;line-height:1.55;}
+  .lead .meta{margin-top:9px;font-size:12px;color:#9499A6;}
+  .lead .meta a{color:var(--accent);text-decoration:none;font-weight:600;}
+
+  .item{display:flex;gap:13px;padding:14px 0;border-top:1px solid #F0F1F4;align-items:flex-start;}
+  .item .udot{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:6px;flex:none;}
+  .item.read .udot{background:#D5D8DF;}
+  .item h4{margin:0 0 3px;font-size:14.5px;font-weight:600;line-height:1.3;}
+  .item.read h4{color:#7C8290;font-weight:500;}
+  .item .src{font-size:12px;color:#9499A6;}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <radialGradient id="sheen" cx="0.28" cy="0.22" r="0.95"><stop offset="0" stop-color="#fff" stop-opacity="0.22"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <symbol id="ico" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="114" fill="currentColor"/>
+    <rect width="512" height="512" rx="114" fill="url(#sheen)"/>
+    <rect x="140" y="160" width="236" height="44" rx="22" fill="#fff"/>
+    <rect x="140" y="242" width="196" height="26" rx="13" fill="#fff" fill-opacity="0.5"/>
+    <rect x="140" y="284" width="214" height="26" rx="13" fill="#fff" fill-opacity="0.5"/>
+    <rect x="140" y="326" width="150" height="26" rx="13" fill="#fff" fill-opacity="0.5"/>
+  </symbol>
+</defs></svg>
+
+<div class="wrap">
+  <p class="h">lede · in context — preview only</p>
+  <div class="row">
+
+    <!-- VERMILLION -->
+    <div class="col">
+      <h3>Vermillion</h3>
+      <div class="win" style="--accent:#FB4D3D">
+        <div class="bar">
+          <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div>
+          <div class="tab"><svg style="color:#FB4D3D"><use href="#ico"/></svg>lede — your daily brief</div>
+        </div>
+        <div class="app">
+          <div class="appbar">
+            <div class="brand"><svg style="color:#FB4D3D"><use href="#ico"/></svg><span class="wm">lede<span class="d">.</span></span></div>
+            <button class="btn">New brief</button>
+          </div>
+          <div class="nav"><span class="on">Today</span><span class="x">Unread</span><span class="x">Starred</span><span class="x">Folders</span></div>
+          <div class="body">
+            <div class="kicker">Thursday · Morning brief</div>
+            <div class="lead">
+              <span class="tag">THE LEDE</span>
+              <h2>Markets steady as central banks signal a pause on rate hikes</h2>
+              <p>Three of your feeds led with this overnight. Here’s the distilled version, with the numbers that matter.</p>
+              <div class="meta">Reuters · 6m read · <a href="#">Summarise →</a></div>
+            </div>
+            <div class="item"><div class="udot"></div><div><h4>New open-source RSS tools gain traction with self-hosters</h4><div class="src">Hacker News · 2h ago</div></div></div>
+            <div class="item read"><div class="udot"></div><div><h4>The quiet comeback of the morning newsletter</h4><div class="src">The Verge · 5h ago</div></div></div>
+            <div class="item read"><div class="udot"></div><div><h4>How small teams ship faster than big ones</h4><div class="src">Stratechery · 6h ago</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMERALD -->
+    <div class="col">
+      <h3>Emerald</h3>
+      <div class="win" style="--accent:#12B981">
+        <div class="bar">
+          <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div>
+          <div class="tab"><svg style="color:#12B981"><use href="#ico"/></svg>lede — your daily brief</div>
+        </div>
+        <div class="app">
+          <div class="appbar">
+            <div class="brand"><svg style="color:#12B981"><use href="#ico"/></svg><span class="wm">lede<span class="d">.</span></span></div>
+            <button class="btn">New brief</button>
+          </div>
+          <div class="nav"><span class="on">Today</span><span class="x">Unread</span><span class="x">Starred</span><span class="x">Folders</span></div>
+          <div class="body">
+            <div class="kicker">Thursday · Morning brief</div>
+            <div class="lead">
+              <span class="tag">THE LEDE</span>
+              <h2>Markets steady as central banks signal a pause on rate hikes</h2>
+              <p>Three of your feeds led with this overnight. Here’s the distilled version, with the numbers that matter.</p>
+              <div class="meta">Reuters · 6m read · <a href="#">Summarise →</a></div>
+            </div>
+            <div class="item"><div class="udot"></div><div><h4>New open-source RSS tools gain traction with self-hosters</h4><div class="src">Hacker News · 2h ago</div></div></div>
+            <div class="item read"><div class="udot"></div><div><h4>The quiet comeback of the morning newsletter</h4><div class="src">The Verge · 5h ago</div></div></div>
+            <div class="item read"><div class="udot"></div><div><h4>How small teams ship faster than big ones</h4><div class="src">Stratechery · 6h ago</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

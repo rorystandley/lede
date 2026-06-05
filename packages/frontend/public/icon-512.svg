@@ -1,10 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#2563eb" rx="80"/>
-  <g fill="white" transform="translate(96 96)">
-    <rect x="0" y="0" width="320" height="50" rx="10"/>
-    <rect x="0" y="86" width="240" height="36" rx="8"/>
-    <rect x="0" y="160" width="320" height="36" rx="8"/>
-    <rect x="0" y="230" width="270" height="36" rx="8"/>
-    <rect x="0" y="300" width="320" height="20" rx="6" opacity="0.6"/>
-  </g>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="lede">
+  <rect width="512" height="512" fill="#12B981"/>
+  <rect x="140" y="160" width="236" height="44" rx="22" fill="#FFFFFF"/>
+  <rect x="140" y="242" width="196" height="26" rx="13" fill="#FFFFFF" fill-opacity="0.5"/>
+  <rect x="140" y="284" width="214" height="26" rx="13" fill="#FFFFFF" fill-opacity="0.5"/>
+  <rect x="140" y="326" width="150" height="26" rx="13" fill="#FFFFFF" fill-opacity="0.5"/>
 </svg>

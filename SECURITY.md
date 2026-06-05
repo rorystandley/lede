@@ -1,6 +1,6 @@
 # Security
 
-This document covers hardening News Reader for production. The defaults are reasonable for personal use; this guide goes further for shared or public deployments.
+This document covers hardening lede for production. The defaults are reasonable for personal use; this guide goes further for shared or public deployments.
 
 ## Secrets
 

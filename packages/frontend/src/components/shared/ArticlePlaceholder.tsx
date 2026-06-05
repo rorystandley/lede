@@ -12,11 +12,11 @@ interface Props {
 }
 
 const GRADIENTS: Array<[string, string]> = [
-  ['#1e40af', '#2563eb'], // blue
-  ['#1d4ed8', '#3b82f6'], // blue lighter
-  ['#1e3a8a', '#2563eb'], // navy → blue
-  ['#312e81', '#4f46e5'], // indigo
-  ['#1e40af', '#0ea5e9'], // blue → sky
+  ['#0E9F6E', '#12B981'], // emerald
+  ['#0B8F63', '#10C18A'], // deep → bright emerald
+  ['#0F766E', '#12B981'], // teal → emerald
+  ['#059669', '#34D399'], // emerald → mint
+  ['#0D9488', '#10B981'], // teal → emerald
 ];
 
 function pickGradient(seed?: string): [string, string] {
@@ -36,7 +36,7 @@ export function ArticlePlaceholder({ size = 'card', className, seed }: Props) {
   return (
     <div
       role="img"
-      aria-label="News Reader"
+      aria-label="lede"
       className={`relative w-full h-full overflow-hidden ${className ?? ''}`}
     >
       <svg
@@ -86,8 +86,8 @@ export function ArticlePlaceholder({ size = 'card', className, seed }: Props) {
 
       {showLabel && (
         <div className="absolute inset-x-0 bottom-3 flex flex-col items-center text-white">
-          <div className={`font-semibold tracking-tight ${size === 'hero' ? 'text-lg' : 'text-xs'}`}>
-            News&nbsp;Reader
+          <div className={`font-bold tracking-tight lowercase ${size === 'hero' ? 'text-lg' : 'text-xs'}`}>
+            lede<span className="opacity-70">.</span>
           </div>
           {showTagline && (
             <div className="text-[11px] uppercase tracking-[0.18em] opacity-70 mt-1">

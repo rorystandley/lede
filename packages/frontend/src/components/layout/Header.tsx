@@ -12,7 +12,7 @@ export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats 
   const { user, logout } = useAuthStore();
 
   return (
-    <header className="h-12 border-b border-border bg-surface flex items-center justify-between px-4 shrink-0">
+    <header className="h-14 border-b border-border bg-surface flex items-center justify-between px-4 shrink-0">
       <div className="flex items-center gap-3">
         <button
           onClick={toggleSidebar}
@@ -23,7 +23,12 @@ export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats 
             <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <h1 className="text-sm font-semibold text-text-primary">News Reader</h1>
+        <div className="flex items-center gap-2">
+          <img src="/icon.svg" alt="lede" width={32} height={32} className="rounded-lg" />
+          <h1 className="text-2xl font-bold tracking-tight text-text-primary lowercase leading-none">
+            lede<span style={{ color: '#12B981' }}>.</span>
+          </h1>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

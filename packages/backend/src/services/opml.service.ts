@@ -103,7 +103,7 @@ export class OpmlService {
       })),
     ];
 
-    return generateOpml('News Reader Export', outlines);
+    return generateOpml('lede Export', outlines);
   }
 }
 

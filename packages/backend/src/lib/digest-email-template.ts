@@ -25,7 +25,7 @@ export function renderDigestEmail(content: DigestContent, displayName: string | 
   }).join('');
 
   const briefingBox = content.briefing ? `
-    <div style="background:#eff6ff;border-left:4px solid #2563eb;padding:16px;border-radius:6px;margin-bottom:24px;">
+    <div style="background:#ecfdf5;border-left:4px solid #12B981;padding:16px;border-radius:6px;margin-bottom:24px;">
       <p style="margin:0;font-size:14px;color:#1e3a8a;line-height:1.5;">${escape(content.briefing)}</p>
     </div>` : '';
 
@@ -43,7 +43,7 @@ export function renderDigestEmail(content: DigestContent, displayName: string | 
         </td></tr>
         <tr><td style="padding:0 32px;">${briefingBox}${htmlSections}</td></tr>
         <tr><td style="padding:24px 32px;text-align:center;border-top:1px solid #e5e7eb;">
-          <a href="${escape(appUrl)}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:6px;font-size:14px;font-weight:500;">Open News Reader</a>
+          <a href="${escape(appUrl)}" style="display:inline-block;padding:10px 20px;background:#12B981;color:white;text-decoration:none;border-radius:6px;font-size:14px;font-weight:500;">Open lede</a>
         </td></tr>
         <tr><td style="padding:0 32px 32px;text-align:center;">
           <p style="margin:0;color:#9ca3af;font-size:11px;">Manage your digest preferences in Settings.</p>
