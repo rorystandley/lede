@@ -225,7 +225,16 @@ export class ArticleService {
       .from(userFeedSubscriptions)
       .where(eq(userFeedSubscriptions.userId, userId));
 
-    const tsQuery = q.split(/\s+/).map((w) => `${w}:*`).join(' & ');
+    // Sanitize input: strip tsquery-special characters, keep only words
+    const words = q.split(/\s+/)
+      .map((w) => w.replace(/[^a-zA-Z0-9À-ɏ]/g, ''))
+      .filter((w) => w.length > 0);
+
+    if (words.length === 0) {
+      return { items: [], total: 0, page, pageSize, hasMore: false };
+    }
+
+    const tsQuery = words.map((w) => `${w}:*`).join(' & ');
 
     const rows = await db
       .select({
