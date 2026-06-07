@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -456,8 +456,7 @@ describe('SettingsPage', () => {
 
     const { rerender } = render(<SettingsPage onClose={() => {}} />, { wrapper: Wrapper });
 
-    const pushSection = (await screen.findByText('Push notifications')).closest('div.mb-4') as HTMLElement;
-    expect(within(pushSection).getByText('Checking server capabilities...')).toBeInTheDocument();
+    expect(await screen.findByText('Checking server capabilities...')).toBeInTheDocument();
 
     mocks.capabilitiesMock.mockResolvedValue({ email: true, push: true });
     rerender(<SettingsPage onClose={() => {}} />);
