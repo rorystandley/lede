@@ -11,6 +11,11 @@ vi.mock('../stores/index.js', () => ({
   useUiStore: () => useUiStoreMock(),
 }));
 
+vi.mock('../hooks/use-media-query.js', () => ({
+  useIsMobile: () => false,
+  useMediaQuery: () => true,
+}));
+
 vi.mock('../components/layout/Sidebar.js', () => ({
   Sidebar: (props: { onOpenAddSources?: () => void }) => {
     sidebarMock(props);

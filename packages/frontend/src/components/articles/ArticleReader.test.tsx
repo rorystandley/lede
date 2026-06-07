@@ -217,7 +217,7 @@ describe('ArticleReader', () => {
     expect(screen.getByText('Short AI summary')).toBeInTheDocument();
     expect(mocks.summarizeMock).toHaveBeenCalledWith('article-1');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Suggest Tags' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
     const aiTagButton = await screen.findByRole('button', { name: 'ai' });
     fireEvent.click(aiTagButton);
 
@@ -314,7 +314,7 @@ describe('ArticleReader', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
     expect(screen.queryByText(/AI summarization unavailable/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Suggest Tags' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
     expect(await screen.findByText(/AI request failed/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
     expect(screen.queryByText(/AI request failed/i)).not.toBeInTheDocument();
@@ -332,7 +332,7 @@ describe('ArticleReader', () => {
     mocks.suggestTagsMock.mockRejectedValueOnce(new Error('400 not configured'));
 
     renderReader();
-    fireEvent.click(screen.getByRole('button', { name: 'Suggest Tags' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
     expect(await screen.findByText(/AI not configured/i)).toBeInTheDocument();
   });
 
@@ -376,7 +376,7 @@ describe('ArticleReader', () => {
       expect(mocks.extractMock).toHaveBeenCalledTimes(2);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Suggest Tags' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
     expect(await screen.findByText(/No tag suggestions for this article/i)).toBeInTheDocument();
   });
 
@@ -395,7 +395,7 @@ describe('ArticleReader', () => {
 
     expect(document.querySelector('img')).toHaveAttribute('src', 'https://[::1');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Suggest Tags' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
     const suggested = await screen.findByRole('button', { name: 'fresh-tag' });
     fireEvent.click(suggested);
 
@@ -626,7 +626,7 @@ describe('ArticleReader', () => {
 
     renderReader();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Suggest Tags' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
     expect(await screen.findByText(/AI request failed/i)).toBeInTheDocument();
   });
 });

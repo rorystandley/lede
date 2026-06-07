@@ -57,6 +57,11 @@ vi.mock('../../stores/index.js', () => ({
   useUiStore: () => mocks.useUiStoreMock(),
 }));
 
+vi.mock('../../hooks/use-media-query.js', () => ({
+  useIsMobile: () => false,
+  useMediaQuery: () => true,
+}));
+
 vi.mock('../../api/folders.api.js', () => ({
   foldersApi: {
     update: mocks.folderUpdateMock,
@@ -152,6 +157,7 @@ function renderWithClient(ui: React.ReactElement) {
 function buildUiState(overrides: Record<string, unknown> = {}) {
   return {
     sidebarOpen: true,
+    setSidebarOpen: vi.fn(),
     selectedFeedId: null,
     selectedFolderId: null,
     selectedTagId: null,

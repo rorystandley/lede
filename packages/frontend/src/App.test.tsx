@@ -9,6 +9,7 @@ const authState = {
 const uiState: Record<string, unknown> = {
   theme: 'light',
   selectArticle: vi.fn(),
+  setSidebarOpen: vi.fn(),
   toasts: [],
   dismissToast: vi.fn(),
 };
@@ -17,6 +18,11 @@ vi.mock('./stores/index.js', () => ({
   useAuthStore: () => authState,
   useUiStore: (selector?: (s: Record<string, unknown>) => unknown) =>
     selector ? selector(uiState) : uiState,
+}));
+
+vi.mock('./hooks/use-media-query.js', () => ({
+  useIsMobile: () => false,
+  useMediaQuery: () => true,
 }));
 
 vi.mock('./components/layout/Header.js', () => ({

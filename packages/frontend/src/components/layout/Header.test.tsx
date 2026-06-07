@@ -14,6 +14,11 @@ vi.mock('../../stores/index.js', () => ({
   useAuthStore: () => useAuthStoreMock(),
 }));
 
+vi.mock('../../hooks/use-media-query.js', () => ({
+  useIsMobile: () => false,
+  useMediaQuery: () => true,
+}));
+
 describe('Header', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -81,6 +86,6 @@ describe('Header', () => {
 
     expect(screen.queryByRole('button', { name: 'Logout' })).not.toBeInTheDocument();
     expect(container.querySelector('circle[cx="12"][cy="12"][r="5"]')).toBeInTheDocument();
-    expect(screen.getByText('magazine').className).toContain('bg-surface');
+    expect(screen.getByText('magazine').closest('button')!.className).toContain('bg-surface');
   });
 });
