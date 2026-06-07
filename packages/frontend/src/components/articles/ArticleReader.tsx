@@ -197,11 +197,11 @@ export function ArticleReader() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-surface-secondary">
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => selectArticle(null)}
-            className="text-sm text-text-secondary hover:text-text-primary flex items-center gap-1"
+            className="p-2 -ml-2 md:p-0 md:ml-0 text-sm text-text-secondary hover:text-text-primary flex items-center gap-1"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="15 18 9 12 15 6" />
@@ -209,12 +209,12 @@ export function ArticleReader() {
             Back
           </button>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 md:gap-1.5 flex-wrap justify-end">
             {article.url && (
               <button
                 onClick={() => triggerExtract(article.id)}
                 disabled={isExtracting}
-                className="px-2 py-1 text-xs rounded border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50 flex items-center gap-1.5"
+                className="px-2 py-1.5 md:py-1 text-xs rounded border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50 flex items-center gap-1.5"
                 title="Fetch full article from URL"
               >
                 {isExtracting && (
@@ -226,7 +226,7 @@ export function ArticleReader() {
             <button
               onClick={() => summarizeMut.mutate(article.id)}
               disabled={summarizeMut.isPending}
-              className="px-2 py-1 text-xs rounded border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50"
+              className="px-2 py-1.5 md:py-1 text-xs rounded border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50"
               title="AI Summarize"
             >
               {summarizeMut.isPending ? '...' : 'Summarize'}
@@ -234,17 +234,17 @@ export function ArticleReader() {
             <button
               onClick={() => suggestTagsMut.mutate(article.id)}
               disabled={suggestTagsMut.isPending}
-              className="px-2 py-1 text-xs rounded border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50 flex items-center gap-1.5"
+              className="hidden sm:flex px-2 py-1.5 md:py-1 text-xs rounded border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50 items-center gap-1.5"
               title="AI Suggest Tags"
             >
               {suggestTagsMut.isPending && (
                 <span className="animate-spin w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full" />
               )}
-              {suggestTagsMut.isPending ? 'Thinking...' : 'Suggest Tags'}
+              {suggestTagsMut.isPending ? 'Thinking...' : 'Tags'}
             </button>
             <button
               onClick={() => starArticle.mutate({ articleId: article.id, isStarred: !article.isStarred })}
-              className={`p-1.5 rounded ${article.isStarred ? 'text-yellow-500' : 'text-text-tertiary hover:text-yellow-500'}`}
+              className={`p-2 md:p-1.5 rounded ${article.isStarred ? 'text-yellow-500' : 'text-text-tertiary hover:text-yellow-500'}`}
               aria-label={article.isStarred ? 'Unstar' : 'Star'}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill={article.isStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
@@ -254,7 +254,7 @@ export function ArticleReader() {
             <button
               onClick={() => handleShare(article.id)}
               disabled={shareStatus === 'loading'}
-              className={`p-1.5 rounded ${
+              className={`p-2 md:p-1.5 rounded ${
                 shareStatus === 'shared' ? 'text-green-500'
                 : shareStatus === 'error' ? 'text-red-500'
                 : 'text-text-tertiary hover:text-text-primary'
@@ -288,7 +288,7 @@ export function ArticleReader() {
                 href={article.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1.5 rounded text-text-tertiary hover:text-text-primary"
+                className="p-2 md:p-1.5 rounded text-text-tertiary hover:text-text-primary"
                 aria-label="Open original"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -409,10 +409,10 @@ export function ArticleReader() {
           <div className="mb-4">
             <span className="text-xs text-primary-600 dark:text-primary-400">{article.feedTitle}</span>
           </div>
-          <h1 className="text-2xl font-bold text-text-primary leading-tight mb-3">
+          <h1 className="text-xl md:text-2xl font-bold text-text-primary leading-tight mb-3">
             {article.title ?? 'Untitled'}
           </h1>
-          <div className="flex items-center gap-3 text-sm text-text-secondary mb-6">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 text-sm text-text-secondary mb-6">
             {article.author && <span>By {article.author}</span>}
             {article.publishedAt && (
               <time dateTime={article.publishedAt}>

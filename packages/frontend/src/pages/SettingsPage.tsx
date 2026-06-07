@@ -116,8 +116,8 @@ export function SettingsPage({ onClose }: Props) {
   });
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface rounded-lg border border-border shadow-xl w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50">
+      <div className="bg-surface rounded-t-xl md:rounded-lg border border-border shadow-xl w-full md:max-w-lg md:mx-4 max-h-[90vh] md:max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="text-lg font-semibold text-text-primary">Settings</h2>
           <button onClick={onClose} className="p-1 text-text-tertiary hover:text-text-primary">

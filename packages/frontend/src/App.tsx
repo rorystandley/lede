@@ -11,6 +11,7 @@ import { AddSourcesPage } from './pages/AddSourcesPage.js';
 import { ToastContainer } from './components/shared/Toast.js';
 import { useEffect, useState } from 'react';
 import { useUiStore } from './stores/index.js';
+import { useIsMobile } from './hooks/use-media-query.js';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +24,8 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { isAuthenticated } = useAuthStore();
-  const { theme, selectArticle } = useUiStore();
+  const { theme, selectArticle, setSidebarOpen } = useUiStore();
+  const isMobile = useIsMobile();
   const [showSettings, setShowSettings] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [showDigest, setShowDigest] = useState(false);
@@ -33,6 +35,10 @@ function AppContent() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [isMobile]);
 
   if (!isAuthenticated()) {
     return <LoginPage />;
