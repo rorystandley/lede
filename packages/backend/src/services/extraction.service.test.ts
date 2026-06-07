@@ -159,7 +159,7 @@ describe('extractionService', () => {
       title: 'Meta title',
     } as never);
     vi.mocked(sanitizeArticleHtml).mockImplementation((value) => value ?? '');
-    vi.mocked(articleHtmlToText).mockImplementation((value) => value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+    vi.mocked(articleHtmlToText).mockImplementation((value) => (value ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
 
     await expect(extractionService.extractNow('article-1')).resolves.toEqual({
       status: 'metadata',

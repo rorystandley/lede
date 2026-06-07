@@ -50,10 +50,10 @@ describe('opmlService', () => {
 
     vi.mocked(folderService.create).mockResolvedValue({ id: 'folder-1' } as never);
     vi.mocked(feedService.subscribe)
-      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined as never)
       .mockRejectedValueOnce(new Error('Already subscribed to feed'))
       .mockRejectedValueOnce(new Error('Network down'))
-      .mockResolvedValueOnce(undefined);
+      .mockResolvedValueOnce(undefined as never);
 
     const logger = { warn: vi.fn() };
     vi.mocked(getLogger).mockReturnValue(logger as never);
@@ -81,7 +81,7 @@ describe('opmlService', () => {
       },
     ] as never);
     vi.mocked(folderService.create).mockRejectedValue(new Error('Folder exists'));
-    vi.mocked(feedService.subscribe).mockResolvedValue(undefined);
+    vi.mocked(feedService.subscribe).mockResolvedValue(undefined as never);
 
     await expect(opmlService.importOpml('user-1', '<opml />')).resolves.toEqual({
       imported: 1,

@@ -39,7 +39,7 @@ let authenticatedUser = { id: 'user-auth', email: 'auth@example.com' };
 
 async function buildApp() {
   const app = Fastify();
-  app.decorate('jwt', { sign: mocks.jwtSignMock });
+  app.decorate('jwt', { sign: mocks.jwtSignMock } as never);
   app.decorate('authenticate', async (req) => {
     (req as typeof req & { user: typeof authenticatedUser }).user = authenticatedUser;
   });

@@ -26,7 +26,7 @@ describe('main entrypoint', () => {
 
   it('renders the app and registers the service worker on load', async () => {
     let loadHandler: (() => void) | undefined;
-    vi.spyOn(window, 'addEventListener').mockImplementation(((event, handler) => {
+    vi.spyOn(window, 'addEventListener').mockImplementation(((event: string, handler: EventListenerOrEventListenerObject) => {
       if (event === 'load') loadHandler = handler as () => void;
     }) as typeof window.addEventListener);
 
@@ -49,7 +49,7 @@ describe('main entrypoint', () => {
     const warnMock = vi.spyOn(console, 'warn').mockImplementation(() => {});
     registerMock.mockRejectedValueOnce(new Error('nope'));
     let loadHandler: (() => void) | undefined;
-    vi.spyOn(window, 'addEventListener').mockImplementation(((event, handler) => {
+    vi.spyOn(window, 'addEventListener').mockImplementation(((event: string, handler: EventListenerOrEventListenerObject) => {
       if (event === 'load') loadHandler = handler as () => void;
     }) as typeof window.addEventListener);
 

@@ -21,6 +21,10 @@ vi.mock('../stores/index.js', () => ({
   }),
 }));
 
+function getPasswordInput() {
+  return document.querySelector('input[type="password"]') as HTMLInputElement;
+}
+
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -38,7 +42,7 @@ describe('LoginPage', () => {
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'user@example.com' },
     });
-    fireEvent.change(screen.getByDisplayValue('', { selector: 'input[type="password"]' }), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: 'password123' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
@@ -117,7 +121,7 @@ describe('LoginPage', () => {
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'bad@example.com' },
     });
-    fireEvent.change(screen.getByDisplayValue('', { selector: 'input[type="password"]' }), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: 'wrongpass' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
@@ -137,7 +141,7 @@ describe('LoginPage', () => {
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'user@example.com' },
     });
-    fireEvent.change(screen.getByDisplayValue('', { selector: 'input[type="password"]' }), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: 'password123' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));

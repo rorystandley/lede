@@ -46,7 +46,7 @@ vi.mock('./pages/RulesPage.js', () => ({
 }));
 
 vi.mock('./pages/DigestPage.js', () => ({
-  DigestPage: ({ onClose, onOpenArticle }: Record<string, (id?: string) => void>) => (
+  DigestPage: ({ onClose, onOpenArticle }: { onClose: () => void; onOpenArticle: (id: string) => void }) => (
     <div>
       <button onClick={() => onOpenArticle('article-1')}>open-article</button>
       <button onClick={onClose}>digest-page</button>

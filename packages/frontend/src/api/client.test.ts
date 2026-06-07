@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const authState = {
-  accessToken: 'access-token',
-  refreshToken: 'refresh-token',
+  accessToken: 'access-token' as string | null,
+  refreshToken: 'refresh-token' as string | null,
   setTokens: vi.fn(),
   logout: vi.fn(),
 };

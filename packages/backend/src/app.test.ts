@@ -155,7 +155,7 @@ describe('buildApp', () => {
       return new NativeUrl(input, base);
     });
     Object.assign(UrlMock, NativeUrl);
-    vi.stubGlobal('URL', UrlMock as typeof URL);
+    vi.stubGlobal('URL', UrlMock as unknown as typeof URL);
 
     try {
       const frontend = await app.inject({
@@ -190,7 +190,7 @@ describe('buildApp', () => {
       return new NativeUrl(input, base);
     });
     Object.assign(UrlMock, NativeUrl);
-    vi.stubGlobal('URL', UrlMock as typeof URL);
+    vi.stubGlobal('URL', UrlMock as unknown as typeof URL);
 
     try {
       const frontend = await app.inject({

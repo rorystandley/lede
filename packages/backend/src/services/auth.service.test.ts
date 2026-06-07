@@ -21,6 +21,9 @@ vi.mock('bcrypt', () => ({
   },
 }));
 
+const mockBcryptHash = bcrypt.hash as unknown as ReturnType<typeof vi.fn<(data: string, rounds: number) => Promise<string>>>;
+const mockBcryptCompare = bcrypt.compare as unknown as ReturnType<typeof vi.fn<(data: string, encrypted: string) => Promise<boolean>>>;
+
 describe('authService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,7 +55,7 @@ describe('authService', () => {
 
   it('registers a new user with a hashed password', async () => {
     const routeEq = vi.fn();
-    vi.mocked(bcrypt.hash).mockResolvedValue('hashed-password');
+    mockBcryptHash.mockResolvedValue('hashed-password');
     const returning = vi.fn().mockResolvedValue([
       {
         id: 'user-1',
@@ -86,7 +89,7 @@ describe('authService', () => {
   });
 
   it('normalizes missing display names to null during registration', async () => {
-    vi.mocked(bcrypt.hash).mockResolvedValue('hashed-password');
+    mockBcryptHash.mockResolvedValue('hashed-password');
     const returning = vi.fn().mockResolvedValue([
       {
         id: 'user-2',
@@ -140,7 +143,7 @@ describe('authService', () => {
       message: 'Invalid credentials',
     });
 
-    vi.mocked(bcrypt.compare).mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    mockBcryptCompare.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
 
     await expect(authService.login('user@example.com', 'wrong')).rejects.toMatchObject({
       statusCode: 401,
@@ -157,8 +160,8 @@ describe('authService', () => {
   });
 
   it('creates refresh tokens with a digest and bcrypt hash', async () => {
-    vi.spyOn(crypto, 'randomBytes').mockReturnValue(Buffer.from('x'.repeat(48)));
-    vi.mocked(bcrypt.hash).mockResolvedValue('hashed-token');
+    (vi.spyOn(crypto, 'randomBytes') as ReturnType<typeof vi.fn>).mockReturnValue(Buffer.from('x'.repeat(48)));
+    mockBcryptHash.mockResolvedValue('hashed-token');
 
     const insertValues = vi.fn().mockResolvedValue(undefined);
     vi.mocked(getDb).mockReturnValue({
@@ -199,7 +202,7 @@ describe('authService', () => {
   it('verifies matching refresh tokens and deletes the consumed row', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-05T00:00:00.000Z'));
-    vi.mocked(bcrypt.compare).mockResolvedValue(true);
+    mockBcryptCompare.mockResolvedValue(true);
 
     const deleteWhere = vi.fn().mockResolvedValue(undefined);
     const deleteWhereSecond = vi.fn().mockResolvedValue(undefined);
@@ -224,7 +227,7 @@ describe('authService', () => {
   it('returns null when bcrypt comparison fails after a digest match', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-05T00:00:00.000Z'));
-    vi.mocked(bcrypt.compare).mockResolvedValue(false);
+    mockBcryptCompare.mockResolvedValue(false);
 
     const deleteWhere = vi.fn().mockResolvedValue(undefined);
     const selectLimit = vi.fn().mockResolvedValue([{ id: 'rt-1', userId: 'user-1', tokenHash: 'hashed-token' }]);
@@ -241,8 +244,8 @@ describe('authService', () => {
   });
 
   it('creates api keys, lists them, and deletes them', async () => {
-    vi.spyOn(crypto, 'randomBytes').mockReturnValue(Buffer.from('k'.repeat(32)));
-    vi.mocked(bcrypt.hash).mockResolvedValue('hashed-api-key');
+    (vi.spyOn(crypto, 'randomBytes') as ReturnType<typeof vi.fn>).mockReturnValue(Buffer.from('k'.repeat(32)));
+    mockBcryptHash.mockResolvedValue('hashed-api-key');
 
     const createdAt = new Date('2026-06-06T12:00:00.000Z');
     const insertReturning = vi.fn().mockResolvedValue([
@@ -308,8 +311,8 @@ describe('authService', () => {
   });
 
   it('stores api keys without an expiry when none is provided', async () => {
-    vi.spyOn(crypto, 'randomBytes').mockReturnValue(Buffer.from('z'.repeat(32)));
-    vi.mocked(bcrypt.hash).mockResolvedValue('hashed-api-key');
+    (vi.spyOn(crypto, 'randomBytes') as ReturnType<typeof vi.fn>).mockReturnValue(Buffer.from('z'.repeat(32)));
+    mockBcryptHash.mockResolvedValue('hashed-api-key');
 
     const insertReturning = vi.fn().mockResolvedValue([
       {

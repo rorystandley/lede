@@ -21,17 +21,24 @@ describe('digest email template', () => {
             folder: 'Tech & News',
             feeds: [
               {
+                feedId: 'feed-1',
                 feedTitle: 'OpenAI <Blog>',
                 articles: [
                   {
+                    id: 'art-1',
                     title: 'Launch & Learn',
                     url: 'https://example.com/post',
+                    feedTitle: 'OpenAI <Blog>',
+                    publishedAt: '2026-06-06T07:00:00.000Z',
                     aiSummary: 'Fast <summary>',
                     summary: 'Ignored because aiSummary exists',
                   },
                   {
+                    id: 'art-2',
                     title: null,
                     url: null,
+                    feedTitle: null,
+                    publishedAt: null,
                     aiSummary: null,
                     summary: 'A'.repeat(220),
                   },
@@ -43,11 +50,15 @@ describe('digest email template', () => {
             folder: null,
             feeds: [
               {
+                feedId: 'feed-2',
                 feedTitle: null,
                 articles: [
                   {
+                    id: 'art-3',
                     title: 'Third story',
                     url: 'https://example.com/third',
+                    feedTitle: null,
+                    publishedAt: null,
                     aiSummary: null,
                     summary: null,
                   },

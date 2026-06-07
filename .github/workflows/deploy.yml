@@ -10,7 +10,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   deploy:
+    needs: ci
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to VPS
@@ -23,5 +27,5 @@ jobs:
             cd /opt/lede
             git pull origin main
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T app node packages/backend/dist/db/migrate.js
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T -w /app/packages/backend app node dist/db/migrate.js
             docker image prune -f
