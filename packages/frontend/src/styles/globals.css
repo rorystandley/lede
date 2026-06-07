@@ -40,6 +40,14 @@
     background-color: var(--color-surface);
     color: var(--color-text-primary);
   }
+
+  button,
+  a,
+  [role="button"],
+  select,
+  summary {
+    cursor: pointer;
+  }
 }
 
 /* ---------------------------------------------------------------
