@@ -1,9 +1,26 @@
 import Parser from 'rss-parser';
 import type { FeedType } from '@lede/shared';
 
-const parser = new Parser({
+type MediaContent = { $?: { url?: string; medium?: string; type?: string } };
+
+interface CustomItem {
+  'media:content'?: MediaContent;
+  'media:thumbnail'?: MediaContent;
+  'itunes:image'?: { $?: { href?: string } };
+  'content:encoded'?: string;
+  author?: string;
+}
+
+const parser = new Parser<Record<string, never>, CustomItem>({
   timeout: 15000,
   maxRedirects: 5,
+  customFields: {
+    item: [
+      ['media:content', 'media:content'],
+      ['media:thumbnail', 'media:thumbnail'],
+      ['itunes:image', 'itunes:image'],
+    ],
+  },
 });
 
 export interface ParsedFeedItem {
@@ -109,6 +126,33 @@ function parseJsonFeed(body: string): ParsedFeed {
   };
 }
 
+function extractMediaUrl(field: unknown): string | null {
+  if (!field) return null;
+  const obj = field as MediaContent;
+  return obj.$?.url ?? null;
+}
+
+function extractItemImage(item: CustomItem & Parser.Item, contentHtml: string | null): string | null {
+  if (item.enclosure?.type?.startsWith('image/') && item.enclosure.url) {
+    return item.enclosure.url;
+  }
+
+  const mediaUrl = extractMediaUrl(item['media:content']);
+  if (mediaUrl) return mediaUrl;
+
+  const thumbUrl = extractMediaUrl(item['media:thumbnail']);
+  if (thumbUrl) return thumbUrl;
+
+  if (item['itunes:image']?.$?.href) return item['itunes:image'].$.href;
+
+  if (contentHtml) {
+    const match = contentHtml.match(/<img[^>]+src=["']([^"']+)["']/);
+    if (match) return match[1];
+  }
+
+  return null;
+}
+
 /**
  * Fetch a feed URL, detect its type, and parse it into a normalized structure.
  */
@@ -142,14 +186,7 @@ export async function parseFeed(url: string): Promise<ParsedFeed> {
     const contentHtml = item['content:encoded'] ?? item.content ?? null;
     const summary = item.contentSnippet ?? item.summary ?? null;
 
-    let imageUrl: string | null = null;
-    if (item.enclosure?.type?.startsWith('image/')) {
-      imageUrl = item.enclosure.url ?? null;
-    }
-    if (!imageUrl && contentHtml) {
-      const match = contentHtml.match(/<img[^>]+src=["']([^"']+)["']/);
-      if (match) imageUrl = match[1];
-    }
+    const imageUrl = extractItemImage(item, contentHtml);
 
     return {
       guid: item.guid ?? item.link ?? item.title ?? crypto.randomUUID(),

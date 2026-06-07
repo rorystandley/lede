@@ -26,6 +26,12 @@ vi.mock('../lib/html-sanitizer.js', () => ({
   sanitizeArticleImageUrl: vi.fn((url: string | null) => url ? `img:${url}` : url),
 }));
 
+const addMock = vi.fn().mockResolvedValue(undefined);
+vi.mock('../queues/index.js', () => ({
+  getContentExtractQueue: vi.fn(() => ({ add: addMock })),
+  getRuleEngineQueue: vi.fn(() => ({ add: addMock })),
+}));
+
 vi.mock('./access-control.service.js', async () => {
   const actual = await vi.importActual<typeof import('./access-control.service.js')>('./access-control.service.js');
   return {

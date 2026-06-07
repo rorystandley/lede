@@ -4,6 +4,7 @@ import { feeds, userFeedSubscriptions, articles, userArticleStates } from '../db
 import { parseFeed } from '../lib/feed-parser.js';
 import { articleHtmlToText, sanitizeArticleDisplayHtml, sanitizeArticleImageUrl } from '../lib/html-sanitizer.js';
 import { accessControlService, ResourceNotFoundError } from './access-control.service.js';
+import { getContentExtractQueue, getRuleEngineQueue } from '../queues/index.js';
 import type { SubscribedFeed, PaginatedResult, FeedType } from '@lede/shared';
 
 function countWords(text: string): number {
@@ -208,6 +209,15 @@ export class FeedService {
         if (result.length > 0) insertedIds.push(result[0].id);
       } catch {
         // duplicate guid — skip
+      }
+    }
+
+    if (insertedIds.length > 0) {
+      const extractQueue = getContentExtractQueue();
+      const ruleQueue = getRuleEngineQueue();
+      for (const articleId of insertedIds) {
+        await extractQueue.add('extract', { articleId });
+        await ruleQueue.add('evaluate', { articleId, feedId });
       }
     }
 

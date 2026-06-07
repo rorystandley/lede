@@ -3,7 +3,8 @@ import { eq } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { articles } from '../db/schema/index.js';
 import { extractArticleContent } from '../lib/content-extractor.js';
-import { articleHtmlToText, sanitizeArticleImageUrl } from '../lib/html-sanitizer.js';
+import { articleHtmlToText, sanitizeArticleHtml, sanitizeArticleImageUrl } from '../lib/html-sanitizer.js';
+import { fetchPageMetadata } from '../lib/page-metadata.js';
 import { getLogger } from '../lib/logger.js';
 import { getRedisOpts } from '../queues/index.js';
 
@@ -46,21 +47,53 @@ export function createContentExtractWorker() {
 
       logger.info({ articleId, url: article.url }, 'Extracting article content');
       const extracted = await extractArticleContent(article.url);
-      if (!extracted || !extracted.content) {
-        logger.warn({ articleId, url: article.url }, 'Content extraction returned nothing');
+      if (extracted?.content) {
+        const contentText = articleHtmlToText(extracted.content);
+
+        await db.update(articles).set({
+          contentHtml: extracted.content,
+          contentText,
+          wordCount: countWords(contentText),
+          imageUrl: sanitizeArticleImageUrl(extracted.image) ?? sanitizeArticleImageUrl(article.imageUrl),
+        }).where(eq(articles.id, articleId));
+
+        logger.info({ articleId, chars: extracted.content.length, words: countWords(contentText) }, 'Content extracted');
         return;
       }
 
-      const contentText = articleHtmlToText(extracted.content);
+      // Full extraction failed — fall back to og:image / og:description
+      const metadata = await fetchPageMetadata(article.url);
+      const newImage = metadata?.image ?? article.imageUrl ?? null;
+      const newDescription = metadata?.description ?? null;
+      const gainedSomething = (!article.imageUrl && metadata?.image) || !!newDescription;
 
-      await db.update(articles).set({
-        contentHtml: extracted.content,
-        contentText,
-        wordCount: countWords(contentText),
-        imageUrl: sanitizeArticleImageUrl(extracted.image) ?? sanitizeArticleImageUrl(article.imageUrl),
-      }).where(eq(articles.id, articleId));
+      if (metadata && gainedSomething) {
+        const baseHtml = (article.contentHtml ?? '')
+          .replace(/<aside\s+data-nr-meta=["']true["'][^>]*>[\s\S]*?<\/aside>\s*/gi, '');
 
-      logger.info({ articleId, chars: extracted.content.length, words: countWords(contentText) }, 'Content extracted');
+        const blocks: string[] = [];
+        if (newDescription) {
+          blocks.push(`<p><em>${newDescription.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</em></p>`);
+        }
+
+        const synthHtml = blocks.length > 0
+          ? `<aside data-nr-meta="true">\n${blocks.join('\n')}\n</aside>\n${baseHtml}`
+          : baseHtml;
+        const sanitizedHtml = sanitizeArticleHtml(synthHtml);
+        const synthText = articleHtmlToText(sanitizedHtml);
+
+        await db.update(articles).set({
+          contentHtml: sanitizedHtml || sanitizeArticleHtml(article.contentHtml),
+          contentText: synthText || article.contentText,
+          wordCount: countWords(synthText),
+          imageUrl: sanitizeArticleImageUrl(newImage),
+        }).where(eq(articles.id, articleId));
+
+        logger.info({ articleId, hasImage: !!metadata.image, hasDescription: !!newDescription }, 'Metadata fallback succeeded');
+        return;
+      }
+
+      logger.warn({ articleId, url: article.url }, 'Both extraction stages returned nothing');
     },
     {
       connection: getRedisOpts(),

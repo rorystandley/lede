@@ -4,7 +4,7 @@ import { getDb } from '../db/client.js';
 import { feeds } from '../db/schema/index.js';
 import { feedService } from '../services/feed.service.js';
 import { getLogger } from '../lib/logger.js';
-import { getRedisOpts, getRuleEngineQueue, getContentExtractQueue } from '../queues/index.js';
+import { getRedisOpts } from '../queues/index.js';
 import { feedsRefreshed, articlesIngested, queueJobsProcessed, queueJobDuration } from '../lib/metrics.js';
 
 interface FeedRefreshJob {
@@ -26,14 +26,7 @@ export function createFeedRefreshWorker() {
           logger.info({ feedId: job.data.feedId, newArticles: result.newArticles }, 'Feed refreshed');
           feedsRefreshed.inc({ status: 'success' });
           articlesIngested.inc(result.newArticles);
-          if (result.newArticleIds.length > 0) {
-            const ruleQueue = getRuleEngineQueue();
-            const extractQueue = getContentExtractQueue();
-            for (const articleId of result.newArticleIds) {
-              await ruleQueue.add('evaluate', { articleId, feedId: job.data.feedId });
-              await extractQueue.add('extract', { articleId });
-            }
-          }
+          // Extraction and rule-engine queuing is handled by feedService.insertArticles
           queueJobsProcessed.inc({ queue: 'feed-refresh', status: 'success' });
           queueJobDuration.observe({ queue: 'feed-refresh' }, (Date.now() - jobStart) / 1000);
           return result;
@@ -59,18 +52,12 @@ export function createFeedRefreshWorker() {
       logger.info({ count: staleFeeds.length }, 'Refreshing stale feeds');
 
       let totalNew = 0;
-      const ruleQueue = getRuleEngineQueue();
-      const extractQueue = getContentExtractQueue();
       for (const feed of staleFeeds) {
         try {
           const result = await feedService.refreshFeed(feed.id);
           totalNew += result.newArticles;
           feedsRefreshed.inc({ status: 'success' });
           articlesIngested.inc(result.newArticles);
-          for (const articleId of result.newArticleIds) {
-            await ruleQueue.add('evaluate', { articleId, feedId: feed.id });
-            await extractQueue.add('extract', { articleId });
-          }
         } catch (err) {
           feedsRefreshed.inc({ status: 'error' });
           logger.error({ feedId: feed.id, error: err }, 'Failed to refresh feed');

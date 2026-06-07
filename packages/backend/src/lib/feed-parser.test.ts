@@ -262,6 +262,121 @@ describe('feed parser', () => {
     });
   });
 
+  it('extracts images from media:content, media:thumbnail, and itunes:image', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: vi.fn().mockResolvedValue('<rss version="2.0"></rss>'),
+        headers: { get: vi.fn(() => 'application/rss+xml') },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: vi.fn().mockResolvedValue('<rss version="2.0"></rss>'),
+        headers: { get: vi.fn(() => 'application/rss+xml') },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: vi.fn().mockResolvedValue('<rss version="2.0"></rss>'),
+        headers: { get: vi.fn(() => 'application/rss+xml') },
+      });
+
+    parseStringMock
+      .mockResolvedValueOnce({
+        title: 'Media RSS Feed',
+        items: [
+          {
+            guid: 'media-1',
+            link: 'https://example.com/media',
+            title: 'Media Content Image',
+            'media:content': { $: { url: 'https://cdn.example.com/media.jpg', medium: 'image' } },
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        title: 'Thumbnail Feed',
+        items: [
+          {
+            guid: 'thumb-1',
+            link: 'https://example.com/thumb',
+            title: 'Thumbnail Image',
+            'media:thumbnail': { $: { url: 'https://cdn.example.com/thumb.jpg' } },
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        title: 'Podcast Feed',
+        items: [
+          {
+            guid: 'pod-1',
+            link: 'https://example.com/episode',
+            title: 'Podcast Episode',
+            'itunes:image': { $: { href: 'https://cdn.example.com/podcast.jpg' } },
+          },
+        ],
+      });
+
+    const { parseFeed } = await import('./feed-parser.js');
+
+    const mediaResult = await parseFeed('https://feeds.example.com/media-rss');
+    expect(mediaResult.items[0].imageUrl).toBe('https://cdn.example.com/media.jpg');
+
+    const thumbResult = await parseFeed('https://feeds.example.com/thumb-rss');
+    expect(thumbResult.items[0].imageUrl).toBe('https://cdn.example.com/thumb.jpg');
+
+    const podcastResult = await parseFeed('https://feeds.example.com/podcast');
+    expect(podcastResult.items[0].imageUrl).toBe('https://cdn.example.com/podcast.jpg');
+  });
+
+  it('prefers enclosure over media:content over media:thumbnail over itunes:image over content img', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: vi.fn().mockResolvedValue('<rss version="2.0"></rss>'),
+      headers: { get: vi.fn(() => 'application/rss+xml') },
+    });
+
+    parseStringMock.mockResolvedValueOnce({
+      title: 'Priority Feed',
+      items: [
+        {
+          guid: 'all-sources',
+          link: 'https://example.com/all',
+          title: 'All Image Sources',
+          enclosure: { type: 'image/png', url: 'https://example.com/enclosure.png' },
+          'media:content': { $: { url: 'https://example.com/media.jpg' } },
+          'media:thumbnail': { $: { url: 'https://example.com/thumb.jpg' } },
+          'itunes:image': { $: { href: 'https://example.com/itunes.jpg' } },
+          content: '<img src="https://example.com/content.jpg">',
+        },
+        {
+          guid: 'no-enclosure',
+          link: 'https://example.com/no-enc',
+          title: 'No Enclosure',
+          'media:content': { $: { url: 'https://example.com/media-wins.jpg' } },
+          'media:thumbnail': { $: { url: 'https://example.com/thumb.jpg' } },
+          content: '<img src="https://example.com/content.jpg">',
+        },
+        {
+          guid: 'thumb-only',
+          link: 'https://example.com/thumb-only',
+          title: 'Thumbnail Only',
+          'media:thumbnail': { $: { url: 'https://example.com/thumb-wins.jpg' } },
+          content: '<img src="https://example.com/content.jpg">',
+        },
+      ],
+    });
+
+    const { parseFeed } = await import('./feed-parser.js');
+    const result = await parseFeed('https://feeds.example.com/priority');
+
+    expect(result.items[0].imageUrl).toBe('https://example.com/enclosure.png');
+    expect(result.items[1].imageUrl).toBe('https://example.com/media-wins.jpg');
+    expect(result.items[2].imageUrl).toBe('https://example.com/thumb-wins.jpg');
+  });
+
   it('handles rss-parser feeds with missing items, missing enclosure urls, and generated ids', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
