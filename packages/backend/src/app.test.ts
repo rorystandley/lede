@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const existsSyncMock = vi.fn();
 const initPushMock = vi.fn();
@@ -11,6 +12,10 @@ const registerMcpRoutesMock = vi.fn(async (app: any) => {
 const checkHealthMock = vi.fn(async () => ({ status: 'healthy', services: { db: 'up', redis: 'up' } }));
 
 async function noopPlugin() {}
+
+// Resolve the frontend dist path the same way app.ts does
+const frontendDistDir = join(dirname(fileURLToPath(import.meta.url)), '../../frontend/dist');
+const frontendIndexPath = join(frontendDistDir, 'index.html');
 
 vi.mock('node:fs', () => ({
   existsSync: existsSyncMock,
@@ -63,7 +68,6 @@ vi.mock('./lib/health.js', () => ({
   checkHealth: checkHealthMock,
 }));
 
-const frontendIndexPath = resolve('/Users/rorystandley/Apps/news-reader/packages/frontend/dist/index.html');
 let originalFrontendIndex: string | null = null;
 let hadFrontendIndex = false;
 
@@ -84,7 +88,7 @@ describe('buildApp', () => {
 
   afterEach(async () => {
     if (hadFrontendIndex && originalFrontendIndex !== null) {
-      await mkdir(resolve('/Users/rorystandley/Apps/news-reader/packages/frontend/dist'), { recursive: true });
+      await mkdir(frontendDistDir, { recursive: true });
       await writeFile(frontendIndexPath, originalFrontendIndex, 'utf8');
     } else {
       await rm(frontendIndexPath, { force: true });
@@ -93,7 +97,7 @@ describe('buildApp', () => {
 
   it('serves health routes, mcp routes, and the packaged frontend when present', async () => {
     existsSyncMock.mockReturnValue(true);
-    await mkdir(resolve('/Users/rorystandley/Apps/news-reader/packages/frontend/dist'), { recursive: true });
+    await mkdir(frontendDistDir, { recursive: true });
     await writeFile(frontendIndexPath, '<!doctype html><html><body><div id="root">frontend</div></body></html>', 'utf8');
 
     const { buildApp } = await import('./app.js');
@@ -142,7 +146,7 @@ describe('buildApp', () => {
   it('falls back to string path parsing when URL parsing fails and returns unhealthy readiness checks as 503', async () => {
     existsSyncMock.mockReturnValue(true);
     checkHealthMock.mockResolvedValueOnce({ status: 'unhealthy', services: { db: 'down', redis: 'up' } });
-    await mkdir(resolve('/Users/rorystandley/Apps/news-reader/packages/frontend/dist'), { recursive: true });
+    await mkdir(frontendDistDir, { recursive: true });
     await writeFile(frontendIndexPath, '<!doctype html><html><body><div id="root">frontend</div></body></html>', 'utf8');
 
     const { buildApp } = await import('./app.js');
@@ -177,7 +181,7 @@ describe('buildApp', () => {
 
   it('treats query-only paths as the frontend root during string-path fallback parsing', async () => {
     existsSyncMock.mockReturnValue(true);
-    await mkdir(resolve('/Users/rorystandley/Apps/news-reader/packages/frontend/dist'), { recursive: true });
+    await mkdir(frontendDistDir, { recursive: true });
     await writeFile(frontendIndexPath, '<!doctype html><html><body><div id="root">frontend</div></body></html>', 'utf8');
 
     const { buildApp } = await import('./app.js');
