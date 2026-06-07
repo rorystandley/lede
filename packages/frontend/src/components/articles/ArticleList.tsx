@@ -195,17 +195,16 @@ export function ArticleList() {
 }
 
 function ScrollContainer({ children, onNearBottom }: { children: React.ReactNode; onNearBottom: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const onScroll = () => {
-      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 600) onNearBottom();
-    };
-    el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-  }, [onNearBottom]);
-  return <div ref={ref} className="flex-1 overflow-y-auto">{children}</div>;
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const el = event.currentTarget;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 600) onNearBottom();
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto" onScroll={handleScroll}>
+      {children}
+    </div>
+  );
 }
 
 function LoadMoreSentinel({ isFetching, hasMore }: { isFetching: boolean; hasMore: boolean }) {

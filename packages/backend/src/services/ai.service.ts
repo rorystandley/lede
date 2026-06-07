@@ -9,6 +9,10 @@ import { accessControlService, ResourceNotFoundError } from './access-control.se
 import crypto from 'node:crypto';
 import type { AIProvider } from '@lede/shared';
 
+function firstNonEmpty(...values: Array<string | null | undefined>): string {
+  return values.find((value): value is string => typeof value === 'string' && value.length > 0) ?? '';
+}
+
 export class AIService {
   private async getClient(userId: string): Promise<{ client: AIClient; provider: AIProvider } | null> {
     const db = getDb();
@@ -46,7 +50,7 @@ export class AIService {
     const ctx = await this.getClient(userId);
     if (!ctx) return null;
 
-    const text = article.contentText ?? article.summary ?? article.title ?? '';
+    const text = firstNonEmpty(article.contentText, article.summary, article.title);
     if (!text) return null;
 
     try {
@@ -77,7 +81,7 @@ export class AIService {
       .from(tags)
       .where(eq(tags.userId, userId));
 
-    const text = article.contentText ?? article.summary ?? article.title ?? '';
+    const text = firstNonEmpty(article.contentText, article.summary, article.title);
     if (!text) return [];
 
     try {

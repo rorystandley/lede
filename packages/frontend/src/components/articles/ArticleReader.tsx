@@ -30,7 +30,6 @@ export function ArticleReader() {
   const shareTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleShare = async (articleId: string) => {
-    if (shareStatus === 'loading') return;
     setShareStatus('loading');
     try {
       const data = await sharingApi.getShareData(articleId);
@@ -469,8 +468,7 @@ export function ArticleReader() {
   );
 }
 
-function tryHostname(url: string | null): string {
-  if (!url) return 'the source';
+function tryHostname(url: string): string {
   try { return new URL(url).hostname; } catch { return 'the source'; }
 }
 
@@ -547,7 +545,12 @@ function DismissibleBanner({ children, tone, onDismiss }: {
     info: 'bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300',
     warning: 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-200',
   }[tone];
-  const dismissTone = tone === 'error' ? 'red' : tone === 'info' ? 'primary' : 'amber';
+  const dismissToneByBannerTone: Record<typeof tone, 'red' | 'primary' | 'amber'> = {
+    error: 'red',
+    info: 'primary',
+    warning: 'amber',
+  };
+  const dismissTone = dismissToneByBannerTone[tone];
   return (
     <div className={`${cls} rounded-lg p-3 mb-4 flex items-start justify-between gap-3`}>
       <div className="text-xs flex-1">{children}</div>
@@ -602,7 +605,7 @@ function ExtractionBanner({ state, host, attempts, lastFailedAt, onFetch, onDism
   }
 
   if (state === 'error') {
-    const time = lastFailedAt ? lastFailedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+    const time = lastFailedAt!.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     return (
       <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-lg p-3 mb-4">
         <div className="flex items-start justify-between gap-3">

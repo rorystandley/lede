@@ -230,7 +230,7 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
             {ungroupedFeeds.map((feed) => (
               <FeedButton key={feed.id} feed={feed} isSelected={selectedFeedId === feed.id} onClick={() => selectFeed(feed.id)}
                 onContextMenu={(e) => openMenu(e, 'feed', feed.id, feed.customTitle ?? feed.title ?? feed.url, { folderId: feed.folderId, refreshInterval: feed.refreshInterval })}
-                isEditing={editing?.type === 'feed' && editing.id === feed.id} onSaveEdit={(name) => { updateFeedMut.mutate({ feedId: feed.id, data: { customTitle: name } }); setEditing(null); }} onCancelEdit={() => setEditing(null)} draggable />
+                isEditing={editing?.type === 'feed' && editing.id === feed.id} onSaveEdit={(name) => { updateFeedMut.mutate({ feedId: feed.id, data: { customTitle: name } }); setEditing(null); }} onCancelEdit={() => setEditing(null)} />
             ))}
             {feeds.length === 0 && onOpenAddSources && <button onClick={onOpenAddSources} className="w-full px-2.5 py-3 text-xs text-primary-600 hover:underline text-center">Browse popular sources to get started</button>}
           </div>
@@ -311,7 +311,7 @@ function FolderItem({ folder, selectedFolderId, onSelect, feeds, selectedFeedId,
       {expanded && <div className="space-y-0.5 min-h-[4px]">
         {folderFeeds.map((feed) => <FeedButton key={feed.id} feed={feed} isSelected={selectedFeedId === feed.id} onClick={() => onSelectFeed(feed.id)}
           onContextMenu={(e) => onContextMenu(e, 'feed', feed.id, feed.customTitle ?? feed.title ?? feed.url, { folderId: feed.folderId, refreshInterval: feed.refreshInterval })}
-          isEditing={editing?.type === 'feed' && editing.id === feed.id} onSaveEdit={(name) => onSaveFeedEdit(feed.id, name)} onCancelEdit={onCancelEdit} draggable indent />)}
+          isEditing={editing?.type === 'feed' && editing.id === feed.id} onSaveEdit={(name) => onSaveFeedEdit(feed.id, name)} onCancelEdit={onCancelEdit} indent />)}
       </div>}
       {expanded && folder.children.map((child) => <div key={child.id} className="ml-3">
         <FolderItem folder={child} selectedFolderId={selectedFolderId} onSelect={onSelect} feeds={feeds} selectedFeedId={selectedFeedId} onSelectFeed={onSelectFeed} onContextMenu={onContextMenu} editing={editing} onSaveEdit={onSaveEdit} onCancelEdit={onCancelEdit} onSaveFeedEdit={onSaveFeedEdit} onDropFeed={onDropFeed} dragOverFolder={dragOverFolder} setDragOverFolder={setDragOverFolder} />
@@ -322,16 +322,16 @@ function FolderItem({ folder, selectedFolderId, onSelect, feeds, selectedFeedId,
 
 const FEED_TYPE_LABELS: Record<FeedType, string> = { rss: 'RSS', atom: 'Atom', json: 'JSON', newsletter: 'Newsletter', web_monitor: 'Monitor' };
 
-function FeedButton({ feed, isSelected, onClick, onContextMenu, isEditing, onSaveEdit, onCancelEdit, draggable, indent }: {
+function FeedButton({ feed, isSelected, onClick, onContextMenu, isEditing, onSaveEdit, onCancelEdit, indent }: {
   feed: { id: string; customTitle: string | null; title: string | null; url: string; faviconUrl: string | null; feedType: FeedType; unreadCount: number };
   isSelected: boolean; onClick: () => void; onContextMenu?: (e: React.MouseEvent) => void;
-  isEditing?: boolean; onSaveEdit?: (name: string) => void; onCancelEdit?: () => void; draggable?: boolean; indent?: boolean;
+  isEditing?: boolean; onSaveEdit?: (name: string) => void; onCancelEdit?: () => void; indent?: boolean;
 }) {
   if (isEditing && onSaveEdit && onCancelEdit) return <div className={`${indent ? 'pl-7 pr-2.5' : 'px-2.5'} py-1`}><InlineEdit value={feed.customTitle ?? feed.title ?? ''} onSave={onSaveEdit} onCancel={onCancelEdit} /></div>;
   return (
-    <button onClick={onClick} onContextMenu={onContextMenu} draggable={draggable}
+    <button onClick={onClick} onContextMenu={onContextMenu} draggable
       onDragStart={(e) => { e.dataTransfer.setData('feedId', feed.id); e.dataTransfer.effectAllowed = 'move'; }}
-      className={`w-full flex items-center gap-2 ${indent ? 'pl-7 pr-2.5' : 'px-2.5'} py-1.5 text-sm rounded truncate ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${isSelected ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}
+      className={`w-full flex items-center gap-2 ${indent ? 'pl-7 pr-2.5' : 'px-2.5'} py-1.5 text-sm rounded truncate cursor-grab active:cursor-grabbing ${isSelected ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}
       title={`${feed.customTitle ?? feed.title ?? feed.url} (${FEED_TYPE_LABELS[feed.feedType]})`}>
       {feed.faviconUrl ? <img src={feed.faviconUrl} alt="" className="w-4 h-4 rounded shrink-0" /> : <span className="w-4 h-4 rounded bg-primary-100 dark:bg-primary-800 flex items-center justify-center text-[10px] text-primary-600 shrink-0">{(feed.customTitle ?? feed.title ?? 'F')[0]}</span>}
       <span className="truncate flex-1 text-left">{feed.customTitle ?? feed.title ?? feed.url}</span>

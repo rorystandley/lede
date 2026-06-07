@@ -39,7 +39,7 @@ export function StatsPage({ onClose }: Props) {
               <p className="text-xs text-text-tertiary text-center py-6">No reading data yet. Start reading articles to see your stats.</p>
             ) : (
               <div className="flex items-end gap-1.5 h-32">
-                {(daily ?? []).reverse().map((day) => {
+                {[...daily].reverse().map((day) => {
                   const height = Math.max((day.articlesRead / maxArticles) * 100, 4);
                   const date = new Date(day.date);
                   const label = date.toLocaleDateString(undefined, { weekday: 'short' });

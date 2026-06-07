@@ -7,6 +7,9 @@
     "build": "vite build",
     "dev": "vite",
     "preview": "vite preview",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
+    "coverage": "vitest run --config vitest.config.ts --coverage",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

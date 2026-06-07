@@ -31,13 +31,13 @@ function bgForColor(hex: string): string {
 function computeTextOffset(root: HTMLElement, targetNode: Node, targetOffset: number): number {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let charCount = 0;
-  let node = walker.nextNode();
+  let node = walker.nextNode() as Text | null;
   while (node) {
     if (node === targetNode) {
       return charCount + targetOffset;
     }
-    charCount += (node.textContent?.length ?? 0);
-    node = walker.nextNode();
+    charCount += node.data.length;
+    node = walker.nextNode() as Text | null;
   }
   return -1;
 }
@@ -55,7 +55,7 @@ function rangeFromOffsets(root: HTMLElement, start: number, end: number): Range 
   let endOff = 0;
   let node = walker.nextNode() as Text | null;
   while (node) {
-    const len = node.textContent?.length ?? 0;
+    const len = node.data.length;
     if (!startNode && charCount + len > start) {
       startNode = node;
       startOff = start - charCount;
@@ -176,12 +176,11 @@ export function AnnotatedContent({ articleId, html }: Props) {
   // that API is not universally supported, we fall back to wrapping with <mark> via
   // a post-render DOM manipulation.
   useEffect(() => {
-    if (!contentRef.current) return;
+    const contentEl = contentRef.current!;
 
     // Clear any previous annotation marks
-    contentRef.current.querySelectorAll('[data-annotation-id]').forEach((el: Element) => {
-      const parent = el.parentNode;
-      if (!parent) return;
+    contentEl.querySelectorAll('[data-annotation-id]').forEach((el: Element) => {
+      const parent = el.parentNode as Node;
       while (el.firstChild) parent.insertBefore(el.firstChild, el);
       parent.removeChild(el);
     });
@@ -189,13 +188,13 @@ export function AnnotatedContent({ articleId, html }: Props) {
     // Sort annotations by startOffset to apply them in order
     const sorted = [...annotations]
       .filter((a) => a.startOffset != null && a.endOffset != null)
-      .sort((a, b) => (a.startOffset ?? 0) - (b.startOffset ?? 0));
+      .sort((a, b) => a.startOffset! - b.startOffset!);
 
     // Apply each annotation as a wrapping element
     // We need to be careful: wrapping one range may shift subsequent text nodes.
     // Process in reverse order to avoid offset shifts.
     for (const ann of [...sorted].reverse()) {
-      const range = rangeFromOffsets(contentRef.current, ann.startOffset!, ann.endOffset!);
+      const range = rangeFromOffsets(contentEl, ann.startOffset!, ann.endOffset!);
       if (!range) continue;
 
       if (ann.type === 'highlight') {
@@ -292,14 +291,13 @@ export function AnnotatedContent({ articleId, html }: Props) {
     e.stopPropagation();
   }, [annotations]);
 
-  const handleCreateHighlight = (color?: string) => {
-    if (!selectionToolbar) return;
+  const handleCreateHighlight = (toolbar: NonNullable<typeof selectionToolbar>, color?: string) => {
     createAnnotation.mutate({
       articleId,
       type: 'highlight',
-      content: selectionToolbar.text,
-      startOffset: selectionToolbar.startOffset,
-      endOffset: selectionToolbar.endOffset,
+      content: toolbar.text,
+      startOffset: toolbar.startOffset,
+      endOffset: toolbar.endOffset,
       color: color ?? selectedColor,
     });
     window.getSelection()?.removeAllRanges();
@@ -373,7 +371,7 @@ export function AnnotatedContent({ articleId, html }: Props) {
               <div className="flex items-center gap-1">
                 {/* Quick highlight with default color */}
                 <button
-                  onClick={() => handleCreateHighlight()}
+                  onClick={() => handleCreateHighlight(selectionToolbar)}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded hover:bg-surface-tertiary dark:hover:bg-surface-secondary text-text-primary transition-colors"
                   title="Highlight selection"
                 >
@@ -419,7 +417,7 @@ export function AnnotatedContent({ articleId, html }: Props) {
                     key={c.hex}
                     onClick={() => {
                       setSelectedColor(c.hex);
-                      handleCreateHighlight(c.hex);
+                      handleCreateHighlight(selectionToolbar, c.hex);
                     }}
                     className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 ${
                       selectedColor === c.hex ? 'border-text-primary scale-110' : 'border-transparent'

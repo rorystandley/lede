@@ -6,13 +6,22 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
+    "test": "pnpm --filter @lede/backend test && pnpm --filter @lede/frontend test",
+    "coverage": "pnpm --filter @lede/backend coverage && pnpm --filter @lede/frontend coverage",
+    "coverage:table": "pnpm coverage && node scripts/render-coverage-table.mjs",
     "db:generate": "turbo db:generate --filter=@lede/backend",
     "db:migrate": "turbo db:migrate --filter=@lede/backend",
     "db:seed": "turbo db:seed --filter=@lede/backend"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitest/coverage-v8": "^3.2.4",
+    "jsdom": "^26.1.0",
     "turbo": "^2.5.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.4"
   },
   "packageManager": "pnpm@10.11.0",
   "pnpm": {

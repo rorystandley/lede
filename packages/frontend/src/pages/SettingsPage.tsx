@@ -446,9 +446,8 @@ function DeliverySection({ profile, profileMut }: {
     }
   };
 
-  const triggerInstall = async () => {
-    if (!installPrompt) return;
-    await installPrompt.prompt();
+  const triggerInstall = async (prompt: BeforeInstallPromptEvent) => {
+    await prompt.prompt();
     setInstallPrompt(null);
   };
 
@@ -514,7 +513,7 @@ function DeliverySection({ profile, profileMut }: {
             <p className="text-sm font-medium text-text-primary">Install lede</p>
             <p className="text-xs text-text-secondary mt-0.5">Add to your home screen for fast access</p>
           </div>
-          <button onClick={triggerInstall} className="px-3 py-1.5 text-xs font-medium bg-primary-600 text-white rounded hover:bg-primary-700">
+          <button onClick={() => { void triggerInstall(installPrompt); }} className="px-3 py-1.5 text-xs font-medium bg-primary-600 text-white rounded hover:bg-primary-700">
             Install
           </button>
         </div>

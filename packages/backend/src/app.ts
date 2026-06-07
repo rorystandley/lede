@@ -40,7 +40,7 @@ function getPathname(url: string): string {
   try {
     return new URL(url, 'http://localhost').pathname;
   } catch {
-    return url.split('?')[0] || '/';
+    return `/${url.split('?')[0].replace(/^\/?/, '')}`;
   }
 }
 
