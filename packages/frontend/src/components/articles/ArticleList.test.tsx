@@ -31,7 +31,10 @@ vi.mock('../../hooks/use-articles.js', () => ({
 }));
 
 vi.mock('../../stores/index.js', () => ({
-  useUiStore: () => mocks.useUiStoreMock(),
+  useUiStore: (selector?: (s: Record<string, unknown>) => unknown) => {
+    const state = mocks.useUiStoreMock();
+    return selector ? selector(state) : state;
+  },
 }));
 
 vi.mock('../../hooks/use-keyboard-nav.js', () => ({
@@ -147,13 +150,14 @@ function uiState(overrides: Record<string, unknown> = {}) {
     searchQuery: '',
     isSearching: false,
     showStarred: false,
+    addToast: vi.fn(),
     ...overrides,
   };
 }
 
 function infiniteState(overrides: Record<string, unknown> = {}) {
   return {
-    data: { pages: [{ items: [article(), article({ id: 'article-2', title: 'Article Two', isRead: true, isStarred: true })] }] },
+    data: { pages: [{ items: [article(), article({ id: 'article-2', title: 'Article Two', isRead: true, isStarred: true })], total: 2 }] },
     isLoading: false,
     hasNextPage: false,
     isFetchingNextPage: false,
@@ -229,6 +233,7 @@ describe('ArticleList', () => {
     mocks.useUiStoreMock.mockReturnValue(uiState({ viewMode: 'card', selectedFeedId: 'feed-1', selectArticle }));
     mocks.useArticlesInfiniteMock.mockReturnValue(
       infiniteState({
+        data: { pages: [{ items: [article(), article({ id: 'article-2', title: 'Article Two', isRead: true, isStarred: true })], total: 5 }] },
         hasNextPage: true,
         fetchNextPage,
       }),
@@ -239,7 +244,7 @@ describe('ArticleList', () => {
     const { client, container } = renderWithClient(<ArticleList />);
     const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
 
-    expect(screen.getByText('2+ articles')).toBeInTheDocument();
+    expect(screen.getByText('5 articles')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Article One' }));
     expect(selectArticle).toHaveBeenCalledWith('article-1');

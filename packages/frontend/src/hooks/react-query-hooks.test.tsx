@@ -107,7 +107,7 @@ describe('React Query hooks', () => {
     feedsApi.subscribe.mockResolvedValue({ id: 'feed-default' });
     feedsApi.update.mockResolvedValue({ id: 'feed-default' });
     feedsApi.unsubscribe.mockResolvedValue(undefined);
-    feedsApi.refresh.mockResolvedValue(undefined);
+    feedsApi.refresh.mockResolvedValue({ newArticles: 0 });
     savedSearchesApi.list.mockResolvedValue([]);
     savedSearchesApi.create.mockResolvedValue({ id: 'saved-default' });
     savedSearchesApi.update.mockResolvedValue({ id: 'saved-default' });
@@ -232,7 +232,7 @@ describe('React Query hooks', () => {
     feedsApi.subscribe.mockResolvedValueOnce({ id: 'feed-2' });
     feedsApi.update.mockResolvedValueOnce({ id: 'feed-1' });
     feedsApi.unsubscribe.mockResolvedValueOnce(undefined);
-    feedsApi.refresh.mockResolvedValueOnce(undefined);
+    feedsApi.refresh.mockResolvedValueOnce({ newArticles: 0 });
 
     const wrapper = createWrapper(client);
     const feedsHook = renderHook(() => useFeeds('folder-1'), { wrapper });

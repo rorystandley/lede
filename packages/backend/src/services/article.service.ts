@@ -84,7 +84,57 @@ export class ArticleService {
       tags: [],
     }));
 
-    const total = rows.length < pageSize && page === 1 ? rows.length : pageSize * page + 1;
+    let total: number;
+    if (rows.length < pageSize && page === 1) {
+      total = rows.length;
+    } else {
+      let countQuery = db
+        .select({ count: count() })
+        .from(articles)
+        .innerJoin(feeds, eq(feeds.id, articles.feedId))
+        .innerJoin(
+          userFeedSubscriptions,
+          and(
+            eq(userFeedSubscriptions.feedId, articles.feedId),
+            eq(userFeedSubscriptions.userId, userId),
+          ),
+        )
+        .leftJoin(
+          userArticleStates,
+          and(
+            eq(userArticleStates.articleId, articles.id),
+            eq(userArticleStates.userId, userId),
+          ),
+        )
+        .$dynamic();
+
+      if (query.feedId) {
+        countQuery = countQuery.where(eq(articles.feedId, query.feedId));
+      }
+      if (query.folderId) {
+        const folderFeeds = db
+          .select({ feedId: userFeedSubscriptions.feedId })
+          .from(userFeedSubscriptions)
+          .where(and(
+            eq(userFeedSubscriptions.userId, userId),
+            eq(userFeedSubscriptions.folderId, query.folderId),
+          ));
+        countQuery = countQuery.where(inArray(articles.feedId, folderFeeds));
+      }
+      if (query.isRead !== undefined) {
+        countQuery = countQuery.where(
+          query.isRead
+            ? eq(userArticleStates.isRead, true)
+            : sql`(${userArticleStates.isRead} IS NULL OR ${userArticleStates.isRead} = false)`,
+        );
+      }
+      if (query.isStarred !== undefined) {
+        countQuery = countQuery.where(eq(userArticleStates.isStarred, query.isStarred));
+      }
+
+      const [{ count: totalCount }] = await countQuery;
+      total = totalCount;
+    }
 
     return { items, total, page, pageSize, hasMore: rows.length === pageSize };
   }

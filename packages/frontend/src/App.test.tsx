@@ -6,14 +6,17 @@ const authState = {
   isAuthenticated: vi.fn(),
 };
 
-const uiState = {
+const uiState: Record<string, unknown> = {
   theme: 'light',
   selectArticle: vi.fn(),
+  toasts: [],
+  dismissToast: vi.fn(),
 };
 
 vi.mock('./stores/index.js', () => ({
   useAuthStore: () => authState,
-  useUiStore: () => uiState,
+  useUiStore: (selector?: (s: Record<string, unknown>) => unknown) =>
+    selector ? selector(uiState) : uiState,
 }));
 
 vi.mock('./components/layout/Header.js', () => ({

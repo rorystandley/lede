@@ -222,6 +222,14 @@
   font-weight: 600;
 }
 
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(1rem); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
+}
+
 /* Limit max image height so massive hero shots don't dominate */
 .article-content > img:first-child,
 .article-content > figure:first-child img,

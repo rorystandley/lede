@@ -40,14 +40,18 @@ export function ArticleList() {
     },
   });
 
+  const addToast = useUiStore((s) => s.addToast);
+
   const refreshAllMut = useMutation({
     mutationFn: () => feedsApi.refreshAll(),
     onSuccess: () => {
+      addToast('Feeds are refreshing...', 'info');
       setTimeout(() => {
         qc.invalidateQueries({ queryKey: ['articles-infinite'] });
         qc.invalidateQueries({ queryKey: ['feeds'] });
       }, 2000);
     },
+    onError: () => addToast('Failed to refresh feeds', 'error'),
   });
 
   const infiniteArticles = useMemo(
@@ -75,12 +79,12 @@ export function ArticleList() {
     }
   };
 
-  const moreInfo = !isSearching && (infinite.hasNextPage || infinite.isFetchingNextPage);
+  const totalCount = isSearching ? articles.length : (infinite.data?.pages[0]?.total ?? articles.length);
 
   const toolbar = (
     <div className="flex items-center justify-between px-4 h-10 border-b border-border bg-surface-secondary shrink-0">
       <div className="text-xs text-text-tertiary">
-        {articles.length}{moreInfo ? '+' : ''} {articles.length === 1 ? 'article' : 'articles'}
+        {totalCount} {totalCount === 1 ? 'article' : 'articles'}
       </div>
       <div className="flex items-center gap-1">
         <button

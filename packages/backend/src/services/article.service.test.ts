@@ -127,7 +127,7 @@ describe('articleService', () => {
     expect(sanitizeArticleImageUrl).toHaveBeenCalledWith('https://example.com/image.jpg');
   });
 
-  it('computes synthetic totals for paginated list pages beyond the first', async () => {
+  it('runs a real count query for paginated list pages beyond the first', async () => {
     const rows = [{
       article: {
         id: 'article-1',
@@ -151,8 +151,18 @@ describe('articleService', () => {
     const firstInnerJoin = vi.fn(() => ({ innerJoin: secondInnerJoin }));
     const primaryFrom = vi.fn(() => ({ innerJoin: firstInnerJoin }));
 
+    const countQuery = { where: vi.fn() as ReturnType<typeof vi.fn> & { mockReturnValue: (v: unknown) => unknown } };
+    countQuery.where.mockReturnValue(countQuery);
+    const countDynamic = vi.fn().mockResolvedValue([{ count: 5 }]);
+    const countLeftJoin = vi.fn(() => ({ $dynamic: countDynamic }));
+    const countSecondInnerJoin = vi.fn(() => ({ leftJoin: countLeftJoin }));
+    const countFirstInnerJoin = vi.fn(() => ({ innerJoin: countSecondInnerJoin }));
+    const countFrom = vi.fn(() => ({ innerJoin: countFirstInnerJoin }));
+
     vi.mocked(getDb).mockReturnValue({
-      select: vi.fn().mockReturnValue({ from: primaryFrom }),
+      select: vi.fn()
+        .mockReturnValueOnce({ from: primaryFrom })
+        .mockReturnValueOnce({ from: countFrom }),
     } as never);
 
     const service = new ArticleService();
@@ -163,7 +173,7 @@ describe('articleService', () => {
       order: 'desc',
     });
 
-    expect(result.total).toBe(3);
+    expect(result.total).toBe(5);
     expect(result.hasMore).toBe(true);
   });
 
