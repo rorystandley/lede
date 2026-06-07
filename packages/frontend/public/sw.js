@@ -1,7 +1,7 @@
 // lede service worker
 // Handles offline caching of static assets and incoming push notifications
 
-const CACHE_NAME = 'lede-v2';
+const CACHE_NAME = 'lede-v3';
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.svg', '/icon-512.svg'];
 
 self.addEventListener('install', (event) => {

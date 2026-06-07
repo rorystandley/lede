@@ -10,15 +10,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ContextMenu } from '../shared/ContextMenu.js';
 import { InlineEdit } from '../shared/InlineEdit.js';
 import { FolderPicker } from '../shared/FolderPicker.js';
-import { useIsMobile } from '../../hooks/use-media-query.js';
 import type { FolderWithCounts, FeedType } from '@lede/shared';
+
+const isMobileQuery = '(max-width: 767px)';
 
 interface SidebarProps { onOpenAddSources?: () => void; }
 interface MenuState { x: number; y: number; type: 'feed' | 'folder' | 'tag' | 'saved-search'; id: string; name: string; extra?: Record<string, unknown>; }
 
 export function Sidebar({ onOpenAddSources }: SidebarProps) {
   const { sidebarOpen, setSidebarOpen, selectedFeedId, selectedFolderId, selectedTagId, showStarred, selectFeed, selectFolder, selectTag, setShowStarred, searchQuery, setSearchQuery, isSearching, setIsSearching, clearFilters } = useUiStore();
-  const isMobile = useIsMobile();
   const qc = useQueryClient();
   const { data: feedsData } = useFeeds();
   const { data: foldersData } = useFolders();
@@ -52,7 +52,7 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
   const tags = tagsData ?? [];
   const savedSearches = savedSearchesData ?? [];
 
-  const closeMobile = useCallback(() => { if (isMobile) setSidebarOpen(false); }, [isMobile, setSidebarOpen]);
+  const closeMobile = useCallback(() => { if (window.matchMedia(isMobileQuery).matches) setSidebarOpen(false); }, [setSidebarOpen]);
   const mobileFeedSelect = useCallback((id: string) => { selectFeed(id); closeMobile(); }, [selectFeed, closeMobile]);
   const mobileFolderSelect = useCallback((id: string) => { selectFolder(id); closeMobile(); }, [selectFolder, closeMobile]);
   const mobileTagSelect = useCallback((id: string) => { selectTag(id); closeMobile(); }, [selectTag, closeMobile]);
@@ -88,7 +88,6 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
 
   if (!sidebarOpen) return null;
   const ungroupedFeeds = feeds.filter((f) => !f.folderId);
-  const isOverlay = isMobile;
 
   const refreshIntervalOptions = [
     { label: '15 minutes', value: 15 },
@@ -132,7 +131,7 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
   const menuItems = [...feedMenuItems, ...folderMenuItems, ...tagMenuItems, ...savedSearchMenuItems];
 
   const sidebarContent = (
-    <aside className={`${isOverlay ? 'w-72' : 'w-64'} border-r border-border bg-surface-secondary flex flex-col shrink-0 h-full overflow-hidden`}>
+    <aside className="w-72 md:w-64 border-r border-border bg-surface-secondary flex flex-col shrink-0 h-full overflow-hidden">
       <div className="p-3 border-b border-border">
         <input data-search-input type="text" placeholder="Search... (press /)" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleSearch}
           className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500" />
@@ -288,18 +287,16 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
     </aside>
   );
 
-  if (isOverlay) {
-    return (
-      <div className="fixed inset-0 z-40 flex">
-        <div className="absolute inset-0 bg-black/40" onClick={() => setSidebarOpen(false)} />
-        <div className="relative z-10 animate-slide-in">
-          {sidebarContent}
-        </div>
+  return (
+    <>
+      {/* Backdrop — only visible on mobile */}
+      <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />
+      {/* Sidebar — fixed overlay on mobile, static inline on desktop */}
+      <div className="fixed inset-y-0 left-0 z-50 animate-slide-in md:static md:inset-auto md:z-auto md:animate-none">
+        {sidebarContent}
       </div>
-    );
-  }
-
-  return sidebarContent;
+    </>
+  );
 }
 
 function FolderItem({ folder, selectedFolderId, onSelect, feeds, selectedFeedId, onSelectFeed, onContextMenu, editing, onSaveEdit, onCancelEdit, onSaveFeedEdit, onDropFeed, dragOverFolder, setDragOverFolder }: {

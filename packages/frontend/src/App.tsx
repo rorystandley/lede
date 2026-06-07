@@ -11,7 +11,6 @@ import { AddSourcesPage } from './pages/AddSourcesPage.js';
 import { ToastContainer } from './components/shared/Toast.js';
 import { useEffect, useState } from 'react';
 import { useUiStore } from './stores/index.js';
-import { useIsMobile } from './hooks/use-media-query.js';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,7 +24,6 @@ const queryClient = new QueryClient({
 function AppContent() {
   const { isAuthenticated } = useAuthStore();
   const { theme, selectArticle, setSidebarOpen } = useUiStore();
-  const isMobile = useIsMobile();
   const [showSettings, setShowSettings] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [showDigest, setShowDigest] = useState(false);
@@ -36,9 +34,14 @@ function AppContent() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  // Close sidebar when viewport is narrow
   useEffect(() => {
-    if (isMobile) setSidebarOpen(false);
-  }, [isMobile]);
+    const mql = window.matchMedia('(max-width: 767px)');
+    if (mql.matches) setSidebarOpen(false);
+    const handler = (e: MediaQueryListEvent) => { if (e.matches) setSidebarOpen(false); };
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [setSidebarOpen]);
 
   if (!isAuthenticated()) {
     return <LoginPage />;

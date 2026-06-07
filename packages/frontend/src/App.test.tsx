@@ -20,11 +20,6 @@ vi.mock('./stores/index.js', () => ({
     selector ? selector(uiState) : uiState,
 }));
 
-vi.mock('./hooks/use-media-query.js', () => ({
-  useIsMobile: () => false,
-  useMediaQuery: () => true,
-}));
-
 vi.mock('./components/layout/Header.js', () => ({
   Header: ({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats }: Record<string, () => void>) => (
     <div>

@@ -14,11 +14,6 @@ vi.mock('../../stores/index.js', () => ({
   useAuthStore: () => useAuthStoreMock(),
 }));
 
-vi.mock('../../hooks/use-media-query.js', () => ({
-  useIsMobile: () => false,
-  useMediaQuery: () => true,
-}));
-
 describe('Header', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -51,7 +46,7 @@ describe('Header', () => {
     );
 
     fireEvent.click(screen.getByLabelText('Toggle sidebar'));
-    fireEvent.click(screen.getByText('card'));
+    fireEvent.click(screen.getByRole('button', { name: 'card' }));
     fireEvent.click(screen.getByLabelText('Toggle theme'));
     fireEvent.click(screen.getByLabelText('Reading Stats'));
     fireEvent.click(screen.getByLabelText('Morning Briefing'));

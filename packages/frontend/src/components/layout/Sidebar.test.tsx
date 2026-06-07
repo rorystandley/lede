@@ -57,11 +57,6 @@ vi.mock('../../stores/index.js', () => ({
   useUiStore: () => mocks.useUiStoreMock(),
 }));
 
-vi.mock('../../hooks/use-media-query.js', () => ({
-  useIsMobile: () => false,
-  useMediaQuery: () => true,
-}));
-
 vi.mock('../../api/folders.api.js', () => ({
   foldersApi: {
     update: mocks.folderUpdateMock,
