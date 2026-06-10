@@ -3,6 +3,12 @@
 # built React frontend; PROCESS_ROLE=all keeps background jobs in-process.
 
 services:
+  postgres:
+    ports: !reset []
+
+  redis:
+    ports: !reset []
+
   app:
     build: .
     restart: unless-stopped
