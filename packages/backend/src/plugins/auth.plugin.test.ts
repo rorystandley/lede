@@ -144,7 +144,7 @@ describe('auth.plugin', () => {
         id: 'key-1',
         userId: 'user-1',
         keyHash: 'stored-hash',
-        expiresAt: new Date('2026-06-10T00:00:00.000Z'),
+        expiresAt: new Date('2099-01-01T00:00:00.000Z'),
       },
     ]);
     mocks.bcryptCompareMock.mockResolvedValue(false);
@@ -177,7 +177,7 @@ describe('auth.plugin', () => {
         id: 'key-expired',
         userId: 'user-1',
         keyHash: 'expired-hash',
-        expiresAt: new Date('2026-06-04T00:00:00.000Z'),
+        expiresAt: new Date('2020-01-01T00:00:00.000Z'),
       },
     ]);
 
@@ -207,7 +207,7 @@ describe('auth.plugin', () => {
         id: 'key-2',
         userId: 'user-2',
         keyHash: 'matching-hash',
-        expiresAt: new Date('2026-06-10T00:00:00.000Z'),
+        expiresAt: new Date('2099-01-01T00:00:00.000Z'),
       },
     ]);
     mocks.bcryptCompareMock.mockResolvedValue(true);
@@ -252,7 +252,7 @@ describe('auth.plugin', () => {
         id: 'key-3',
         userId: 'user-3',
         keyHash: 'matching-hash',
-        expiresAt: new Date('2026-06-10T00:00:00.000Z'),
+        expiresAt: new Date('2099-01-01T00:00:00.000Z'),
       },
     ]);
     mocks.bcryptCompareMock.mockResolvedValue(true);
