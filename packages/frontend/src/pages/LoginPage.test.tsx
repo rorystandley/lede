@@ -37,7 +37,7 @@ describe('LoginPage', () => {
       refreshToken: 'refresh-token',
     });
 
-    render(<LoginPage />);
+    render(<LoginPage onForgotPassword={vi.fn()} />);
 
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'user@example.com' },
@@ -64,7 +64,7 @@ describe('LoginPage', () => {
       refreshToken: 'new-refresh',
     });
 
-    render(<LoginPage />);
+    render(<LoginPage onForgotPassword={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Register' }));
     expect(screen.getByRole('heading', { name: 'Create Account' })).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe('LoginPage', () => {
       refreshToken: 'blank-refresh',
     });
 
-    render(<LoginPage />);
+    render(<LoginPage onForgotPassword={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Register' }));
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
@@ -116,7 +116,7 @@ describe('LoginPage', () => {
   it('shows API errors and clears them when toggling modes', async () => {
     loginMock.mockRejectedValue(new Error('Bad credentials'));
 
-    render(<LoginPage />);
+    render(<LoginPage onForgotPassword={vi.fn()} />);
 
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'bad@example.com' },
@@ -133,10 +133,26 @@ describe('LoginPage', () => {
     expect(screen.queryByText('Bad credentials')).not.toBeInTheDocument();
   });
 
+  it('calls onForgotPassword when the forgot password link is clicked', () => {
+    const onForgotPassword = vi.fn();
+    render(<LoginPage onForgotPassword={onForgotPassword} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Forgot your password?' }));
+    expect(onForgotPassword).toHaveBeenCalledOnce();
+  });
+
+  it('hides the forgot password link in register mode', () => {
+    render(<LoginPage onForgotPassword={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Forgot your password?' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Register' }));
+    expect(screen.queryByRole('button', { name: 'Forgot your password?' })).not.toBeInTheDocument();
+  });
+
   it('falls back to a generic error for non-Error failures', async () => {
     loginMock.mockRejectedValue('wat');
 
-    render(<LoginPage />);
+    render(<LoginPage onForgotPassword={vi.fn()} />);
 
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'user@example.com' },

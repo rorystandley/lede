@@ -3,6 +3,8 @@ import { useAuthStore } from './stores/index.js';
 import { Header } from './components/layout/Header.js';
 import { FeedPage } from './pages/FeedPage.js';
 import { LoginPage } from './pages/LoginPage.js';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage.js';
+import { ResetPasswordPage } from './pages/ResetPasswordPage.js';
 import { SettingsPage } from './pages/SettingsPage.js';
 import { RulesPage } from './pages/RulesPage.js';
 import { DigestPage } from './pages/DigestPage.js';
@@ -21,6 +23,20 @@ const queryClient = new QueryClient({
   },
 });
 
+type AuthView = 'login' | 'forgot-password' | 'reset-password';
+
+function getInitialAuthView(): { view: AuthView; resetToken?: string } {
+  const url = new URL(window.location.href);
+  if (url.pathname === '/reset-password') {
+    const token = url.searchParams.get('token');
+    if (token) {
+      window.history.replaceState({}, '', '/');
+      return { view: 'reset-password', resetToken: token };
+    }
+  }
+  return { view: 'login' };
+}
+
 function AppContent() {
   const { isAuthenticated } = useAuthStore();
   const { theme, selectArticle, setSidebarOpen } = useUiStore();
@@ -29,6 +45,10 @@ function AppContent() {
   const [showDigest, setShowDigest] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showAddSources, setShowAddSources] = useState(false);
+
+  const [initialAuth] = useState(getInitialAuthView);
+  const [authView, setAuthView] = useState<AuthView>(initialAuth.view);
+  const [resetToken] = useState(initialAuth.resetToken ?? '');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -44,7 +64,13 @@ function AppContent() {
   }, [setSidebarOpen]);
 
   if (!isAuthenticated()) {
-    return <LoginPage />;
+    if (authView === 'forgot-password') {
+      return <ForgotPasswordPage onBack={() => setAuthView('login')} />;
+    }
+    if (authView === 'reset-password' && resetToken) {
+      return <ResetPasswordPage token={resetToken} onBack={() => setAuthView('login')} />;
+    }
+    return <LoginPage onForgotPassword={() => setAuthView('forgot-password')} />;
   }
 
   return (

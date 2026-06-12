@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { authApi } from '../api/index.js';
 import { useAuthStore } from '../stores/index.js';
 
-export function LoginPage() {
+interface LoginPageProps {
+  onForgotPassword: () => void;
+}
+
+export function LoginPage({ onForgotPassword }: LoginPageProps) {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -90,6 +94,18 @@ export function LoginPage() {
           >
             {loading ? 'Loading...' : isRegister ? 'Create Account' : 'Sign In'}
           </button>
+
+          {!isRegister && (
+            <p className="text-xs text-text-secondary text-center">
+              <button
+                type="button"
+                onClick={onForgotPassword}
+                className="text-primary-600 hover:underline"
+              >
+                Forgot your password?
+              </button>
+            </p>
+          )}
 
           <p className="text-xs text-text-secondary text-center">
             {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
