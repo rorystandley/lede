@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { registerSchema, loginSchema, refreshTokenSchema, createApiKeySchema } from '@lede/shared';
+import { registerSchema, loginSchema, refreshTokenSchema, createApiKeySchema, forgotPasswordSchema, resetPasswordSchema } from '@lede/shared';
 import { authService } from '../services/auth.service.js';
 
 export default async function authRoutes(app: FastifyInstance) {
@@ -50,6 +50,28 @@ export default async function authRoutes(app: FastifyInstance) {
     const accessToken = app.jwt.sign({ id: user.id, email: user.email });
     const refreshToken = await authService.createRefreshToken(user.id);
     return reply.send({ accessToken, refreshToken });
+  });
+
+  app.post('/forgot-password', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Request a password reset email',
+    },
+  }, async (req, reply) => {
+    const body = forgotPasswordSchema.parse(req.body);
+    await authService.requestPasswordReset(body.email);
+    return reply.send({ message: 'If an account exists with that email, a reset link has been sent' });
+  });
+
+  app.post('/reset-password', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Reset password using a reset token',
+    },
+  }, async (req, reply) => {
+    const body = resetPasswordSchema.parse(req.body);
+    await authService.resetPassword(body.token, body.password);
+    return reply.send({ message: 'Password has been reset' });
   });
 
   app.post('/api-keys', {
