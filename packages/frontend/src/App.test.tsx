@@ -41,6 +41,14 @@ vi.mock('./pages/LoginPage.js', () => ({
   LoginPage: () => <div>login-page</div>,
 }));
 
+vi.mock('./pages/ForgotPasswordPage.js', () => ({
+  ForgotPasswordPage: () => <div>forgot-password-page</div>,
+}));
+
+vi.mock('./pages/ResetPasswordPage.js', () => ({
+  ResetPasswordPage: () => <div>reset-password-page</div>,
+}));
+
 vi.mock('./pages/SettingsPage.js', () => ({
   SettingsPage: ({ onClose }: Record<string, () => void>) => <button onClick={onClose}>settings-page</button>,
 }));
