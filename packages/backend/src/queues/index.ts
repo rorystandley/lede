@@ -16,6 +16,8 @@ let _ruleEngineQueue: Queue | null = null;
 let _digestBuildQueue: Queue | null = null;
 let _contentExtractQueue: Queue | null = null;
 
+const _intervalIds: ReturnType<typeof setInterval>[] = [];
+
 export function getFeedRefreshQueue(): Queue {
   if (_feedRefreshQueue) return _feedRefreshQueue;
   _feedRefreshQueue = new Queue('feed-refresh', { connection: getRedisOpts() });
@@ -40,23 +42,26 @@ export function getContentExtractQueue(): Queue {
   return _contentExtractQueue;
 }
 
+export const FEED_REFRESH_INTERVAL = 15 * 60 * 1000;
+export const DIGEST_CHECK_INTERVAL = 60 * 1000;
+
 export async function setupRecurringJobs() {
   const feedQueue = getFeedRefreshQueue();
-  await feedQueue.upsertJobScheduler(
-    'refresh-all-feeds',
-    { every: 15 * 60 * 1000 },
-    { name: 'refresh-all-feeds', data: {} },
-  );
-
   const digestQueue = getDigestBuildQueue();
-  await digestQueue.upsertJobScheduler(
-    'check-digest-schedule',
-    { every: 60 * 1000 },
-    { name: 'check-digest-schedule', data: {} },
+
+  await feedQueue.add('refresh-all-feeds', {});
+  await digestQueue.add('check-digest-schedule', {});
+
+  _intervalIds.push(
+    setInterval(() => { feedQueue.add('refresh-all-feeds', {}).catch(() => {}); }, FEED_REFRESH_INTERVAL),
+    setInterval(() => { digestQueue.add('check-digest-schedule', {}).catch(() => {}); }, DIGEST_CHECK_INTERVAL),
   );
 }
 
 export async function closeQueues() {
+  for (const id of _intervalIds) clearInterval(id);
+  _intervalIds.length = 0;
+
   for (const q of [_feedRefreshQueue, _ruleEngineQueue, _digestBuildQueue, _contentExtractQueue]) {
     if (q) await q.close();
   }

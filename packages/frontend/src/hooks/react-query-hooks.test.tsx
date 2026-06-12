@@ -431,7 +431,7 @@ describe('React Query hooks', () => {
 
     const query = client.getQueryCache().findAll({ queryKey: ['articles-infinite'] })[0];
     expect(query).toBeDefined();
-    expect(query.options.refetchInterval).toBe(5 * 60 * 1000);
+    expect((query.options as Record<string, unknown>).refetchInterval).toBe(5 * 60 * 1000);
   });
 
   it('configures a 5-minute polling interval on the feeds query', async () => {
@@ -444,7 +444,7 @@ describe('React Query hooks', () => {
 
     const query = client.getQueryCache().findAll({ queryKey: ['feeds'] })[0];
     expect(query).toBeDefined();
-    expect(query.options.refetchInterval).toBe(5 * 60 * 1000);
+    expect((query.options as Record<string, unknown>).refetchInterval).toBe(5 * 60 * 1000);
   });
 
   it('loads article lists/details and invalidates caches for article mutations', async () => {

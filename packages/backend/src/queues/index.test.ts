@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   queueInstances,
@@ -10,7 +10,7 @@ const {
     this.name = name;
     this.opts = opts;
     this.close = vi.fn();
-    this.upsertJobScheduler = vi.fn();
+    this.add = vi.fn().mockResolvedValue({ id: '1' });
     queueInstances.push(this);
   });
   return {
@@ -30,9 +30,14 @@ vi.mock('../config.js', () => ({
 
 describe('queues', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     vi.resetModules();
     queueInstances.length = 0;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('parses redis options and memoizes queue instances', async () => {
@@ -72,7 +77,7 @@ describe('queues', () => {
     });
   });
 
-  it('schedules recurring jobs and closes/reset queues', async () => {
+  it('adds initial jobs on startup and schedules recurring intervals', async () => {
     const queues = await import('./index.js');
 
     queues.getFeedRefreshQueue();
@@ -82,22 +87,43 @@ describe('queues', () => {
 
     await queues.setupRecurringJobs();
 
-    const [feedQueue, , digestQueue, contentQueue] = queueInstances;
-    expect(feedQueue.upsertJobScheduler).toHaveBeenCalledWith(
-      'refresh-all-feeds',
-      { every: 15 * 60 * 1000 },
-      { name: 'refresh-all-feeds', data: {} },
-    );
-    expect(digestQueue.upsertJobScheduler).toHaveBeenCalledWith(
-      'check-digest-schedule',
-      { every: 60 * 1000 },
-      { name: 'check-digest-schedule', data: {} },
-    );
+    const [feedQueue, , digestQueue] = queueInstances;
+
+    expect(feedQueue.add).toHaveBeenCalledWith('refresh-all-feeds', {});
+    expect(digestQueue.add).toHaveBeenCalledWith('check-digest-schedule', {});
+
+    feedQueue.add.mockClear();
+    digestQueue.add.mockClear();
+
+    vi.advanceTimersByTime(queues.DIGEST_CHECK_INTERVAL);
+    expect(digestQueue.add).toHaveBeenCalledTimes(1);
+    expect(feedQueue.add).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(queues.FEED_REFRESH_INTERVAL);
+    expect(feedQueue.add).toHaveBeenCalledTimes(1);
+    expect(feedQueue.add).toHaveBeenCalledWith('refresh-all-feeds', {});
+  });
+
+  it('clears intervals and closes queues on closeQueues', async () => {
+    const queues = await import('./index.js');
+
+    queues.getFeedRefreshQueue();
+    queues.getRuleEngineQueue();
+    queues.getDigestBuildQueue();
+    queues.getContentExtractQueue();
+
+    await queues.setupRecurringJobs();
+
+    const [feedQueue, , , contentQueue] = queueInstances;
 
     await queues.closeQueues();
 
     expect(feedQueue.close).toHaveBeenCalled();
     expect(contentQueue.close).toHaveBeenCalled();
+
+    feedQueue.add.mockClear();
+    vi.advanceTimersByTime(queues.FEED_REFRESH_INTERVAL * 2);
+    expect(feedQueue.add).not.toHaveBeenCalled();
 
     const freshFeedQueue = queues.getFeedRefreshQueue();
     expect(freshFeedQueue).not.toBe(feedQueue);
