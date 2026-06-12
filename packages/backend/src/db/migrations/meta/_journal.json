@@ -43,6 +43,13 @@
       "when": 1780676500603,
       "tag": "0005_many_living_mummy",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781280440836,
+      "tag": "0006_clean_mandarin",
+      "breakpoints": true
     }
   ]
 }
