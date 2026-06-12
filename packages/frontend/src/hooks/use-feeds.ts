@@ -13,6 +13,20 @@ export function useFeeds(folderId?: string) {
       const items = result.items ?? [];
       const totalUnread = items.reduce((sum: number, f: { unreadCount: number }) => sum + (f.unreadCount ?? 0), 0);
       console.log('[sync] feeds response', { count: items.length, totalUnread });
+
+      feedsApi.syncStatus().then((s) => {
+        console.log('[sync] backend status', {
+          uptime: `${Math.floor(s.uptime / 60)}m`,
+          queue: s.queue,
+          feeds: s.feeds.map((f) => ({
+            title: f.title,
+            lastFetched: f.lastFetchedAt,
+            stale: f.isStale,
+            error: f.lastError,
+          })),
+        });
+      }).catch(() => {});
+
       return result;
     },
     refetchInterval: POLL_INTERVAL,

@@ -39,6 +39,7 @@ const {
     subscribe: vi.fn(),
     update: vi.fn(),
     unsubscribe: vi.fn(),
+    syncStatus: vi.fn(),
     refresh: vi.fn(),
   },
   savedSearchesApi: {
@@ -108,6 +109,7 @@ describe('React Query hooks', () => {
     feedsApi.update.mockResolvedValue({ id: 'feed-default' });
     feedsApi.unsubscribe.mockResolvedValue(undefined);
     feedsApi.refresh.mockResolvedValue({ newArticles: 0 });
+    feedsApi.syncStatus.mockResolvedValue({ queue: {}, feeds: [], uptime: 0 });
     savedSearchesApi.list.mockResolvedValue([]);
     savedSearchesApi.create.mockResolvedValue({ id: 'saved-default' });
     savedSearchesApi.update.mockResolvedValue({ id: 'saved-default' });

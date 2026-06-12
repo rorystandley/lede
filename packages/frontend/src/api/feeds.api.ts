@@ -25,4 +25,11 @@ export const feedsApi = {
 
   refreshAll: () =>
     api.post<{ queued: boolean }>('/feeds/refresh-all'),
+
+  syncStatus: () =>
+    api.get<{
+      queue: { waiting: number; active: number; completed: number; failed: number };
+      feeds: Array<{ id: string; title: string | null; lastFetchedAt: string | null; refreshInterval: number; isStale: boolean; lastError: string | null }>;
+      uptime: number;
+    }>('/feeds/sync-status'),
 };

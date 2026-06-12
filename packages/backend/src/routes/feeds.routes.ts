@@ -1,6 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { subscribeFeedSchema, updateSubscriptionSchema, listFeedsQuerySchema } from '@lede/shared';
 import { feedService } from '../services/feed.service.js';
+import { sql } from 'drizzle-orm';
+import { getDb } from '../db/client.js';
+import { feeds } from '../db/schema/index.js';
 
 export default async function feedRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
@@ -69,5 +72,39 @@ export default async function feedRoutes(app: FastifyInstance) {
   }, async (req) => {
     const { feedId } = req.params as { feedId: string };
     return feedService.refreshFeed(feedId, { userId: req.user.id });
+  });
+
+  app.get('/sync-status', {
+    schema: { tags: ['Feeds'], summary: 'Debug: queue and feed refresh status' },
+  }, async () => {
+    const { getFeedRefreshQueue } = await import('../queues/index.js');
+    const queue = getFeedRefreshQueue();
+    const [waiting, active, completed, failed] = await Promise.all([
+      queue.getWaitingCount(),
+      queue.getActiveCount(),
+      queue.getCompletedCount(),
+      queue.getFailedCount(),
+    ]);
+
+    const db = getDb();
+    const allFeeds = await db
+      .select({
+        id: feeds.id,
+        title: feeds.title,
+        lastFetchedAt: feeds.lastFetchedAt,
+        refreshInterval: feeds.refreshInterval,
+        lastError: feeds.lastError,
+        isStale: sql<boolean>`"last_fetched_at" IS NULL OR "last_fetched_at" < now() - make_interval(mins => COALESCE(NULLIF("refresh_interval", 0), 60))`,
+      })
+      .from(feeds);
+
+    return {
+      queue: { waiting, active, completed, failed },
+      feeds: allFeeds.map((f) => ({
+        ...f,
+        lastFetchedAt: f.lastFetchedAt?.toISOString() ?? null,
+      })),
+      uptime: Math.floor(process.uptime()),
+    };
   });
 }
