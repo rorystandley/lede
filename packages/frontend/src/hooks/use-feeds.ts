@@ -7,7 +7,14 @@ const POLL_INTERVAL = 5 * 60 * 1000;
 export function useFeeds(folderId?: string) {
   return useQuery({
     queryKey: ['feeds', folderId],
-    queryFn: () => feedsApi.list({ folderId }),
+    queryFn: async () => {
+      console.log('[sync] polling feeds…', { folderId, time: new Date().toLocaleTimeString() });
+      const result = await feedsApi.list({ folderId });
+      const items = result.items ?? [];
+      const totalUnread = items.reduce((sum: number, f: { unreadCount: number }) => sum + (f.unreadCount ?? 0), 0);
+      console.log('[sync] feeds response', { count: items.length, totalUnread });
+      return result;
+    },
     refetchInterval: POLL_INTERVAL,
   });
 }

@@ -43,15 +43,23 @@ export function ArticleList() {
   const addToast = useUiStore((s) => s.addToast);
 
   const refreshAllMut = useMutation({
-    mutationFn: () => feedsApi.refreshAll(),
+    mutationFn: () => {
+      console.log('[sync] manual refresh-all triggered', { time: new Date().toLocaleTimeString() });
+      return feedsApi.refreshAll();
+    },
     onSuccess: () => {
+      console.log('[sync] manual refresh-all queued, invalidating in 2s');
       addToast('Feeds are refreshing...', 'info');
       setTimeout(() => {
         qc.invalidateQueries({ queryKey: ['articles-infinite'] });
         qc.invalidateQueries({ queryKey: ['feeds'] });
+        console.log('[sync] queries invalidated after manual refresh');
       }, 2000);
     },
-    onError: () => addToast('Failed to refresh feeds', 'error'),
+    onError: (err) => {
+      console.error('[sync] manual refresh-all failed', err);
+      addToast('Failed to refresh feeds', 'error');
+    },
   });
 
   const infiniteArticles = useMemo(
