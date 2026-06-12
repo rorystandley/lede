@@ -4,7 +4,8 @@
 
 services:
   postgres:
-    ports: !reset []
+    ports:
+      - "127.0.0.1:5432:5432"
 
   redis:
     ports: !reset []
