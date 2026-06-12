@@ -2,10 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { feedsApi } from '../api/index.js';
 import { useUiStore } from '../stores/index.js';
 
+const POLL_INTERVAL = 5 * 60 * 1000;
+
 export function useFeeds(folderId?: string) {
   return useQuery({
     queryKey: ['feeds', folderId],
     queryFn: () => feedsApi.list({ folderId }),
+    refetchInterval: POLL_INTERVAL,
   });
 }
 

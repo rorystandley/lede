@@ -418,6 +418,35 @@ describe('React Query hooks', () => {
     });
   });
 
+  it('configures a 5-minute polling interval on the articles infinite query', async () => {
+    const client = createTestClient();
+    articlesApi.list.mockResolvedValue({ items: [], hasMore: false });
+
+    renderHook(
+      () => useArticlesInfinite({ feedId: 'feed-1' }),
+      { wrapper: createWrapper(client) },
+    );
+
+    await waitFor(() => expect(articlesApi.list).toHaveBeenCalledTimes(1));
+
+    const query = client.getQueryCache().findAll({ queryKey: ['articles-infinite'] })[0];
+    expect(query).toBeDefined();
+    expect(query.options.refetchInterval).toBe(5 * 60 * 1000);
+  });
+
+  it('configures a 5-minute polling interval on the feeds query', async () => {
+    const client = createTestClient();
+    feedsApi.list.mockResolvedValue([]);
+
+    renderHook(() => useFeeds(), { wrapper: createWrapper(client) });
+
+    await waitFor(() => expect(feedsApi.list).toHaveBeenCalledTimes(1));
+
+    const query = client.getQueryCache().findAll({ queryKey: ['feeds'] })[0];
+    expect(query).toBeDefined();
+    expect(query.options.refetchInterval).toBe(5 * 60 * 1000);
+  });
+
   it('loads article lists/details and invalidates caches for article mutations', async () => {
     const client = createTestClient();
     const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
