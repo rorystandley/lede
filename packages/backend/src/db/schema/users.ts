@@ -38,3 +38,15 @@ export const refreshTokens = pgTable('refresh_tokens', {
   uniqueIndex('idx_refresh_tokens_token_digest').on(t.tokenDigest),
   index('idx_refresh_tokens_expires_at').on(t.expiresAt),
 ]);
+
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tokenDigest: varchar('token_digest', { length: 64 }).notNull(),
+  tokenHash: varchar('token_hash', { length: 255 }).notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('idx_password_reset_tokens_token_digest').on(t.tokenDigest),
+  index('idx_password_reset_tokens_expires_at').on(t.expiresAt),
+]);

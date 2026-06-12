@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getDb } from '../db/client.js';
 import { getConfig } from '../config.js';
+import { sendEmail } from '../lib/email.js';
 import { API_KEY_PREFIX } from '@lede/shared';
 import { authService } from './auth.service.js';
 
@@ -12,6 +13,10 @@ vi.mock('../db/client.js', () => ({
 
 vi.mock('../config.js', () => ({
   getConfig: vi.fn(),
+}));
+
+vi.mock('../lib/email.js', () => ({
+  sendEmail: vi.fn(),
 }));
 
 vi.mock('bcrypt', () => ({
@@ -342,6 +347,135 @@ describe('authService', () => {
       keyHash: 'hashed-api-key',
       keyPrefix: expect.stringMatching(new RegExp(`^${API_KEY_PREFIX}`)),
       expiresAt: null,
+    });
+  });
+
+  describe('requestPasswordReset', () => {
+    it('silently returns when no user matches the email', async () => {
+      vi.mocked(getConfig).mockReturnValue({ APP_URL: 'http://localhost:5173' } as never);
+      vi.mocked(getDb).mockReturnValue({
+        query: {
+          users: {
+            findFirst: vi.fn().mockResolvedValue(null),
+          },
+        },
+      } as never);
+
+      await expect(authService.requestPasswordReset('unknown@example.com')).resolves.toBeUndefined();
+      expect(sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('generates a reset token, stores it, and sends an email', async () => {
+      (vi.spyOn(crypto, 'randomBytes') as ReturnType<typeof vi.fn>).mockReturnValue(Buffer.from('r'.repeat(32)));
+      mockBcryptHash.mockResolvedValue('hashed-reset-token');
+      vi.mocked(sendEmail).mockResolvedValue(true);
+      vi.mocked(getConfig).mockReturnValue({ APP_URL: 'http://localhost:5173' } as never);
+
+      const deleteWhere = vi.fn().mockResolvedValue(undefined);
+      const insertValues = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(getDb).mockReturnValue({
+        query: {
+          users: {
+            findFirst: vi.fn().mockResolvedValue({ id: 'user-1', email: 'user@example.com' }),
+          },
+        },
+        delete: vi.fn(() => ({ where: deleteWhere })),
+        insert: vi.fn(() => ({ values: insertValues })),
+      } as never);
+
+      await authService.requestPasswordReset('user@example.com');
+
+      expect(deleteWhere).toHaveBeenCalled();
+      expect(insertValues).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user-1',
+          tokenHash: 'hashed-reset-token',
+          tokenDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
+          expiresAt: expect.any(Date),
+        }),
+      );
+
+      const expectedToken = Buffer.from('r'.repeat(32)).toString('base64url');
+      expect(sendEmail).toHaveBeenCalledWith(
+        'user@example.com',
+        'Reset your password',
+        expect.stringContaining(`http://localhost:5173/reset-password?token=${expectedToken}`),
+        expect.stringContaining(`http://localhost:5173/reset-password?token=${expectedToken}`),
+      );
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('throws when no matching token exists', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-06-05T00:00:00.000Z'));
+
+      const deleteWhere = vi.fn().mockResolvedValue(undefined);
+      const selectLimit = vi.fn().mockResolvedValue([]);
+      const selectWhere = vi.fn(() => ({ limit: selectLimit }));
+      const selectFrom = vi.fn(() => ({ where: selectWhere }));
+      vi.mocked(getDb).mockReturnValue({
+        delete: vi.fn(() => ({ where: deleteWhere })),
+        select: vi.fn(() => ({ from: selectFrom })),
+      } as never);
+
+      await expect(authService.resetPassword('bad-token', 'newpassword123')).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Invalid or expired reset token',
+      });
+      vi.useRealTimers();
+    });
+
+    it('throws when bcrypt comparison fails for a digest-matched token', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-06-05T00:00:00.000Z'));
+      mockBcryptCompare.mockResolvedValue(false);
+
+      const deleteWhere = vi.fn().mockResolvedValue(undefined);
+      const selectLimit = vi.fn().mockResolvedValue([{ id: 'prt-1', userId: 'user-1', tokenHash: 'hashed-token' }]);
+      const selectWhere = vi.fn(() => ({ limit: selectLimit }));
+      const selectFrom = vi.fn(() => ({ where: selectWhere }));
+      vi.mocked(getDb).mockReturnValue({
+        delete: vi.fn(() => ({ where: deleteWhere })),
+        select: vi.fn(() => ({ from: selectFrom })),
+      } as never);
+
+      await expect(authService.resetPassword('tampered-token', 'newpassword123')).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Invalid or expired reset token',
+      });
+      vi.useRealTimers();
+    });
+
+    it('updates the password and invalidates all tokens on success', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-06-05T00:00:00.000Z'));
+      mockBcryptCompare.mockResolvedValue(true);
+      mockBcryptHash.mockResolvedValue('new-hashed-password');
+
+      const deleteWhere = vi.fn().mockResolvedValue(undefined);
+      const deleteMock = vi.fn(() => ({ where: deleteWhere }));
+      const selectLimit = vi.fn().mockResolvedValue([{ id: 'prt-1', userId: 'user-1', tokenHash: 'hashed-token' }]);
+      const selectWhere = vi.fn(() => ({ limit: selectLimit }));
+      const selectFrom = vi.fn(() => ({ where: selectWhere }));
+      const updateSet = vi.fn(() => ({ where: vi.fn().mockResolvedValue(undefined) }));
+      vi.mocked(getDb).mockReturnValue({
+        delete: deleteMock,
+        select: vi.fn(() => ({ from: selectFrom })),
+        update: vi.fn(() => ({ set: updateSet })),
+      } as never);
+
+      await expect(authService.resetPassword('valid-token', 'newpassword123')).resolves.toBeUndefined();
+
+      expect(mockBcryptCompare).toHaveBeenCalledWith('valid-token', 'hashed-token');
+      expect(mockBcryptHash).toHaveBeenCalledWith('newpassword123', 12);
+      expect(updateSet).toHaveBeenCalledWith({
+        passwordHash: 'new-hashed-password',
+        updatedAt: new Date('2026-06-05T00:00:00.000Z'),
+      });
+      // 1: expired cleanup, 2: delete reset tokens for user, 3: delete refresh tokens for user
+      expect(deleteMock).toHaveBeenCalledTimes(3);
+      vi.useRealTimers();
     });
   });
 });
