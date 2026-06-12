@@ -292,7 +292,7 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
       {/* Backdrop — only visible on mobile */}
       <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />
       {/* Sidebar — fixed overlay on mobile, static inline on desktop */}
-      <div className="fixed inset-y-0 left-0 z-50 animate-slide-in md:static md:inset-auto md:z-auto md:animate-none">
+      <div className="fixed inset-y-0 left-0 z-50 animate-slide-in md:static md:inset-auto md:z-auto">
         {sidebarContent}
       </div>
     </>

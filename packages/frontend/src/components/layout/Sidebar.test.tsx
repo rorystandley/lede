@@ -234,6 +234,14 @@ describe('Sidebar', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('does not apply desktop-overriding animation classes on the sidebar wrapper', () => {
+    renderWithClient(<Sidebar />);
+
+    const backdrop = screen.getByRole('navigation').closest('.animate-slide-in');
+    expect(backdrop).toBeInTheDocument();
+    expect(backdrop).not.toHaveClass('md:animate-none');
+  });
+
   it('renders nested child folders and allows selecting them', async () => {
     const user = userEvent.setup();
     const uiState = buildUiState();
