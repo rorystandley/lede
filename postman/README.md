@@ -5,13 +5,16 @@ A Postman collection covering the full lede backend API, plus a ready-to-use loc
 | File | What it is |
 | --- | --- |
 | [`lede.postman_collection.json`](lede.postman_collection.json) | All endpoints, grouped by resource, with example bodies and query params. |
-| [`lede.local.postman_environment.json`](lede.local.postman_environment.json) | An environment pre-pointed at `http://localhost:3000`. |
+| [`lede.local.postman_environment.json`](lede.local.postman_environment.json) | Environment pre-pointed at `http://localhost:3000`. |
+| [`lede.production.postman_environment.json`](lede.production.postman_environment.json) | Environment pre-pointed at `https://lede.rorystandley.com`. |
 
 ## Import
 
-1. Open Postman → **Import** → drop in both JSON files.
-2. Top-right environment selector → choose **lede - Local**.
-3. If your server runs elsewhere, edit the `baseUrl` variable (e.g. `https://reader.example.com`).
+1. Open Postman → **Import** → drop in the collection and both environment files.
+2. Top-right environment selector → choose **lede - Local** or **lede - Production**.
+3. If your server runs elsewhere, edit that environment's `baseUrl` variable.
+
+The two environments differ only in `baseUrl`; tokens are stored per-environment, so a Local login won't leak into Production and vice versa.
 
 All endpoints live under `/api/v1` (health checks under `/api`). The interactive Swagger UI is also available at `{{baseUrl}}/api/docs`.
 
