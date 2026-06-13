@@ -11,7 +11,9 @@
     "coverage:table": "pnpm coverage && node scripts/render-coverage-table.mjs",
     "db:generate": "turbo db:generate --filter=@lede/backend",
     "db:migrate": "turbo db:migrate --filter=@lede/backend",
-    "db:seed": "turbo db:seed --filter=@lede/backend"
+    "db:seed": "turbo db:seed --filter=@lede/backend",
+    "gen:postman": "pnpm --filter @lede/backend build && node scripts/generate-postman.mjs",
+    "gen:postman:check": "pnpm --filter @lede/backend build && node scripts/generate-postman.mjs --check"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.8.0",

@@ -58,4 +58,23 @@ For requests that need an `articleId` (star, extract, annotate, …), grab one f
 
 - `refreshInterval` on a feed subscription is in **minutes** (min 1).
 - Article list/search filters (`isRead`, `isStarred`, `feedId`, dates, …) are included as **disabled** query params — enable the ones you need.
-- The collection is generated to match the routes in `packages/backend/src/routes/*`. If you add or change an endpoint, update the collection to match.
+
+## Regenerating (don't hand-edit `lede.postman_collection.json`)
+
+The collection is generated from the backend's own OpenAPI spec, so the route
+list can't silently drift:
+
+```bash
+pnpm gen:postman          # rebuilds the backend, regenerates the collection
+pnpm gen:postman:check    # CI mode: no write, exits 1 if out of date / drifted
+```
+
+`scripts/generate-postman.mjs` boots the app in-process, reads `app.swagger()`
+for the authoritative paths/methods/tags, and merges in the curated example
+bodies/query params from the `EXAMPLES` map at the top of that file. It reports
+drift two ways: routes missing an example entry, and example entries that no
+longer match a route. **CI runs `--check`**, so a PR that adds or renames a
+route fails until you run `pnpm gen:postman` and commit the result (and add an
+`EXAMPLES` entry for any new write route).
+
+The environment file (`lede.local.postman_environment.json`) is static — edit it by hand.

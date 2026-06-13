@@ -32,3 +32,8 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+      # Build above produces the backend dist the generator reads, so call the
+      # script directly. Fails the PR if postman/ is out of date with the routes.
+      - name: Check Postman collection is up to date
+        run: node scripts/generate-postman.mjs --check
