@@ -1,17 +1,100 @@
-import { eq, and, desc, asc, sql, count, inArray } from 'drizzle-orm';
+import { eq, and, desc, asc, sql, count, inArray, type SQL } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { articles, userArticleStates, feeds, userFeedSubscriptions, articleTags, tags } from '../db/schema/index.js';
 import { sanitizeArticleDisplayHtml, sanitizeArticleImageUrl } from '../lib/html-sanitizer.js';
 import { accessControlService } from './access-control.service.js';
 import type { ArticleWithState, PaginatedResult, ListArticlesQuery, SearchArticlesQuery } from '@lede/shared';
 
+/**
+ * Identity key used to collapse duplicate articles. The same story is often
+ * carried by more than one subscribed feed (e.g. a site's main feed plus a
+ * category feed, or syndicated content), each stored as its own row with its
+ * own (feed_id, guid). Those share a canonical article URL, so we key on a
+ * normalised URL — lowercased, with the fragment and trailing slashes stripped
+ * — and fall back to the title, then the guid, when no URL is present.
+ */
+const articleDedupeKey = sql`lower(coalesce(
+  nullif(regexp_replace(regexp_replace(btrim(${articles.url}), '#.*$', ''), '/+$', ''), ''),
+  btrim(${articles.title}),
+  ${articles.guid}
+))`;
+
+type DedupeScope = { feedId?: string; folderId?: string };
+
 export class ArticleService {
+  /**
+   * Subquery selecting one representative article id per dedupe key, so callers
+   * can filter a listing down to a single copy of each story via
+   * `inArray(articles.id, ...)`. The representative is the most recently
+   * published copy (then lowest id) within the given view scope, chosen
+   * independently of read/star state so the choice is stable across requests.
+   */
+  private representativeArticleIds(db: ReturnType<typeof getDb>, userId: string, scope: DedupeScope) {
+    const scopeConditions: SQL[] = [];
+    if (scope.feedId) scopeConditions.push(eq(articles.feedId, scope.feedId));
+    if (scope.folderId) scopeConditions.push(eq(userFeedSubscriptions.folderId, scope.folderId));
+
+    return db
+      .selectDistinctOn([articleDedupeKey], { id: articles.id })
+      .from(articles)
+      .innerJoin(
+        userFeedSubscriptions,
+        and(
+          eq(userFeedSubscriptions.feedId, articles.feedId),
+          eq(userFeedSubscriptions.userId, userId),
+        ),
+      )
+      .where(scopeConditions.length > 0 ? and(...scopeConditions) : undefined)
+      .orderBy(articleDedupeKey, sql`${articles.publishedAt} desc nulls last`, articles.id);
+  }
+
+  private listConditions(db: ReturnType<typeof getDb>, userId: string, query: ListArticlesQuery): SQL[] {
+    // Keep only one copy of each story, scoped to the same feeds the listing shows.
+    const conditions: SQL[] = [
+      inArray(articles.id, this.representativeArticleIds(db, userId, { feedId: query.feedId, folderId: query.folderId })),
+    ];
+
+    if (query.feedId) {
+      conditions.push(eq(articles.feedId, query.feedId));
+    }
+    if (query.folderId) {
+      const folderFeeds = db
+        .select({ feedId: userFeedSubscriptions.feedId })
+        .from(userFeedSubscriptions)
+        .where(and(
+          eq(userFeedSubscriptions.userId, userId),
+          eq(userFeedSubscriptions.folderId, query.folderId),
+        ));
+      conditions.push(inArray(articles.feedId, folderFeeds));
+    }
+    if (query.isRead !== undefined) {
+      conditions.push(
+        query.isRead
+          ? eq(userArticleStates.isRead, true)
+          : sql`(${userArticleStates.isRead} IS NULL OR ${userArticleStates.isRead} = false)`,
+      );
+    }
+    if (query.isStarred !== undefined) {
+      conditions.push(eq(userArticleStates.isStarred, query.isStarred));
+    }
+
+    return conditions;
+  }
+
   async list(userId: string, query: ListArticlesQuery): Promise<PaginatedResult<ArticleWithState>> {
     const db = getDb();
     const { page, pageSize, sort, order } = query;
     const offset = (page - 1) * pageSize;
 
-    let baseQuery = db
+    // All filters (duplicate-collapsing + feed/folder/read/starred) are combined
+    // into a single `where`: Drizzle's `.where()` replaces rather than ANDs, so
+    // they must be assembled together. The same set drives the count query below.
+    const conditions = this.listConditions(db, userId, query);
+
+    const orderCol = sort === 'created_at' ? articles.createdAt : articles.publishedAt;
+    const orderFn = order === 'asc' ? asc : desc;
+
+    const rows = await db
       .select({
         article: articles,
         feedTitle: feeds.title,
@@ -36,36 +119,7 @@ export class ArticleService {
           eq(userArticleStates.userId, userId),
         ),
       )
-      .$dynamic();
-
-    if (query.feedId) {
-      baseQuery = baseQuery.where(eq(articles.feedId, query.feedId));
-    }
-    if (query.folderId) {
-      const folderFeeds = db
-        .select({ feedId: userFeedSubscriptions.feedId })
-        .from(userFeedSubscriptions)
-        .where(and(
-          eq(userFeedSubscriptions.userId, userId),
-          eq(userFeedSubscriptions.folderId, query.folderId),
-        ));
-      baseQuery = baseQuery.where(inArray(articles.feedId, folderFeeds));
-    }
-    if (query.isRead !== undefined) {
-      baseQuery = baseQuery.where(
-        query.isRead
-          ? eq(userArticleStates.isRead, true)
-          : sql`(${userArticleStates.isRead} IS NULL OR ${userArticleStates.isRead} = false)`,
-      );
-    }
-    if (query.isStarred !== undefined) {
-      baseQuery = baseQuery.where(eq(userArticleStates.isStarred, query.isStarred));
-    }
-
-    const orderCol = sort === 'created_at' ? articles.createdAt : articles.publishedAt;
-    const orderFn = order === 'asc' ? asc : desc;
-
-    const rows = await baseQuery
+      .where(and(...conditions))
       .orderBy(orderFn(orderCol))
       .limit(pageSize)
       .offset(offset);
@@ -88,7 +142,7 @@ export class ArticleService {
     if (rows.length < pageSize && page === 1) {
       total = rows.length;
     } else {
-      let countQuery = db
+      const [{ count: totalCount }] = await db
         .select({ count: count() })
         .from(articles)
         .innerJoin(feeds, eq(feeds.id, articles.feedId))
@@ -106,33 +160,7 @@ export class ArticleService {
             eq(userArticleStates.userId, userId),
           ),
         )
-        .$dynamic();
-
-      if (query.feedId) {
-        countQuery = countQuery.where(eq(articles.feedId, query.feedId));
-      }
-      if (query.folderId) {
-        const folderFeeds = db
-          .select({ feedId: userFeedSubscriptions.feedId })
-          .from(userFeedSubscriptions)
-          .where(and(
-            eq(userFeedSubscriptions.userId, userId),
-            eq(userFeedSubscriptions.folderId, query.folderId),
-          ));
-        countQuery = countQuery.where(inArray(articles.feedId, folderFeeds));
-      }
-      if (query.isRead !== undefined) {
-        countQuery = countQuery.where(
-          query.isRead
-            ? eq(userArticleStates.isRead, true)
-            : sql`(${userArticleStates.isRead} IS NULL OR ${userArticleStates.isRead} = false)`,
-        );
-      }
-      if (query.isStarred !== undefined) {
-        countQuery = countQuery.where(eq(userArticleStates.isStarred, query.isStarred));
-      }
-
-      const [{ count: totalCount }] = await countQuery;
+        .where(and(...conditions));
       total = totalCount;
     }
 
@@ -335,6 +363,7 @@ export class ArticleService {
       )
       .where(and(
         inArray(articles.feedId, subscribedFeeds),
+        inArray(articles.id, this.representativeArticleIds(db, userId, {})),
         sql`to_tsvector('english', coalesce(${articles.title}, '') || ' ' || coalesce(${articles.contentText}, '')) @@ to_tsquery('english', ${tsQuery})`,
       ))
       .orderBy(sql`search_rank DESC`)
