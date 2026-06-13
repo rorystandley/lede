@@ -16,11 +16,17 @@ export function ArticleList() {
   const qc = useQueryClient();
   const { selectedFeedId, selectedFolderId, selectedTagId, selectedArticleId, selectArticle, focusedArticleIndex, viewMode, searchQuery, isSearching, showStarred } = useUiStore();
 
+  // The aggregate "News Feed" (no specific feed/folder/tag/starred filter) shows
+  // only unread articles, so reading one and going back drops it from the list.
+  // Opening a specific feed keeps showing read articles, so they remain available.
+  const isNewsFeed = !selectedFeedId && !selectedFolderId && !selectedTagId && !showStarred;
+
   const params = {
     ...(selectedFeedId ? { feedId: selectedFeedId } : {}),
     ...(selectedFolderId ? { folderId: selectedFolderId } : {}),
     ...(selectedTagId ? { tagId: selectedTagId } : {}),
     ...(showStarred ? { isStarred: true } : {}),
+    ...(isNewsFeed ? { isRead: false } : {}),
   };
 
   const infinite = useArticlesInfinite(params);

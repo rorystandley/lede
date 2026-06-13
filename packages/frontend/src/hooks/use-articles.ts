@@ -23,6 +23,9 @@ export function useMarkRead() {
     mutationFn: (articleIds: string[]) => articlesApi.markRead(articleIds),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['articles'] });
+      // Refresh the infinite list so read articles drop out of the unread-only
+      // News Feed once the reader is closed.
+      qc.invalidateQueries({ queryKey: ['articles-infinite'] });
       qc.invalidateQueries({ queryKey: ['feeds'] });
     },
   });

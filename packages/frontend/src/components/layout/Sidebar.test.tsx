@@ -277,7 +277,7 @@ describe('Sidebar', () => {
 
     renderWithClient(<Sidebar />);
 
-    await user.click(screen.getByRole('button', { name: /All Articles/i }));
+    await user.click(screen.getByRole('button', { name: /News Feed/i }));
     expect(uiState.clearFilters).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: /Starred/i }));
