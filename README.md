@@ -77,6 +77,7 @@ The backend services layer is the single source of business logic — REST route
 ## API & MCP
 
 REST API docs (Swagger): `http://localhost:3000/api/docs`
+Postman collection: [`postman/`](./postman/) — importable collection + environment with auth instructions
 MCP endpoint: `POST http://localhost:3000/mcp` (Bearer token: JWT or `nrk_...` API key)
 
 Example: connect Claude as an MCP client to browse feeds and build digests.
