@@ -28,16 +28,55 @@ vi.mock('./access-control.service.js', async () => {
   };
 });
 
-function buildListLikeQuery(rows: unknown[]) {
+// db.select(...).from().innerJoin().innerJoin().leftJoin().where().orderBy().limit().offset()
+function buildListMainChain(rows: unknown[]) {
   const offset = vi.fn().mockResolvedValue(rows);
   const limit = vi.fn(() => ({ offset }));
   const orderBy = vi.fn(() => ({ limit }));
-  const query = {
-    where: vi.fn(() => query),
-    orderBy,
-  };
+  const where = vi.fn(() => ({ orderBy }));
+  const leftJoin = vi.fn(() => ({ where }));
+  const secondInnerJoin = vi.fn(() => ({ leftJoin }));
+  const firstInnerJoin = vi.fn(() => ({ innerJoin: secondInnerJoin }));
+  const from = vi.fn(() => ({ innerJoin: firstInnerJoin }));
+  return { from, where, orderBy };
+}
 
-  return { query, offset, limit, orderBy };
+// db.select({ count }).from().innerJoin().innerJoin().leftJoin().where() => [{ count }]
+function buildCountChain(total: number) {
+  const where = vi.fn().mockResolvedValue([{ count: total }]);
+  const leftJoin = vi.fn(() => ({ where }));
+  const secondInnerJoin = vi.fn(() => ({ leftJoin }));
+  const firstInnerJoin = vi.fn(() => ({ innerJoin: secondInnerJoin }));
+  const from = vi.fn(() => ({ innerJoin: firstInnerJoin }));
+  return { from, where };
+}
+
+// db.selectDistinctOn(...).from().innerJoin().where().orderBy() => subquery placeholder
+function buildDistinctOnChain(placeholder: unknown = 'representative-ids') {
+  const orderBy = vi.fn(() => placeholder);
+  const where = vi.fn(() => ({ orderBy }));
+  const innerJoin = vi.fn(() => ({ where }));
+  const from = vi.fn(() => ({ innerJoin }));
+  return { from, where, orderBy };
+}
+
+// db.select({ feedId }).from().where() => subquery placeholder
+function buildSelectWhereChain(placeholder: unknown) {
+  const where = vi.fn(() => placeholder);
+  const from = vi.fn(() => ({ where }));
+  return { from, where };
+}
+
+// db.select(...).from().innerJoin().leftJoin().where().orderBy().limit().offset()
+function buildSearchMainChain(rows: unknown[]) {
+  const offset = vi.fn().mockResolvedValue(rows);
+  const limit = vi.fn(() => ({ offset }));
+  const orderBy = vi.fn(() => ({ limit }));
+  const where = vi.fn(() => ({ orderBy }));
+  const leftJoin = vi.fn(() => ({ where }));
+  const innerJoin = vi.fn(() => ({ leftJoin }));
+  const from = vi.fn(() => ({ innerJoin }));
+  return { from, where };
 }
 
 function buildArticleJoinChain(result: unknown) {
@@ -74,19 +113,18 @@ describe('articleService', () => {
       isStarred: false,
       isArchived: false,
     }];
-    const { query, orderBy } = buildListLikeQuery(rows);
-    const dynamic = vi.fn(() => query);
-    const leftJoin = vi.fn(() => ({ $dynamic: dynamic }));
-    const secondInnerJoin = vi.fn(() => ({ leftJoin }));
-    const firstInnerJoin = vi.fn(() => ({ innerJoin: secondInnerJoin }));
-    const primaryFrom = vi.fn(() => ({ innerJoin: firstInnerJoin }));
-    const subqueryWhere = vi.fn().mockReturnValue('folder-feeds');
-    const subqueryFrom = vi.fn(() => ({ where: subqueryWhere }));
+    const mainChain = buildListMainChain(rows);
+    const folderFeeds = buildSelectWhereChain('folder-feeds');
+    const distinctOn = buildDistinctOnChain();
+
+    const selectMock = vi.fn()
+      .mockReturnValueOnce({ from: folderFeeds.from })
+      .mockReturnValueOnce({ from: mainChain.from });
+    const selectDistinctOnMock = vi.fn(() => ({ from: distinctOn.from }));
 
     vi.mocked(getDb).mockReturnValue({
-      select: vi.fn()
-        .mockReturnValueOnce({ from: primaryFrom })
-        .mockReturnValueOnce({ from: subqueryFrom }),
+      select: selectMock,
+      selectDistinctOn: selectDistinctOnMock,
     } as never);
 
     const service = new ArticleService();
@@ -121,8 +159,12 @@ describe('articleService', () => {
       hasMore: false,
     });
 
-    expect(query.where).toHaveBeenCalledTimes(4);
-    expect(orderBy).toHaveBeenCalledTimes(1);
+    // Every filter is combined into a single where(and(...)); the duplicate-collapsing
+    // subquery is built via selectDistinctOn and scoped to the requested feed/folder.
+    expect(mainChain.where).toHaveBeenCalledTimes(1);
+    expect(mainChain.orderBy).toHaveBeenCalledTimes(1);
+    expect(selectDistinctOnMock).toHaveBeenCalledTimes(1);
+    expect(distinctOn.where).toHaveBeenCalledTimes(1);
     expect(sanitizeArticleDisplayHtml).toHaveBeenCalledWith('<p>Body</p>', 'Summary');
     expect(sanitizeArticleImageUrl).toHaveBeenCalledWith('https://example.com/image.jpg');
   });
@@ -144,25 +186,15 @@ describe('articleService', () => {
       isStarred: true,
       isArchived: true,
     }];
-    const { query } = buildListLikeQuery(rows);
-    const dynamic = vi.fn(() => query);
-    const leftJoin = vi.fn(() => ({ $dynamic: dynamic }));
-    const secondInnerJoin = vi.fn(() => ({ leftJoin }));
-    const firstInnerJoin = vi.fn(() => ({ innerJoin: secondInnerJoin }));
-    const primaryFrom = vi.fn(() => ({ innerJoin: firstInnerJoin }));
-
-    const countQuery = { where: vi.fn() as ReturnType<typeof vi.fn> & { mockReturnValue: (v: unknown) => unknown } };
-    countQuery.where.mockReturnValue(countQuery);
-    const countDynamic = vi.fn().mockResolvedValue([{ count: 5 }]);
-    const countLeftJoin = vi.fn(() => ({ $dynamic: countDynamic }));
-    const countSecondInnerJoin = vi.fn(() => ({ leftJoin: countLeftJoin }));
-    const countFirstInnerJoin = vi.fn(() => ({ innerJoin: countSecondInnerJoin }));
-    const countFrom = vi.fn(() => ({ innerJoin: countFirstInnerJoin }));
+    const mainChain = buildListMainChain(rows);
+    const countChain = buildCountChain(5);
+    const distinctOn = buildDistinctOnChain();
 
     vi.mocked(getDb).mockReturnValue({
       select: vi.fn()
-        .mockReturnValueOnce({ from: primaryFrom })
-        .mockReturnValueOnce({ from: countFrom }),
+        .mockReturnValueOnce({ from: mainChain.from })
+        .mockReturnValueOnce({ from: countChain.from }),
+      selectDistinctOn: vi.fn(() => ({ from: distinctOn.from })),
     } as never);
 
     const service = new ArticleService();
@@ -175,18 +207,17 @@ describe('articleService', () => {
 
     expect(result.total).toBe(5);
     expect(result.hasMore).toBe(true);
+    // The count query reuses the same deduplicating conditions as the page query.
+    expect(countChain.where).toHaveBeenCalledTimes(1);
   });
 
   it('applies the read=true filter branch when requested', async () => {
-    const { query } = buildListLikeQuery([]);
-    const dynamic = vi.fn(() => query);
-    const leftJoin = vi.fn(() => ({ $dynamic: dynamic }));
-    const secondInnerJoin = vi.fn(() => ({ leftJoin }));
-    const firstInnerJoin = vi.fn(() => ({ innerJoin: secondInnerJoin }));
-    const primaryFrom = vi.fn(() => ({ innerJoin: firstInnerJoin }));
+    const mainChain = buildListMainChain([]);
+    const distinctOn = buildDistinctOnChain();
 
     vi.mocked(getDb).mockReturnValue({
-      select: vi.fn().mockReturnValue({ from: primaryFrom }),
+      select: vi.fn().mockReturnValue({ from: mainChain.from }),
+      selectDistinctOn: vi.fn(() => ({ from: distinctOn.from })),
     } as never);
 
     const service = new ArticleService();
@@ -198,7 +229,7 @@ describe('articleService', () => {
       isRead: true,
     });
 
-    expect(query.where).toHaveBeenCalledTimes(1);
+    expect(mainChain.where).toHaveBeenCalledTimes(1);
   });
 
   it('returns null when getById cannot find an accessible article', async () => {
@@ -462,10 +493,12 @@ describe('articleService', () => {
 
     const subscribedFeedsWhere = vi.fn().mockReturnValue('subscribed-feeds');
     const subscribedFeedsFrom = vi.fn(() => ({ where: subscribedFeedsWhere }));
+    const distinctOn = buildDistinctOnChain();
     vi.mocked(getDb).mockReturnValue({
       select: vi.fn()
         .mockReturnValueOnce({ from: subscribedFeedsFrom })
         .mockReturnValueOnce({ from: searchFrom }),
+      selectDistinctOn: vi.fn(() => ({ from: distinctOn.from })),
     } as never);
 
     const service = new ArticleService();
@@ -524,10 +557,12 @@ describe('articleService', () => {
 
     const subscribedFeedsWhere = vi.fn().mockReturnValue('subscribed-feeds');
     const subscribedFeedsFrom = vi.fn(() => ({ where: subscribedFeedsWhere }));
+    const distinctOn = buildDistinctOnChain();
     vi.mocked(getDb).mockReturnValue({
       select: vi.fn()
         .mockReturnValueOnce({ from: subscribedFeedsFrom })
         .mockReturnValueOnce({ from: searchFrom }),
+      selectDistinctOn: vi.fn(() => ({ from: distinctOn.from })),
     } as never);
 
     const service = new ArticleService();
