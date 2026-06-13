@@ -24,7 +24,7 @@ export function useFeeds(folderId?: string) {
           uptime: `${Math.floor(s.uptime / 60)}m`,
           queue: s.queue,
           staleFeeds: staleFeeds.length,
-          feeds: s.feeds.map((f) => `${f.title} | fetched: ${f.lastFetchedAt ?? 'never'} | stale: ${f.isStale} | error: ${f.lastError ?? 'none'}`),
+          feeds: s.feeds.map((f) => `${f.title} | fetched: ${f.lastFetchedAt ?? 'never'} | stale: ${f.isStale} | interval: ${f.refreshInterval}min | error: ${f.lastError ?? 'none'}`),
         });
 
         if (staleFeeds.length > 0 && !_refreshingStale) {

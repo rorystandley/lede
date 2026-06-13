@@ -24,5 +24,5 @@ export type ViewMode = (typeof VIEW_MODES)[number];
 
 export const API_KEY_PREFIX = 'nrk_';
 
-export const DEFAULT_REFRESH_INTERVAL = 3600;
+export const DEFAULT_REFRESH_INTERVAL = 60;
 export const DEFAULT_DIGEST_SCHEDULE = '07:00';

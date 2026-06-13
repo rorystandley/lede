@@ -50,6 +50,13 @@
       "when": 1781280440836,
       "tag": "0006_clean_mandarin",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781366400000,
+      "tag": "0007_fix_refresh_interval_data",
+      "breakpoints": true
     }
   ]
 }
