@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, sql, count, inArray, type SQL } from 'drizzle-orm';
+import { eq, and, sql, count, inArray, type SQL } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { articles, userArticleStates, feeds, userFeedSubscriptions, articleTags, tags } from '../db/schema/index.js';
 import { sanitizeArticleDisplayHtml, sanitizeArticleImageUrl } from '../lib/html-sanitizer.js';
@@ -91,8 +91,14 @@ export class ArticleService {
     // they must be assembled together. The same set drives the count query below.
     const conditions = this.listConditions(db, userId, query);
 
+    // Sort newest-first across all feeds (a chronological "river"). Force NULLS
+    // LAST so articles lacking a publishedAt don't clump at the very top under
+    // Postgres' default NULLS FIRST for DESC, and break ties on id so the order
+    // is deterministic — matching the dedupe representative query above.
     const orderCol = sort === 'created_at' ? articles.createdAt : articles.publishedAt;
-    const orderFn = order === 'asc' ? asc : desc;
+    const orderExpr = order === 'asc'
+      ? sql`${orderCol} asc nulls last`
+      : sql`${orderCol} desc nulls last`;
 
     const rows = await db
       .select({
@@ -120,7 +126,7 @@ export class ArticleService {
         ),
       )
       .where(and(...conditions))
-      .orderBy(orderFn(orderCol))
+      .orderBy(orderExpr, articles.id)
       .limit(pageSize)
       .offset(offset);
 
