@@ -34,6 +34,17 @@ export function ArticleList() {
   const markRead = useMarkRead();
   const starArticle = useStarArticle();
 
+  // Refresh the infinite list only when the reader closes (selected → null), so
+  // articles read in the unread-only News Feed drop out once you go back —
+  // without yanking rows out from under the keyboard cursor while browsing.
+  const prevSelectedRef = useRef<string | null>(selectedArticleId);
+  useEffect(() => {
+    if (prevSelectedRef.current && !selectedArticleId) {
+      qc.invalidateQueries({ queryKey: ['articles-infinite'] });
+    }
+    prevSelectedRef.current = selectedArticleId;
+  }, [selectedArticleId, qc]);
+
   const markAllReadMut = useMutation({
     mutationFn: () => articlesApi.markAllRead({
       feedId: selectedFeedId ?? undefined,
