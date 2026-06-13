@@ -4,49 +4,10 @@ import { useUiStore } from '../stores/index.js';
 
 const POLL_INTERVAL = 5 * 60 * 1000;
 
-let _refreshingStale = false;
-
 export function useFeeds(folderId?: string) {
-  const qc = useQueryClient();
-
   return useQuery({
     queryKey: ['feeds', folderId],
-    queryFn: async () => {
-      console.log('[sync] polling feeds…', { folderId, time: new Date().toLocaleTimeString() });
-      const result = await feedsApi.list({ folderId });
-      const items = result.items ?? [];
-      const totalUnread = items.reduce((sum: number, f: { unreadCount: number }) => sum + (f.unreadCount ?? 0), 0);
-      console.log('[sync] feeds response', { count: items.length, totalUnread });
-
-      feedsApi.syncStatus().then((s) => {
-        const staleFeeds = s.feeds.filter((f) => f.isStale);
-        console.log('[sync] backend status', {
-          uptime: `${Math.floor(s.uptime / 60)}m`,
-          queue: s.queue,
-          staleFeeds: staleFeeds.length,
-          feeds: s.feeds.map((f) => `${f.title} | fetched: ${f.lastFetchedAt ?? 'never'} | stale: ${f.isStale} | interval: ${f.refreshInterval}min | error: ${f.lastError ?? 'none'}`),
-        });
-
-        if (staleFeeds.length > 0 && !_refreshingStale) {
-          _refreshingStale = true;
-          console.log('[sync] stale feeds detected, triggering refresh-all…');
-          feedsApi.refreshAll().then(() => {
-            console.log('[sync] refresh-all queued, will refetch in 5s');
-            setTimeout(() => {
-              qc.invalidateQueries({ queryKey: ['articles-infinite'] });
-              qc.invalidateQueries({ queryKey: ['feeds'] });
-              _refreshingStale = false;
-              console.log('[sync] queries invalidated after stale-feed refresh');
-            }, 5000);
-          }).catch((err) => {
-            console.error('[sync] refresh-all failed', err);
-            _refreshingStale = false;
-          });
-        }
-      }).catch(() => {});
-
-      return result;
-    },
+    queryFn: () => feedsApi.list({ folderId }),
     refetchInterval: POLL_INTERVAL,
   });
 }

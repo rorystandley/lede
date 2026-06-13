@@ -11,6 +11,7 @@ const {
     this.opts = opts;
     this.close = vi.fn();
     this.add = vi.fn().mockResolvedValue({ id: '1' });
+    this.upsertJobScheduler = vi.fn().mockResolvedValue({ id: '1' });
     queueInstances.push(this);
   });
   return {
@@ -77,7 +78,7 @@ describe('queues', () => {
     });
   });
 
-  it('adds initial jobs on startup and schedules recurring intervals', async () => {
+  it('registers durable repeatable schedulers and an immediate kick on startup', async () => {
     const queues = await import('./index.js');
 
     queues.getFeedRefreshQueue();
@@ -89,22 +90,31 @@ describe('queues', () => {
 
     const [feedQueue, , digestQueue] = queueInstances;
 
+    // Durable Redis-backed schedules — survive restarts, no in-process setInterval.
+    expect(feedQueue.upsertJobScheduler).toHaveBeenCalledWith(
+      'refresh-all-feeds',
+      { every: queues.FEED_REFRESH_INTERVAL },
+      { name: 'refresh-all-feeds', data: {} },
+    );
+    expect(digestQueue.upsertJobScheduler).toHaveBeenCalledWith(
+      'check-digest-schedule',
+      { every: queues.DIGEST_CHECK_INTERVAL },
+      { name: 'check-digest-schedule', data: {} },
+    );
+
+    // Immediate boot-time kick so a fresh deploy doesn't wait a full interval.
     expect(feedQueue.add).toHaveBeenCalledWith('refresh-all-feeds', {});
     expect(digestQueue.add).toHaveBeenCalledWith('check-digest-schedule', {});
 
+    // No in-process timers are scheduled any more.
     feedQueue.add.mockClear();
     digestQueue.add.mockClear();
-
-    vi.advanceTimersByTime(queues.DIGEST_CHECK_INTERVAL);
-    expect(digestQueue.add).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(queues.FEED_REFRESH_INTERVAL * 2);
     expect(feedQueue.add).not.toHaveBeenCalled();
-
-    vi.advanceTimersByTime(queues.FEED_REFRESH_INTERVAL);
-    expect(feedQueue.add).toHaveBeenCalledTimes(1);
-    expect(feedQueue.add).toHaveBeenCalledWith('refresh-all-feeds', {});
+    expect(digestQueue.add).not.toHaveBeenCalled();
   });
 
-  it('clears intervals and closes queues on closeQueues', async () => {
+  it('closes queues on closeQueues and re-instantiates fresh queues afterwards', async () => {
     const queues = await import('./index.js');
 
     queues.getFeedRefreshQueue();
@@ -120,10 +130,6 @@ describe('queues', () => {
 
     expect(feedQueue.close).toHaveBeenCalled();
     expect(contentQueue.close).toHaveBeenCalled();
-
-    feedQueue.add.mockClear();
-    vi.advanceTimersByTime(queues.FEED_REFRESH_INTERVAL * 2);
-    expect(feedQueue.add).not.toHaveBeenCalled();
 
     const freshFeedQueue = queues.getFeedRefreshQueue();
     expect(freshFeedQueue).not.toBe(feedQueue);

@@ -16,8 +16,6 @@ let _ruleEngineQueue: Queue | null = null;
 let _digestBuildQueue: Queue | null = null;
 let _contentExtractQueue: Queue | null = null;
 
-const _intervalIds: ReturnType<typeof setInterval>[] = [];
-
 export function getFeedRefreshQueue(): Queue {
   if (_feedRefreshQueue) return _feedRefreshQueue;
   _feedRefreshQueue = new Queue('feed-refresh', { connection: getRedisOpts() });
@@ -49,19 +47,28 @@ export async function setupRecurringJobs() {
   const feedQueue = getFeedRefreshQueue();
   const digestQueue = getDigestBuildQueue();
 
+  // Durable, Redis-backed schedules. upsertJobScheduler persists the repeat in
+  // Redis so it survives process restarts and does not depend on a long-lived
+  // setInterval in this process. It is idempotent — re-running on every boot
+  // refreshes the existing schedule rather than creating duplicates.
+  await feedQueue.upsertJobScheduler(
+    'refresh-all-feeds',
+    { every: FEED_REFRESH_INTERVAL },
+    { name: 'refresh-all-feeds', data: {} },
+  );
+  await digestQueue.upsertJobScheduler(
+    'check-digest-schedule',
+    { every: DIGEST_CHECK_INTERVAL },
+    { name: 'check-digest-schedule', data: {} },
+  );
+
+  // Kick off an immediate run on boot so a freshly (re)started deployment does
+  // not wait a full interval before its first fetch / digest check.
   await feedQueue.add('refresh-all-feeds', {});
   await digestQueue.add('check-digest-schedule', {});
-
-  _intervalIds.push(
-    setInterval(() => { feedQueue.add('refresh-all-feeds', {}).catch(() => {}); }, FEED_REFRESH_INTERVAL),
-    setInterval(() => { digestQueue.add('check-digest-schedule', {}).catch(() => {}); }, DIGEST_CHECK_INTERVAL),
-  );
 }
 
 export async function closeQueues() {
-  for (const id of _intervalIds) clearInterval(id);
-  _intervalIds.length = 0;
-
   for (const q of [_feedRefreshQueue, _ruleEngineQueue, _digestBuildQueue, _contentExtractQueue]) {
     if (q) await q.close();
   }
