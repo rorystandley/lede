@@ -16,17 +16,34 @@ export function ArticleList() {
   const qc = useQueryClient();
   const { selectedFeedId, selectedFolderId, selectedTagId, selectedArticleId, selectArticle, focusedArticleIndex, viewMode, searchQuery, isSearching, showStarred } = useUiStore();
 
+  // The aggregate "News Feed" (no specific feed/folder/tag/starred filter) shows
+  // only unread articles, so reading one and going back drops it from the list.
+  // Opening a specific feed keeps showing read articles, so they remain available.
+  const isNewsFeed = !selectedFeedId && !selectedFolderId && !selectedTagId && !showStarred;
+
   const params = {
     ...(selectedFeedId ? { feedId: selectedFeedId } : {}),
     ...(selectedFolderId ? { folderId: selectedFolderId } : {}),
     ...(selectedTagId ? { tagId: selectedTagId } : {}),
     ...(showStarred ? { isStarred: true } : {}),
+    ...(isNewsFeed ? { isRead: false } : {}),
   };
 
   const infinite = useArticlesInfinite(params);
   const { data: searchData, isLoading: searchLoading } = useSearch(searchQuery, isSearching);
   const markRead = useMarkRead();
   const starArticle = useStarArticle();
+
+  // Refresh the infinite list only when the reader closes (selected → null), so
+  // articles read in the unread-only News Feed drop out once you go back —
+  // without yanking rows out from under the keyboard cursor while browsing.
+  const prevSelectedRef = useRef<string | null>(selectedArticleId);
+  useEffect(() => {
+    if (prevSelectedRef.current && !selectedArticleId) {
+      qc.invalidateQueries({ queryKey: ['articles-infinite'] });
+    }
+    prevSelectedRef.current = selectedArticleId;
+  }, [selectedArticleId, qc]);
 
   const markAllReadMut = useMutation({
     mutationFn: () => articlesApi.markAllRead({

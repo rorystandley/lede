@@ -394,6 +394,22 @@ describe('ArticleList', () => {
     expect(markReadMutate).toHaveBeenCalledWith(['article-1', 'article-2']);
   });
 
+  it('refreshes the infinite list when the reader closes, but not when it opens', () => {
+    mocks.useUiStoreMock.mockReturnValue(uiState({ selectedArticleId: null }));
+    const { client, rerender } = renderWithClient(<ArticleList />);
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+
+    // Opening an article (null -> selected) must not refetch and yank rows.
+    mocks.useUiStoreMock.mockReturnValue(uiState({ selectedArticleId: 'article-1' }));
+    rerender(<ArticleList />);
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ['articles-infinite'] });
+
+    // Going back (selected -> null) refetches so read articles drop out.
+    mocks.useUiStoreMock.mockReturnValue(uiState({ selectedArticleId: null }));
+    rerender(<ArticleList />);
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['articles-infinite'] });
+  });
+
   it('renders the load-more spinner while fetching additional pages', () => {
     mocks.useUiStoreMock.mockReturnValue(uiState({ viewMode: 'card' }));
     mocks.useArticlesInfiniteMock.mockReturnValue(
