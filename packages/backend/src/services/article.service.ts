@@ -248,31 +248,34 @@ export class ArticleService {
       .from(userFeedSubscriptions)
       .where(eq(userFeedSubscriptions.userId, userId));
 
-    let articleQuery = db
-      .select({ id: articles.id })
-      .from(articles)
-      .leftJoin(userArticleStates, and(
-        eq(userArticleStates.articleId, articles.id),
-        eq(userArticleStates.userId, userId),
-      ))
-      .where(and(
-        inArray(articles.feedId, subscribedFeeds),
-        sql`(${userArticleStates.isRead} IS NULL OR ${userArticleStates.isRead} = false)`,
-      ))
-      .$dynamic();
+    // Collect every condition and apply it in a single .where(). Drizzle's
+    // .where() replaces the existing clause rather than ANDing onto it, so
+    // calling it conditionally would drop earlier conditions.
+    const conditions: SQL[] = [
+      inArray(articles.feedId, subscribedFeeds),
+      sql`(${userArticleStates.isRead} IS NULL OR ${userArticleStates.isRead} = false)`,
+    ];
 
     if (scope.feedId) {
-      articleQuery = articleQuery.where(eq(articles.feedId, scope.feedId));
+      conditions.push(eq(articles.feedId, scope.feedId));
     }
     if (scope.folderId) {
       const folderFeeds = db
         .select({ feedId: userFeedSubscriptions.feedId })
         .from(userFeedSubscriptions)
         .where(and(eq(userFeedSubscriptions.userId, userId), eq(userFeedSubscriptions.folderId, scope.folderId)));
-      articleQuery = articleQuery.where(inArray(articles.feedId, folderFeeds));
+      conditions.push(inArray(articles.feedId, folderFeeds));
     }
 
-    const rows = await articleQuery.limit(10_000);
+    const rows = await db
+      .select({ id: articles.id })
+      .from(articles)
+      .leftJoin(userArticleStates, and(
+        eq(userArticleStates.articleId, articles.id),
+        eq(userArticleStates.userId, userId),
+      ))
+      .where(and(...conditions))
+      .limit(10_000);
     if (rows.length === 0) return 0;
 
     await this.markRead(userId, rows.map((r) => r.id));

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { eq, inArray } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
+import { articles } from '../db/schema/index.js';
 import {
   sanitizeArticleDisplayHtml,
   sanitizeArticleImageUrl,
@@ -10,6 +12,17 @@ import { ArticleService } from './article.service.js';
 vi.mock('../db/client.js', () => ({
   getDb: vi.fn(),
 }));
+
+// Wrap the query-building operators in spies (still calling through) so tests
+// can assert which conditions were applied to a query.
+vi.mock('drizzle-orm', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('drizzle-orm')>();
+  return {
+    ...actual,
+    eq: vi.fn(actual.eq),
+    inArray: vi.fn(actual.inArray),
+  };
+});
 
 vi.mock('../lib/html-sanitizer.js', () => ({
   sanitizeArticleDisplayHtml: vi.fn((content: string | null) => content ? `safe:${content}` : content),
@@ -363,12 +376,9 @@ describe('articleService', () => {
   });
 
   it('marks all unread articles in scope and returns the affected count', async () => {
-    const query = {
-      where: vi.fn(() => query),
-      limit: vi.fn().mockResolvedValue([{ id: 'article-1' }, { id: 'article-2' }]),
-    };
-    const dynamic = vi.fn(() => query);
-    const leftJoin = vi.fn(() => ({ where: vi.fn(() => ({ $dynamic: dynamic })) }));
+    const limit = vi.fn().mockResolvedValue([{ id: 'article-1' }, { id: 'article-2' }]);
+    const articleWhere = vi.fn(() => ({ limit }));
+    const leftJoin = vi.fn(() => ({ where: articleWhere }));
     const articleFrom = vi.fn(() => ({ leftJoin }));
     const folderFeedsWhere = vi.fn().mockReturnValue('folder-feeds');
     const folderFeedsFrom = vi.fn(() => ({ where: folderFeedsWhere }));
@@ -377,8 +387,8 @@ describe('articleService', () => {
     vi.mocked(getDb).mockReturnValue({
       select: vi.fn()
         .mockReturnValueOnce({ from: subscribedFeedsFrom })
-        .mockReturnValueOnce({ from: articleFrom })
-        .mockReturnValueOnce({ from: folderFeedsFrom }),
+        .mockReturnValueOnce({ from: folderFeedsFrom })
+        .mockReturnValueOnce({ from: articleFrom }),
     } as never);
     vi.mocked(accessControlService.assertFeedSubscribed).mockResolvedValue(undefined);
 
@@ -391,17 +401,18 @@ describe('articleService', () => {
     })).resolves.toBe(2);
 
     expect(accessControlService.assertFeedSubscribed).toHaveBeenCalledWith('user-1', 'feed-1');
-    expect(query.where).toHaveBeenCalledTimes(2);
+    // The unread filter, feedId scope, and folderId scope must be combined into
+    // a single .where() — calling .where() more than once would replace, not AND.
+    expect(articleWhere).toHaveBeenCalledTimes(1);
+    expect(eq).toHaveBeenCalledWith(articles.feedId, 'feed-1');
+    expect(inArray).toHaveBeenCalledWith(articles.feedId, 'folder-feeds');
     expect(markReadSpy).toHaveBeenCalledWith('user-1', ['article-1', 'article-2']);
   });
 
   it('returns zero from markAllRead when there are no unread matches', async () => {
-    const query = {
-      where: vi.fn(() => query),
-      limit: vi.fn().mockResolvedValue([]),
-    };
-    const dynamic = vi.fn(() => query);
-    const leftJoin = vi.fn(() => ({ where: vi.fn(() => ({ $dynamic: dynamic })) }));
+    const limit = vi.fn().mockResolvedValue([]);
+    const articleWhere = vi.fn(() => ({ limit }));
+    const leftJoin = vi.fn(() => ({ where: articleWhere }));
     const articleFrom = vi.fn(() => ({ leftJoin }));
     const subscribedFeedsWhere = vi.fn().mockReturnValue('subscribed-feeds');
     const subscribedFeedsFrom = vi.fn(() => ({ where: subscribedFeedsWhere }));
