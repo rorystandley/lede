@@ -47,7 +47,7 @@ export function AddSourcesPage({ onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50">
-      <div className="bg-surface rounded-t-xl md:rounded-lg border border-border shadow-xl w-full md:max-w-3xl md:mx-4 max-h-[92vh] md:max-h-[85vh] flex flex-col">
+      <div className="bg-surface rounded-t-xl md:rounded-lg border border-border shadow-xl w-full md:max-w-3xl md:mx-4 h-[80dvh] md:h-[80vh] md:max-h-[640px] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
           <h2 className="text-lg font-semibold text-text-primary">Add Sources</h2>
@@ -82,11 +82,12 @@ export function AddSourcesPage({ onClose }: Props) {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 flex flex-col min-h-0">
           {activeTab === 'browse' ? (
-            <div className="p-4">
-              {/* Search */}
-              <div className="mb-4">
+            <>
+              {/* Search + filters - pinned, do not scroll with results */}
+              <div className="shrink-0 px-4 pt-4 pb-3 border-b border-border space-y-3">
+                {/* Search */}
                 <input
                   type="text"
                   value={searchQuery}
@@ -94,56 +95,58 @@ export function AddSourcesPage({ onClose }: Props) {
                   placeholder="Search sources..."
                   className="w-full px-3 py-2 text-sm bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500"
                 />
-              </div>
 
-              {/* Category pills */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                <button
-                  onClick={() => setSelectedCategory(null)}
-                  className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
-                    !selectedCategory ? 'bg-primary-600 text-white' : 'bg-surface-tertiary text-text-secondary hover:bg-border'
-                  }`}
-                >
-                  All
-                </button>
-                {categories.map((cat) => (
+                {/* Category pills */}
+                <div className="flex flex-wrap gap-2">
                   <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat === selectedCategory ? null : cat)}
+                    onClick={() => setSelectedCategory(null)}
                     className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
-                      selectedCategory === cat ? 'bg-primary-600 text-white' : 'bg-surface-tertiary text-text-secondary hover:bg-border'
+                      !selectedCategory ? 'bg-primary-600 text-white' : 'bg-surface-tertiary text-text-secondary hover:bg-border'
                     }`}
                   >
-                    {cat}
+                    All
                   </button>
-                ))}
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat === selectedCategory ? null : cat)}
+                      className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
+                        selectedCategory === cat ? 'bg-primary-600 text-white' : 'bg-surface-tertiary text-text-secondary hover:bg-border'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Feed grid */}
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full" />
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {feeds.map((feed) => (
-                    <FeedDirectoryCard
-                      key={feed.url}
-                      feed={feed}
-                      subscribing={subscribeMut.isPending && subscribeMut.variables?.url === feed.url}
-                      onSubscribe={() => subscribeMut.mutate({ url: feed.url, folderId: selectedFolder ?? undefined })}
-                    />
-                  ))}
-                  {feeds.length === 0 && (
-                    <p className="col-span-full text-sm text-text-tertiary text-center py-6">
-                      {searchQuery ? 'No sources match your search' : 'No sources in this category'}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+              {/* Feed grid - the only part that scrolls */}
+              <div className="flex-1 overflow-y-auto min-h-0 p-4">
+                {isLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {feeds.map((feed) => (
+                      <FeedDirectoryCard
+                        key={feed.url}
+                        feed={feed}
+                        subscribing={subscribeMut.isPending && subscribeMut.variables?.url === feed.url}
+                        onSubscribe={() => subscribeMut.mutate({ url: feed.url, folderId: selectedFolder ?? undefined })}
+                      />
+                    ))}
+                    {feeds.length === 0 && (
+                      <p className="col-span-full text-sm text-text-tertiary text-center py-6">
+                        {searchQuery ? 'No sources match your search' : 'No sources in this category'}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
-            <div className="p-4">
+            <div className="flex-1 overflow-y-auto min-h-0 p-4">
               <p className="text-sm text-text-secondary mb-4">
                 Enter any RSS, Atom, or JSON feed URL. We'll detect and validate it before subscribing.
               </p>
