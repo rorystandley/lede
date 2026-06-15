@@ -22,13 +22,13 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
       >
         <div className="flex flex-col md:flex-row">
           {article.imageUrl ? (
-            <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full md:w-1/2 h-48 md:h-64 object-cover" />
+            <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full md:w-2/5 lg:w-1/3 xl:w-1/4 h-48 md:h-64 object-cover" />
           ) : (
-            <div className="w-full md:w-1/2 h-48 md:h-64">
+            <div className="w-full md:w-2/5 lg:w-1/3 xl:w-1/4 h-48 md:h-64">
               <ArticlePlaceholder size="card" seed={article.id} />
             </div>
           )}
-          <div className="p-6 flex flex-col justify-center md:w-1/2">
+          <div className="p-6 flex flex-col justify-center md:w-3/5 lg:w-2/3 xl:w-3/4">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-medium text-primary-600 dark:text-primary-400">{article.feedTitle}</span>
               {timeAgo && <span className="text-xs text-text-tertiary">{timeAgo}</span>}
@@ -47,7 +47,7 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
               </button>
             </div>
             {article.summary && (
-              <p className="text-sm text-text-secondary mt-3 line-clamp-3">{article.summary}</p>
+              <p className="text-sm text-text-secondary mt-3 line-clamp-3 lg:line-clamp-4">{article.summary}</p>
             )}
           </div>
         </div>
