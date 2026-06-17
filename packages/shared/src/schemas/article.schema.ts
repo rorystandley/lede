@@ -1,12 +1,23 @@
 import { z } from 'zod';
 
+/**
+ * Boolean query parameter. Values arrive as strings, so `z.coerce.boolean()`
+ * cannot be used: it runs `Boolean(value)`, and `Boolean("false") === true`
+ * (any non-empty string is truthy), which silently turns `?isRead=false` into
+ * `true`. Parse the literal strings instead (also accepting a real boolean for
+ * programmatic callers).
+ */
+const queryBoolean = z
+  .union([z.boolean(), z.enum(['true', 'false'])])
+  .transform((v) => v === true || v === 'true');
+
 export const listArticlesQuerySchema = z.object({
   feedId: z.string().uuid().optional(),
   folderId: z.string().uuid().optional(),
   tagId: z.string().uuid().optional(),
-  isRead: z.coerce.boolean().optional(),
-  isStarred: z.coerce.boolean().optional(),
-  isArchived: z.coerce.boolean().optional(),
+  isRead: queryBoolean.optional(),
+  isStarred: queryBoolean.optional(),
+  isArchived: queryBoolean.optional(),
   dateFrom: z.string().datetime().optional(),
   dateTo: z.string().datetime().optional(),
   page: z.coerce.number().int().min(1).default(1),
