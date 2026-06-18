@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -183,7 +183,6 @@ describe('ArticleList', () => {
         start: index * 96,
       })),
     );
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.useRealTimers();
   });
 
@@ -257,6 +256,7 @@ describe('ArticleList', () => {
     expect(starMutate).toHaveBeenCalledWith({ articleId: 'article-1', isStarred: true });
 
     await user.click(screen.getByTitle('Mark all read'));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Mark all read' }));
     await waitFor(() => {
       expect(mocks.markAllReadApiMock).toHaveBeenCalledWith({ feedId: 'feed-1', folderId: undefined });
     });
@@ -370,6 +370,7 @@ describe('ArticleList', () => {
     expect(screen.getByText('1 article')).toBeInTheDocument();
 
     await user.click(screen.getByTitle('Mark all read'));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Mark all read' }));
     await waitFor(() => {
       expect(mocks.markAllReadApiMock).toHaveBeenCalledWith({
         feedId: undefined,
