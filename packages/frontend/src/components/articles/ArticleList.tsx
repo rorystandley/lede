@@ -117,14 +117,22 @@ export function ArticleList() {
           </svg>
         </button>
         <button
-          onClick={() => { if (articles.length > 0 && confirm(`Mark all visible articles as read?`)) markAllReadMut.mutate(); }}
+          onClick={() => {
+            if (
+              totalCount > 0 &&
+              confirm(`Mark all ${totalCount} ${totalCount === 1 ? 'article' : 'articles'} as read?`)
+            ) {
+              markAllReadMut.mutate();
+            }
+          }}
           disabled={markAllReadMut.isPending || articles.length === 0}
-          className="p-1.5 rounded text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50"
+          className="flex items-center gap-1.5 px-2 py-1 rounded text-xs border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50"
           title="Mark all read"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </svg>
+          <span>Mark all read</span>
         </button>
       </div>
     </div>
