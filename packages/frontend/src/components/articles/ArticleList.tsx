@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useArticlesInfinite } from '../../hooks/use-articles-infinite.js';
@@ -9,6 +9,7 @@ import { useKeyboardNav } from '../../hooks/use-keyboard-nav.js';
 import { ArticleListItem } from './ArticleListItem.js';
 import { ArticleCard } from './ArticleCard.js';
 import { ArticleMagazineItem } from './ArticleMagazineItem.js';
+import { ConfirmDialog } from '../shared/ConfirmDialog.js';
 import { articlesApi, feedsApi } from '../../api/index.js';
 import type { ArticleWithState } from '@lede/shared';
 
@@ -45,6 +46,8 @@ export function ArticleList() {
     prevSelectedRef.current = selectedArticleId;
   }, [selectedArticleId, qc]);
 
+  const [confirmMarkAllOpen, setConfirmMarkAllOpen] = useState(false);
+
   const markAllReadMut = useMutation({
     mutationFn: () => articlesApi.markAllRead({
       feedId: selectedFeedId ?? undefined,
@@ -55,6 +58,7 @@ export function ArticleList() {
       qc.invalidateQueries({ queryKey: ['feeds'] });
       qc.invalidateQueries({ queryKey: ['folders'] });
     },
+    onSettled: () => setConfirmMarkAllOpen(false),
   });
 
   const addToast = useUiStore((s) => s.addToast);
@@ -101,6 +105,7 @@ export function ArticleList() {
   const totalCount = isSearching ? articles.length : (infinite.data?.pages[0]?.total ?? articles.length);
 
   const toolbar = (
+    <>
     <div className="flex items-center justify-between px-4 h-10 border-b border-border bg-surface-secondary shrink-0">
       <div className="text-xs text-text-tertiary">
         {totalCount} {totalCount === 1 ? 'article' : 'articles'}
@@ -117,14 +122,7 @@ export function ArticleList() {
           </svg>
         </button>
         <button
-          onClick={() => {
-            if (
-              totalCount > 0 &&
-              confirm(`Mark all ${totalCount} ${totalCount === 1 ? 'article' : 'articles'} as read?`)
-            ) {
-              markAllReadMut.mutate();
-            }
-          }}
+          onClick={() => { if (totalCount > 0) setConfirmMarkAllOpen(true); }}
           disabled={markAllReadMut.isPending || articles.length === 0}
           className="flex items-center gap-1.5 px-2 py-1 rounded text-xs border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50"
           title="Mark all read"
@@ -136,6 +134,16 @@ export function ArticleList() {
         </button>
       </div>
     </div>
+    <ConfirmDialog
+      open={confirmMarkAllOpen}
+      title="Mark all as read"
+      message={`Mark all ${totalCount} ${totalCount === 1 ? 'article' : 'articles'} as read?`}
+      confirmLabel="Mark all read"
+      isPending={markAllReadMut.isPending}
+      onConfirm={() => markAllReadMut.mutate()}
+      onCancel={() => setConfirmMarkAllOpen(false)}
+    />
+    </>
   );
 
   if (loading) {
