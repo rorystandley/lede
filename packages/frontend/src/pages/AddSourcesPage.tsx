@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { discoverApi, type DirectoryFeed, type DetectResult } from '../api/discover.api.js';
+import { discoverApi, type DirectoryFeed, type DiscoveredFeed, type DiscoverResult } from '../api/discover.api.js';
 import { feedsApi } from '../api/index.js';
 import { useFolders } from '../hooks/use-folders.js';
 import { FolderPicker } from '../components/shared/FolderPicker.js';
@@ -14,7 +14,7 @@ export function AddSourcesPage({ onClose }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [customUrl, setCustomUrl] = useState('');
-  const [detected, setDetected] = useState<DetectResult | null>(null);
+  const [discovered, setDiscovered] = useState<DiscoverResult | null>(null);
   const [activeTab, setActiveTab] = useState<'browse' | 'url'>('browse');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const { data: foldersData } = useFolders();
@@ -36,10 +36,10 @@ export function AddSourcesPage({ onClose }: Props) {
     },
   });
 
-  const detectMut = useMutation({
-    mutationFn: (url: string) => discoverApi.detect(url),
-    onSuccess: (data) => setDetected(data),
-    onError: () => setDetected({ valid: false, url: customUrl, error: 'Could not reach or parse feed' }),
+  const discoverMut = useMutation({
+    mutationFn: (url: string) => discoverApi.discover(url),
+    onSuccess: (data) => setDiscovered(data),
+    onError: () => setDiscovered({ query: customUrl.trim(), feeds: [] }),
   });
 
   const categories = directory?.categories ?? [];
@@ -148,73 +148,63 @@ export function AddSourcesPage({ onClose }: Props) {
           ) : (
             <div className="flex-1 overflow-y-auto min-h-0 p-4">
               <p className="text-sm text-text-secondary mb-4">
-                Enter any RSS, Atom, or JSON feed URL. We'll detect and validate it before subscribing.
+                Enter a website or feed URL — we'll find its RSS, Atom, or JSON feeds. You don't need the exact feed address.
               </p>
 
               <div className="flex gap-2 mb-4">
                 <input
-                  type="url"
+                  type="text"
                   value={customUrl}
-                  onChange={(e) => { setCustomUrl(e.target.value); setDetected(null); }}
-                  placeholder="https://example.com/feed.xml"
+                  onChange={(e) => { setCustomUrl(e.target.value); setDiscovered(null); }}
+                  placeholder="theregister.com or https://example.com/feed.xml"
                   className="flex-1 px-3 py-2 text-sm bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && customUrl.trim()) detectMut.mutate(customUrl.trim());
+                    if (e.key === 'Enter' && customUrl.trim()) discoverMut.mutate(customUrl.trim());
                   }}
                 />
                 <button
-                  onClick={() => customUrl.trim() && detectMut.mutate(customUrl.trim())}
-                  disabled={detectMut.isPending || !customUrl.trim()}
+                  onClick={() => customUrl.trim() && discoverMut.mutate(customUrl.trim())}
+                  disabled={discoverMut.isPending || !customUrl.trim()}
                   className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 whitespace-nowrap"
                 >
-                  {detectMut.isPending ? 'Checking...' : 'Detect Feed'}
+                  {discoverMut.isPending ? 'Searching...' : 'Find feeds'}
                 </button>
               </div>
 
-              {/* Detection result */}
-              {detected && (
-                <div className={`rounded-lg border p-4 ${detected.valid ? 'border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-900/20' : 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/20'}`}>
-                  {detected.valid ? (
-                    <>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-text-primary">{detected.title ?? 'Untitled Feed'}</h3>
-                          {detected.description && (
-                            <p className="text-xs text-text-secondary mt-1">{detected.description}</p>
-                          )}
-                          <p className="text-xs text-text-tertiary mt-1">{detected.itemCount} articles found</p>
-                        </div>
-                        <button
-                          onClick={() => subscribeMut.mutate({ url: detected.url, folderId: selectedFolder ?? undefined })}
-                          disabled={subscribeMut.isPending}
-                          className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 shrink-0 ml-3"
-                        >
-                          {subscribeMut.isPending ? 'Adding...' : 'Subscribe'}
-                        </button>
-                      </div>
-                      {subscribeMut.isSuccess && (
-                        <p className="text-xs text-green-600 mt-2">Subscribed successfully!</p>
-                      )}
-                    </>
-                  ) : (
-                    <div>
-                      <p className="text-sm text-red-600 dark:text-red-400 font-medium">Feed not found</p>
-                      <p className="text-xs text-text-secondary mt-1">{detected.error}</p>
-                      <p className="text-xs text-text-tertiary mt-2">
-                        Tips: Make sure the URL points directly to an RSS/Atom/JSON feed, not a regular webpage.
-                        Many sites have feeds at <code className="bg-surface-tertiary px-1 rounded">/feed</code>, <code className="bg-surface-tertiary px-1 rounded">/rss</code>, or <code className="bg-surface-tertiary px-1 rounded">/atom.xml</code>.
-                      </p>
-                    </div>
-                  )}
-                </div>
+              {/* Discovery results */}
+              {discovered && (
+                discovered.feeds.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-text-tertiary">
+                      Found {discovered.feeds.length} feed{discovered.feeds.length === 1 ? '' : 's'} for "{discovered.query}"
+                    </p>
+                    {discovered.feeds.map((feed) => (
+                      <DiscoveredFeedCard
+                        key={feed.url}
+                        feed={feed}
+                        subscribing={subscribeMut.isPending && subscribeMut.variables?.url === feed.url}
+                        subscribed={subscribeMut.isSuccess && subscribeMut.variables?.url === feed.url}
+                        onSubscribe={() => subscribeMut.mutate({ url: feed.url, folderId: selectedFolder ?? undefined })}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4">
+                    <p className="text-sm text-red-600 dark:text-red-400 font-medium">No feeds found</p>
+                    <p className="text-xs text-text-secondary mt-1">
+                      We couldn't find a feed for <code className="bg-surface-tertiary px-1 rounded">{discovered.query}</code>.
+                      Try the site's exact feed URL — many sites publish one at <code className="bg-surface-tertiary px-1 rounded">/feed</code>, <code className="bg-surface-tertiary px-1 rounded">/rss</code>, or <code className="bg-surface-tertiary px-1 rounded">/atom.xml</code>.
+                    </p>
+                  </div>
+                )
               )}
 
               {/* Common patterns help */}
               <div className="mt-6">
-                <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider mb-2">Common feed URL patterns</h4>
+                <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider mb-2">Examples you can paste</h4>
                 <div className="space-y-1.5 text-xs text-text-secondary">
+                  <p><code className="bg-surface-tertiary px-1.5 py-0.5 rounded font-mono">theregister.com</code> — just the site name</p>
                   <p><code className="bg-surface-tertiary px-1.5 py-0.5 rounded font-mono">https://example.com/feed</code> — WordPress sites</p>
-                  <p><code className="bg-surface-tertiary px-1.5 py-0.5 rounded font-mono">https://example.com/rss</code> — Many blogs</p>
                   <p><code className="bg-surface-tertiary px-1.5 py-0.5 rounded font-mono">https://example.com/atom.xml</code> — Atom feeds</p>
                   <p><code className="bg-surface-tertiary px-1.5 py-0.5 rounded font-mono">https://www.youtube.com/feeds/videos.xml?channel_id=...</code> — YouTube channels</p>
                   <p><code className="bg-surface-tertiary px-1.5 py-0.5 rounded font-mono">https://www.reddit.com/r/subreddit/.rss</code> — Reddit subreddits</p>
@@ -255,6 +245,38 @@ function FeedDirectoryCard({ feed, subscribing, onSubscribe }: {
         }`}
       >
         {feed.isSubscribed ? 'Added' : subscribing ? '...' : 'Add'}
+      </button>
+    </div>
+  );
+}
+
+function DiscoveredFeedCard({ feed, subscribing, subscribed, onSubscribe }: {
+  feed: DiscoveredFeed;
+  subscribing: boolean;
+  subscribed: boolean;
+  onSubscribe: () => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3 p-3 rounded-lg border border-border">
+      <div className="min-w-0">
+        <h3 className="text-sm font-medium text-text-primary truncate">{feed.title ?? 'Untitled Feed'}</h3>
+        {feed.description && (
+          <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">{feed.description}</p>
+        )}
+        <p className="text-xs text-text-tertiary mt-1 truncate">
+          {feed.itemCount} article{feed.itemCount === 1 ? '' : 's'} · {feed.url}
+        </p>
+      </div>
+      <button
+        onClick={onSubscribe}
+        disabled={subscribing || subscribed}
+        className={`px-3 py-1.5 text-xs font-medium rounded shrink-0 ${
+          subscribed
+            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 cursor-default'
+            : 'bg-green-600 text-white hover:bg-green-700 disabled:opacity-50'
+        }`}
+      >
+        {subscribed ? 'Added' : subscribing ? 'Adding...' : 'Subscribe'}
       </button>
     </div>
   );

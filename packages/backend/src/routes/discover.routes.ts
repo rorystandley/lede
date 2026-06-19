@@ -4,7 +4,7 @@ import { eq, and } from 'drizzle-orm';
 import { FEED_DIRECTORY, FEED_CATEGORIES } from '../lib/feed-directory.js';
 import { getDb } from '../db/client.js';
 import { userFeedSubscriptions, feeds } from '../db/schema/index.js';
-import { parseFeed } from '../lib/feed-parser.js';
+import { discoverFeeds } from '../lib/feed-discovery.js';
 
 export default async function discoverRoutes(app: FastifyInstance) {
   // Public: get the directory (no auth needed for browsing)
@@ -75,30 +75,13 @@ export default async function discoverRoutes(app: FastifyInstance) {
     return { categories: FEED_CATEGORIES, feeds: feedsWithStatus };
   });
 
-  // Detect/validate a feed URL
-  app.post('/detect', {
-    schema: { tags: ['Discover'], summary: 'Detect and validate a feed URL' },
+  // Discover feeds from a site or feed URL (e.g. "theregister.com")
+  app.post('/feeds', {
+    schema: { tags: ['Discover'], summary: 'Discover feeds from a site or feed URL' },
     preHandler: [app.authenticate],
-  }, async (req, reply) => {
-    const body = z.object({ url: z.string().url() }).parse(req.body);
-
-    try {
-      const parsed = await parseFeed(body.url);
-      return {
-        valid: true,
-        title: parsed.title,
-        description: parsed.description,
-        siteUrl: parsed.siteUrl,
-        feedType: parsed.feedType,
-        itemCount: parsed.items.length,
-        url: body.url,
-      };
-    } catch (err) {
-      return reply.status(400).send({
-        valid: false,
-        error: err instanceof Error ? err.message : 'Could not parse feed',
-        url: body.url,
-      });
-    }
+  }, async (req) => {
+    const body = z.object({ url: z.string().trim().min(1).max(2000) }).parse(req.body);
+    const discovered = await discoverFeeds(body.url);
+    return { query: body.url, feeds: discovered };
   });
 }

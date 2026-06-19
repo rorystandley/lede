@@ -185,7 +185,7 @@ describe('api modules', () => {
 
     discoverApi.directory();
     discoverApi.directory({ category: 'tech', q: 'ai' });
-    discoverApi.detect('https://example.com');
+    discoverApi.discover('https://example.com');
     feedsApi.list();
     feedsApi.list({ folderId: 'folder-1', page: 3, pageSize: 50 });
     feedsApi.subscribe('https://example.com/rss', 'folder-1', 'Example');
@@ -196,7 +196,7 @@ describe('api modules', () => {
 
     expect(api.get).toHaveBeenCalledWith('/discover/directory/subscribed');
     expect(api.get).toHaveBeenCalledWith('/discover/directory/subscribed?category=tech&q=ai');
-    expect(api.post).toHaveBeenCalledWith('/discover/detect', { url: 'https://example.com' });
+    expect(api.post).toHaveBeenCalledWith('/discover/feeds', { url: 'https://example.com' });
     expect(api.get).toHaveBeenCalledWith('/feeds');
     expect(api.get).toHaveBeenCalledWith('/feeds?folderId=folder-1&page=3&pageSize=50');
     expect(api.post).toHaveBeenCalledWith('/feeds', {

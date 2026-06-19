@@ -14,14 +14,18 @@ interface DirectoryResponse {
   feeds: DirectoryFeed[];
 }
 
-interface DetectResult {
-  valid: boolean;
-  title?: string;
-  description?: string;
-  siteUrl?: string;
-  itemCount?: number;
+interface DiscoveredFeed {
   url: string;
-  error?: string;
+  title: string | null;
+  description: string | null;
+  siteUrl: string | null;
+  feedType: string;
+  itemCount: number;
+}
+
+interface DiscoverResult {
+  query: string;
+  feeds: DiscoveredFeed[];
 }
 
 export const discoverApi = {
@@ -33,8 +37,10 @@ export const discoverApi = {
     return api.get<DirectoryResponse>(`/discover/directory/subscribed${qs ? `?${qs}` : ''}`);
   },
 
-  detect: (url: string) =>
-    api.post<DetectResult>('/discover/detect', { url }),
+  // Accepts a site URL ("theregister.com") or a direct feed URL and returns
+  // every feed we can find for it.
+  discover: (url: string) =>
+    api.post<DiscoverResult>('/discover/feeds', { url }),
 };
 
-export type { DirectoryFeed, DirectoryResponse, DetectResult };
+export type { DirectoryFeed, DirectoryResponse, DiscoveredFeed, DiscoverResult };

@@ -10,7 +10,7 @@ const {
 } = vi.hoisted(() => ({
   discoverApi: {
     directory: vi.fn(),
-    detect: vi.fn(),
+    discover: vi.fn(),
   },
   feedsApi: {
     subscribe: vi.fn(),
@@ -61,11 +61,18 @@ describe('AddSourcesPage', () => {
       categories: [],
       feeds: [],
     });
-    discoverApi.detect.mockResolvedValue({
-      valid: true,
-      url: 'https://example.com/feed.xml',
-      title: 'Example Feed',
-      itemCount: 10,
+    discoverApi.discover.mockResolvedValue({
+      query: 'https://example.com/feed.xml',
+      feeds: [
+        {
+          url: 'https://example.com/feed.xml',
+          title: 'Example Feed',
+          description: null,
+          siteUrl: 'https://example.com',
+          feedType: 'rss',
+          itemCount: 10,
+        },
+      ],
     });
     feedsApi.subscribe.mockResolvedValue({ id: 'feed-1' });
   });
@@ -146,7 +153,7 @@ describe('AddSourcesPage', () => {
     expect(discoverApi.directory).toHaveBeenCalledWith(expect.objectContaining({ category: 'Culture' }));
   });
 
-  it('switches tabs, detects a valid feed from Enter, and shows subscribe success', async () => {
+  it('switches tabs, discovers a valid feed from Enter, and shows subscribe success', async () => {
     useFoldersMock.mockReturnValue({
       data: [
         {
@@ -160,18 +167,24 @@ describe('AddSourcesPage', () => {
       ],
     });
 
-    discoverApi.detect.mockResolvedValue({
-      valid: true,
-      url: 'https://example.com/feed.xml',
-      title: 'Example Feed',
-      description: 'A good feed',
-      itemCount: 42,
+    discoverApi.discover.mockResolvedValue({
+      query: 'https://example.com/feed.xml',
+      feeds: [
+        {
+          url: 'https://example.com/feed.xml',
+          title: 'Example Feed',
+          description: 'A good feed',
+          siteUrl: 'https://example.com',
+          feedType: 'rss',
+          itemCount: 42,
+        },
+      ],
     });
 
     renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: 'Add by URL' }));
-    expect(screen.getByText(/Enter any RSS, Atom, or JSON feed URL/i)).toBeInTheDocument();
+    expect(screen.getByText(/Enter a website or feed URL/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Browse Popular Sources' }));
     expect(screen.getByPlaceholderText('Search sources...')).toBeInTheDocument();
@@ -180,14 +193,14 @@ describe('AddSourcesPage', () => {
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'folder-2' } });
 
-    const urlInput = screen.getByPlaceholderText('https://example.com/feed.xml');
+    const urlInput = screen.getByPlaceholderText('theregister.com or https://example.com/feed.xml');
     fireEvent.change(urlInput, { target: { value: ' https://example.com/feed.xml ' } });
     fireEvent.keyDown(urlInput, { key: 'Enter', code: 'Enter' });
 
     expect(await screen.findByText('Example Feed')).toBeInTheDocument();
     expect(screen.getByText('A good feed')).toBeInTheDocument();
-    expect(screen.getByText('42 articles found')).toBeInTheDocument();
-    expect(discoverApi.detect).toHaveBeenCalledWith('https://example.com/feed.xml');
+    expect(screen.getByText(/42 articles/)).toBeInTheDocument();
+    expect(discoverApi.discover).toHaveBeenCalledWith('https://example.com/feed.xml');
 
     fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }));
 
@@ -195,28 +208,41 @@ describe('AddSourcesPage', () => {
       expect(feedsApi.subscribe).toHaveBeenCalledWith('https://example.com/feed.xml', 'folder-2');
     });
 
-    expect(await screen.findByText('Subscribed successfully!')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Added' })).toBeInTheDocument();
   });
 
-  it('shows the detection error state and clears it when the URL changes', async () => {
-    discoverApi.detect.mockRejectedValueOnce(new Error('network failed'));
+  it('shows the no-feeds-found state and clears it when the URL changes', async () => {
+    discoverApi.discover.mockResolvedValueOnce({ query: 'https://bad.example/feed', feeds: [] });
 
     renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: 'Add by URL' }));
 
-    const urlInput = screen.getByPlaceholderText('https://example.com/feed.xml');
+    const urlInput = screen.getByPlaceholderText('theregister.com or https://example.com/feed.xml');
     fireEvent.change(urlInput, { target: { value: 'https://bad.example/feed' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Detect Feed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Find feeds' }));
 
-    expect(await screen.findByText('Feed not found')).toBeInTheDocument();
-    expect(screen.getByText('Could not reach or parse feed')).toBeInTheDocument();
+    expect(await screen.findByText('No feeds found')).toBeInTheDocument();
 
     fireEvent.change(urlInput, { target: { value: 'https://good.example/feed' } });
 
     await waitFor(() => {
-      expect(screen.queryByText('Feed not found')).not.toBeInTheDocument();
+      expect(screen.queryByText('No feeds found')).not.toBeInTheDocument();
     });
+  });
+
+  it('shows the no-feeds-found state when discovery fails outright', async () => {
+    discoverApi.discover.mockRejectedValueOnce(new Error('network failed'));
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add by URL' }));
+
+    const urlInput = screen.getByPlaceholderText('theregister.com or https://example.com/feed.xml');
+    fireEvent.change(urlInput, { target: { value: 'https://bad.example/feed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Find feeds' }));
+
+    expect(await screen.findByText('No feeds found')).toBeInTheDocument();
   });
 
   it('shows already subscribed sources as added and disables the button', async () => {
@@ -240,7 +266,7 @@ describe('AddSourcesPage', () => {
     expect(screen.getByRole('button', { name: 'Added' })).toBeDisabled();
   });
 
-  it('shows the loading state, closes the modal, and ignores blank detect submissions', async () => {
+  it('shows the loading state, closes the modal, and ignores blank discover submissions', async () => {
     const onClose = vi.fn();
     discoverApi.directory.mockImplementationOnce(
       () => new Promise(() => {}),
@@ -251,40 +277,47 @@ describe('AddSourcesPage', () => {
     expect(container.querySelector('.animate-spin')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Add by URL/i }));
-    const detectButton = screen.getByRole('button', { name: 'Detect Feed' });
-    expect(detectButton).toBeDisabled();
+    const findButton = screen.getByRole('button', { name: 'Find feeds' });
+    expect(findButton).toBeDisabled();
 
-    const urlInput = screen.getByPlaceholderText('https://example.com/feed.xml');
+    const urlInput = screen.getByPlaceholderText('theregister.com or https://example.com/feed.xml');
     fireEvent.change(urlInput, { target: { value: '   ' } });
     fireEvent.keyDown(urlInput, { key: 'Enter', code: 'Enter' });
-    expect(discoverApi.detect).not.toHaveBeenCalled();
+    expect(discoverApi.discover).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getAllByRole('button')[0]);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('shows the valid-detection fallback title when a feed has no title or description', async () => {
-    discoverApi.detect.mockResolvedValueOnce({
-      valid: true,
-      url: 'https://example.com/untitled.xml',
-      title: null,
-      itemCount: 1,
+  it('shows the fallback title when a discovered feed has no title or description', async () => {
+    discoverApi.discover.mockResolvedValueOnce({
+      query: 'https://example.com/untitled.xml',
+      feeds: [
+        {
+          url: 'https://example.com/untitled.xml',
+          title: null,
+          description: null,
+          siteUrl: null,
+          feedType: 'rss',
+          itemCount: 1,
+        },
+      ],
     });
 
     renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: 'Add by URL' }));
-    fireEvent.change(screen.getByPlaceholderText('https://example.com/feed.xml'), {
+    fireEvent.change(screen.getByPlaceholderText('theregister.com or https://example.com/feed.xml'), {
       target: { value: 'https://example.com/untitled.xml' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Detect Feed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Find feeds' }));
 
     expect(await screen.findByText('Untitled Feed')).toBeInTheDocument();
-    expect(screen.getByText('1 articles found')).toBeInTheDocument();
+    expect(screen.getByText(/1 article ·/)).toBeInTheDocument();
   });
 
-  it('shows pending states while detecting and subscribing', async () => {
-    let resolveDetect: ((value: unknown) => void) | undefined;
+  it('shows pending states while discovering and subscribing', async () => {
+    let resolveDiscover: ((value: unknown) => void) | undefined;
     let resolveSubscribe: ((value: unknown) => void) | undefined;
 
     discoverApi.directory.mockResolvedValueOnce({
@@ -300,8 +333,8 @@ describe('AddSourcesPage', () => {
         },
       ],
     });
-    discoverApi.detect.mockImplementationOnce(
-      () => new Promise((resolve) => { resolveDetect = resolve; }),
+    discoverApi.discover.mockImplementationOnce(
+      () => new Promise((resolve) => { resolveDiscover = resolve; }),
     );
     feedsApi.subscribe.mockImplementation(
       () => new Promise((resolve) => { resolveSubscribe = resolve; }),
@@ -318,17 +351,24 @@ describe('AddSourcesPage', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Add by URL' }));
-    fireEvent.change(screen.getByPlaceholderText('https://example.com/feed.xml'), {
+    fireEvent.change(screen.getByPlaceholderText('theregister.com or https://example.com/feed.xml'), {
       target: { value: 'https://detecting.example/feed.xml' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Detect Feed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Find feeds' }));
 
-    expect(await screen.findByRole('button', { name: 'Checking...' })).toBeDisabled();
-    resolveDetect?.({
-      valid: true,
-      url: 'https://detecting.example/feed.xml',
-      title: 'Detected Feed',
-      itemCount: 3,
+    expect(await screen.findByRole('button', { name: 'Searching...' })).toBeDisabled();
+    resolveDiscover?.({
+      query: 'https://detecting.example/feed.xml',
+      feeds: [
+        {
+          url: 'https://detecting.example/feed.xml',
+          title: 'Detected Feed',
+          description: null,
+          siteUrl: null,
+          feedType: 'rss',
+          itemCount: 3,
+        },
+      ],
     });
     expect(await screen.findByText('Detected Feed')).toBeInTheDocument();
 

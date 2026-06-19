@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   innerJoinMock: vi.fn(),
   fromMock: vi.fn(),
   selectMock: vi.fn(),
-  parseFeedMock: vi.fn(),
+  discoverFeedsMock: vi.fn(),
 }));
 
 vi.mock('drizzle-orm', () => ({
@@ -24,8 +24,8 @@ vi.mock('../lib/feed-directory.js', () => ({
   ],
 }));
 
-vi.mock('../lib/feed-parser.js', () => ({
-  parseFeed: mocks.parseFeedMock,
+vi.mock('../lib/feed-discovery.js', () => ({
+  discoverFeeds: mocks.discoverFeedsMock,
 }));
 
 vi.mock('../db/schema/index.js', () => ({
@@ -191,70 +191,61 @@ describe('discover.routes', () => {
     }
   });
 
-  it('detects feeds and returns a friendly parse error', async () => {
-    mocks.parseFeedMock.mockResolvedValueOnce({
-      title: 'Tech Daily',
-      description: 'Tech news',
-      siteUrl: 'https://tech.example',
-      feedType: 'rss',
-      items: [{}, {}],
-    });
-    mocks.parseFeedMock.mockRejectedValueOnce(new Error('Could not parse feed'));
-
-    const app = await buildApp();
-
-    try {
-      const okResponse = await app.inject({
-        method: 'POST',
-        url: '/discover/detect',
-        payload: { url: 'https://tech.example/feed.xml' },
-      });
-      const badResponse = await app.inject({
-        method: 'POST',
-        url: '/discover/detect',
-        payload: { url: 'https://bad.example/feed.xml' },
-      });
-
-      expect(okResponse.statusCode).toBe(200);
-      expect(okResponse.json()).toEqual({
-        valid: true,
-        title: 'Tech Daily',
-        description: 'Tech news',
-        siteUrl: 'https://tech.example',
-        feedType: 'rss',
-        itemCount: 2,
-        url: 'https://tech.example/feed.xml',
-      });
-
-      expect(badResponse.statusCode).toBe(400);
-      expect(badResponse.json()).toEqual({
-        valid: false,
-        error: 'Could not parse feed',
-        url: 'https://bad.example/feed.xml',
-      });
-    } finally {
-      await app.close();
-    }
-  });
-
-  it('falls back to a generic parse error for non-Error failures', async () => {
-    mocks.parseFeedMock.mockRejectedValueOnce('bad payload');
+  it('discovers feeds from a site or feed URL', async () => {
+    mocks.discoverFeedsMock.mockResolvedValueOnce([
+      {
+        url: 'https://www.theregister.com/headlines.atom',
+        title: 'The Register',
+        description: 'Biting the hand that feeds IT',
+        siteUrl: 'https://www.theregister.com',
+        feedType: 'atom',
+        itemCount: 25,
+      },
+    ]);
 
     const app = await buildApp();
 
     try {
       const response = await app.inject({
         method: 'POST',
-        url: '/discover/detect',
-        payload: { url: 'https://bad.example/feed.xml' },
+        url: '/discover/feeds',
+        payload: { url: 'theregister.com' },
       });
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(200);
+      expect(mocks.discoverFeedsMock).toHaveBeenCalledWith('theregister.com');
       expect(response.json()).toEqual({
-        valid: false,
-        error: 'Could not parse feed',
-        url: 'https://bad.example/feed.xml',
+        query: 'theregister.com',
+        feeds: [
+          {
+            url: 'https://www.theregister.com/headlines.atom',
+            title: 'The Register',
+            description: 'Biting the hand that feeds IT',
+            siteUrl: 'https://www.theregister.com',
+            feedType: 'atom',
+            itemCount: 25,
+          },
+        ],
       });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('returns an empty feed list when nothing is found', async () => {
+    mocks.discoverFeedsMock.mockResolvedValueOnce([]);
+
+    const app = await buildApp();
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/discover/feeds',
+        payload: { url: 'https://no-feeds.example' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ query: 'https://no-feeds.example', feeds: [] });
     } finally {
       await app.close();
     }

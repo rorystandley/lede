@@ -119,7 +119,7 @@ const EXAMPLES = {
   // --- Discover ---
   'GET /api/v1/discover/directory': { auth: 'noauth', query: [{ key: 'category', value: 'Tech', disabled: true }, { key: 'q', value: 'news', disabled: true }] },
   'GET /api/v1/discover/directory/subscribed': { query: [{ key: 'category', value: 'Tech', disabled: true }, { key: 'q', value: 'news', disabled: true }] },
-  'POST /api/v1/discover/detect': { body: { url: 'https://news.ycombinator.com' } },
+  'POST /api/v1/discover/feeds': { body: { url: 'theregister.com' } },
 
   // --- Push ---
   'GET /api/v1/push/vapid-key': { auth: 'noauth' },
