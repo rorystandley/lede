@@ -1,5 +1,6 @@
 import type { ArticleWithState } from '@lede/shared';
 import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
+import { UnreadDot } from '../shared/UnreadDot.js';
 
 interface Props {
   article: ArticleWithState;
@@ -16,7 +17,7 @@ export function ArticleCard({ article, isFocused, onClick, onStar }: Props) {
       onClick={onClick}
       className={`rounded-lg border cursor-pointer overflow-hidden transition-all ${
         isFocused ? 'border-primary-400 shadow-md' : 'border-border hover:shadow-sm'
-      } bg-surface`}
+      } bg-surface ${article.isRead ? 'opacity-60' : ''}`}
     >
       {article.imageUrl ? (
         <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full h-40 object-cover" />
@@ -25,9 +26,12 @@ export function ArticleCard({ article, isFocused, onClick, onStar }: Props) {
       )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
-          <h3 className={`text-sm leading-snug line-clamp-2 ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-medium'}`}>
-            {article.title ?? 'Untitled'}
-          </h3>
+          <div className="flex items-start gap-2 min-w-0">
+            {!article.isRead && <UnreadDot className="mt-1 shrink-0" />}
+            <h3 className={`text-sm leading-snug line-clamp-2 ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-semibold'}`}>
+              {article.title ?? 'Untitled'}
+            </h3>
+          </div>
           <button
             onClick={(e) => { e.stopPropagation(); onStar(); }}
             className={`p-0.5 shrink-0 ${article.isStarred ? 'text-yellow-500' : 'text-text-tertiary hover:text-yellow-500'}`}

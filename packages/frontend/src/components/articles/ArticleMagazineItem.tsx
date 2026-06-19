@@ -1,5 +1,6 @@
 import type { ArticleWithState } from '@lede/shared';
 import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
+import { UnreadDot } from '../shared/UnreadDot.js';
 
 interface Props {
   article: ArticleWithState;
@@ -18,7 +19,7 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
         onClick={onClick}
         className={`col-span-full rounded-lg border cursor-pointer overflow-hidden transition-all ${
           isFocused ? 'border-primary-400 shadow-md' : 'border-border hover:shadow-sm'
-        } bg-surface`}
+        } bg-surface ${article.isRead ? 'opacity-60' : ''}`}
       >
         <div className="flex flex-col md:flex-row">
           {article.imageUrl ? (
@@ -34,9 +35,12 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
               {timeAgo && <span className="text-xs text-text-tertiary">{timeAgo}</span>}
             </div>
             <div className="flex items-start justify-between gap-3">
-              <h2 className={`text-xl leading-snug ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-bold'}`}>
-                {article.title ?? 'Untitled'}
-              </h2>
+              <div className="flex items-start gap-2 min-w-0">
+                {!article.isRead && <UnreadDot className="mt-2 shrink-0" />}
+                <h2 className={`text-xl leading-snug ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-bold'}`}>
+                  {article.title ?? 'Untitled'}
+                </h2>
+              </div>
               <button
                 onClick={(e) => { e.stopPropagation(); onStar(); }}
                 className={`p-1 shrink-0 ${article.isStarred ? 'text-yellow-500' : 'text-text-tertiary hover:text-yellow-500'}`}
@@ -60,7 +64,7 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
       onClick={onClick}
       className={`rounded-lg border cursor-pointer overflow-hidden transition-all ${
         isFocused ? 'border-primary-400 shadow-md' : 'border-border hover:shadow-sm'
-      } bg-surface`}
+      } bg-surface ${article.isRead ? 'opacity-60' : ''}`}
     >
       {article.imageUrl ? (
         <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full h-32 object-cover" />
@@ -72,9 +76,12 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
           <span className="text-[10px] text-text-tertiary truncate">{article.feedTitle}</span>
           {timeAgo && <span className="text-[10px] text-text-tertiary">{timeAgo}</span>}
         </div>
-        <h3 className={`text-sm leading-snug line-clamp-2 ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-medium'}`}>
-          {article.title ?? 'Untitled'}
-        </h3>
+        <div className="flex items-start gap-1.5">
+          {!article.isRead && <UnreadDot className="mt-1.5 shrink-0" />}
+          <h3 className={`text-sm leading-snug line-clamp-2 ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-semibold'}`}>
+            {article.title ?? 'Untitled'}
+          </h3>
+        </div>
       </div>
     </div>
   );
