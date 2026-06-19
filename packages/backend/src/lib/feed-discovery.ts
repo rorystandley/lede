@@ -1,5 +1,6 @@
 import type { FeedType } from '@lede/shared';
 import { parseFeed } from './feed-parser.js';
+import { deriveDisplayTitle } from './feed-title.js';
 
 export interface DiscoveredFeed {
   url: string;
@@ -130,7 +131,12 @@ export async function discoverFeeds(input: string): Promise<DiscoveredFeed[]> {
 
   // 1. The input may already point straight at a feed.
   const direct = await validateCandidate(url, false);
-  if (direct) return [direct.feed];
+  if (direct) {
+    return [{
+      ...direct.feed,
+      title: deriveDisplayTitle(direct.feed.title, direct.feed.siteUrl ?? url, null),
+    }];
+  }
 
   // 2. Fetch the page as HTML and look for advertised feeds.
   let html = '';
@@ -173,7 +179,10 @@ export async function discoverFeeds(input: string): Promise<DiscoveredFeed[]> {
     if (seenUrls.has(feed.url) || seenSignatures.has(signature)) continue;
     seenUrls.add(feed.url);
     seenSignatures.add(signature);
-    feeds.push(feed);
+    feeds.push({
+      ...feed,
+      title: deriveDisplayTitle(feed.title, feed.siteUrl ?? feed.url, html),
+    });
   }
 
   return feeds;

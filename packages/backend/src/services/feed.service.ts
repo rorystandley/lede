@@ -2,6 +2,7 @@ import { eq, and, sql, count } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { feeds, userFeedSubscriptions, articles, userArticleStates } from '../db/schema/index.js';
 import { parseFeed } from '../lib/feed-parser.js';
+import { isPoorFeedTitle, fetchSiteName, humanizeHostname } from '../lib/feed-title.js';
 import { articleHtmlToText, sanitizeArticleDisplayHtml, sanitizeArticleImageUrl } from '../lib/html-sanitizer.js';
 import { accessControlService, ResourceNotFoundError } from './access-control.service.js';
 import { getContentExtractQueue, getRuleEngineQueue } from '../queues/index.js';
@@ -19,9 +20,18 @@ export class FeedService {
 
     if (!feed) {
       const parsed = await parseFeed(url);
+
+      // Some feeds title themselves with their URL (e.g. "www.theregister.com
+      // - Articles"). Prefer the site's brand name so the source reads cleanly.
+      let title = parsed.title;
+      const siteUrl = parsed.siteUrl ?? url;
+      if (isPoorFeedTitle(parsed.title, siteUrl)) {
+        title = (await fetchSiteName(siteUrl)) ?? humanizeHostname(siteUrl);
+      }
+
       [feed] = await db.insert(feeds).values({
         url,
-        title: parsed.title,
+        title,
         description: parsed.description,
         siteUrl: parsed.siteUrl,
         feedType: parsed.feedType,
@@ -160,8 +170,14 @@ export class FeedService {
       const parsed = await parseFeed(feed.url);
       const newArticleIds = await this.insertArticles(feed.id, parsed.items);
 
+      // Don't let a refresh overwrite a good stored name with a URL-like feed
+      // title (the title we cleaned up at subscribe time).
+      const refreshedTitle = isPoorFeedTitle(parsed.title, parsed.siteUrl ?? feed.siteUrl ?? feed.url)
+        ? feed.title
+        : (parsed.title ?? feed.title);
+
       await db.update(feeds).set({
-        title: parsed.title ?? feed.title,
+        title: refreshedTitle,
         description: parsed.description ?? feed.description,
         siteUrl: parsed.siteUrl ?? feed.siteUrl,
         feedType: parsed.feedType,

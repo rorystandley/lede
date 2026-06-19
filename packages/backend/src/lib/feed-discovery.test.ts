@@ -166,6 +166,28 @@ describe('discoverFeeds', () => {
     expect(result[0].url).toBe('https://example.com/feed');
   });
 
+  it('replaces a URL-like feed title with the site name from the homepage', async () => {
+    parseFeedMock.mockRejectedValueOnce(new Error('not a feed')); // direct attempt
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      url: 'https://www.theregister.com/',
+      text: vi.fn().mockResolvedValue(
+        '<title>Technology news and analysis | The Register</title>'
+        + '<link rel="alternate" type="application/rss+xml" href="/feed">',
+      ),
+    });
+    parseFeedMock.mockResolvedValueOnce(feed({
+      title: 'www.theregister.com - Articles',
+      siteUrl: 'https://www.theregister.com',
+    }));
+
+    const result = await discoverFeeds('theregister.com');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].url).toBe('https://www.theregister.com/feed');
+    expect(result[0].title).toBe('The Register');
+  });
+
   it('rejects discovered candidates that parse but have no items', async () => {
     parseFeedMock.mockRejectedValueOnce(new Error('not a feed')); // direct attempt
     fetchMock.mockResolvedValueOnce({
