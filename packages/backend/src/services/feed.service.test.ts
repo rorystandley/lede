@@ -307,6 +307,59 @@ describe('feedService', () => {
     }));
   });
 
+  it('derives a clean feed title from the site when the feed titles itself with its URL', async () => {
+    vi.mocked(parseFeed).mockResolvedValue({
+      title: 'www.theregister.com - Articles',
+      description: 'Biting the hand that feeds IT',
+      siteUrl: 'https://www.theregister.com',
+      feedType: 'rss',
+      items: [],
+    } as never);
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: vi.fn().mockResolvedValue('<title>Technology news and analysis | The Register</title>'),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const selectWhereExistingFeed = vi.fn().mockResolvedValue([]);
+    const selectFromExistingFeed = vi.fn(() => ({ where: selectWhereExistingFeed }));
+    const selectWhereExistingSub = vi.fn().mockResolvedValue([]);
+    const selectFromExistingSub = vi.fn(() => ({ where: selectWhereExistingSub }));
+
+    const feedReturning = vi.fn().mockResolvedValue([{ id: 'feed-3', url: 'https://www.theregister.com/feed', title: 'The Register' }]);
+    const feedValues = vi.fn(() => ({ returning: feedReturning }));
+    const subscriptionReturning = vi.fn().mockResolvedValue([{ id: 'sub-3' }]);
+    const subscriptionValues = vi.fn(() => ({ returning: subscriptionReturning }));
+
+    const insert = vi.fn()
+      .mockReturnValueOnce({ values: feedValues })
+      .mockReturnValueOnce({ values: subscriptionValues });
+
+    vi.mocked(getDb).mockReturnValue({
+      select: vi.fn()
+        .mockReturnValueOnce({ from: selectFromExistingFeed })
+        .mockReturnValueOnce({ from: selectFromExistingSub }),
+      insert,
+    } as never);
+
+    try {
+      const service = new FeedService();
+      await service.subscribe('user-3', 'https://www.theregister.com/feed');
+
+      expect(fetchMock).toHaveBeenCalledWith('https://www.theregister.com', expect.any(Object));
+      expect(feedValues).toHaveBeenCalledWith({
+        url: 'https://www.theregister.com/feed',
+        title: 'The Register',
+        description: 'Biting the hand that feeds IT',
+        siteUrl: 'https://www.theregister.com',
+        feedType: 'rss',
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('updates subscription metadata and feed refresh intervals', async () => {
     const subWhere = vi.fn().mockResolvedValue(undefined);
     const subSet = vi.fn(() => ({ where: subWhere }));
@@ -612,6 +665,42 @@ describe('feedService', () => {
       errorCount: 0,
       updatedAt: expect.any(Date),
     });
+  });
+
+  it('keeps the stored feed title when a refresh returns a URL-like title', async () => {
+    const feed = {
+      id: 'feed-4',
+      url: 'https://www.theregister.com/feed',
+      title: 'The Register',
+      description: 'Old description',
+      siteUrl: 'https://www.theregister.com',
+      feedType: 'rss',
+      errorCount: 0,
+    };
+    const selectWhere = vi.fn().mockResolvedValue([feed]);
+    const selectFrom = vi.fn(() => ({ where: selectWhere }));
+    vi.mocked(parseFeed).mockResolvedValue({
+      title: 'www.theregister.com - Articles',
+      description: 'New description',
+      siteUrl: 'https://www.theregister.com',
+      feedType: 'rss',
+      items: [],
+    } as never);
+
+    const updateWhere = vi.fn().mockResolvedValue(undefined);
+    const updateSet = vi.fn(() => ({ where: updateWhere }));
+    vi.mocked(getDb).mockReturnValue({
+      select: vi.fn().mockReturnValue({ from: selectFrom }),
+      update: vi.fn(() => ({ set: updateSet })),
+    } as never);
+
+    const service = new FeedService();
+    await service.refreshFeed('feed-4');
+
+    expect(updateSet).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'The Register',
+      description: 'New description',
+    }));
   });
 
   it('records refresh errors and rethrows them', async () => {
