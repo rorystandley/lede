@@ -15,19 +15,20 @@ import type { ArticleWithState } from '@lede/shared';
 
 export function ArticleList() {
   const qc = useQueryClient();
-  const { selectedFeedId, selectedFolderId, selectedTagId, selectedArticleId, selectArticle, focusedArticleIndex, viewMode, searchQuery, isSearching, showStarred } = useUiStore();
+  const { selectedFeedId, selectedFolderId, selectedTagId, selectedArticleId, selectArticle, focusedArticleIndex, viewMode, searchQuery, isSearching, showStarred, readFilter, setReadFilter } = useUiStore();
 
-  // The aggregate "News Feed" (no specific feed/folder/tag/starred filter) shows
-  // only unread articles, so reading one and going back drops it from the list.
-  // Opening a specific feed keeps showing read articles, so they remain available.
-  const isNewsFeed = !selectedFeedId && !selectedFolderId && !selectedTagId && !showStarred;
+  // Feed-like views (News Feed aggregate, a specific feed, a folder, or a tag)
+  // support the Unread / All toggle. Starred and search are excluded: starred
+  // should always surface read items, and search has its own result path.
+  const supportsReadFilter = !showStarred && !isSearching;
+  const unreadOnly = supportsReadFilter && readFilter === 'unread';
 
   const params = {
     ...(selectedFeedId ? { feedId: selectedFeedId } : {}),
     ...(selectedFolderId ? { folderId: selectedFolderId } : {}),
     ...(selectedTagId ? { tagId: selectedTagId } : {}),
     ...(showStarred ? { isStarred: true } : {}),
-    ...(isNewsFeed ? { isRead: false } : {}),
+    ...(unreadOnly ? { isRead: false } : {}),
   };
 
   const infinite = useArticlesInfinite(params);
@@ -111,6 +112,20 @@ export function ArticleList() {
         {totalCount} {totalCount === 1 ? 'article' : 'articles'}
       </div>
       <div className="flex items-center gap-1">
+        {supportsReadFilter && (
+          <div className="flex bg-surface-tertiary rounded p-0.5 mr-1" role="group" aria-label="Filter by read state">
+            {(['unread', 'all'] as const).map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setReadFilter(filter)}
+                aria-pressed={readFilter === filter}
+                className={`px-2 py-1 text-xs rounded ${readFilter === filter ? 'bg-surface text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+              >
+                {filter === 'unread' ? 'Unread' : 'All articles'}
+              </button>
+            ))}
+          </div>
+        )}
         <button
           onClick={() => refreshAllMut.mutate()}
           disabled={refreshAllMut.isPending}
@@ -158,6 +173,18 @@ export function ArticleList() {
   }
 
   if (articles.length === 0) {
+    // Caught up: in Unread view with nothing left to read. Offer a way to bring
+    // back the older, already-read articles instead of a dead end — this is the
+    // state you land on after "Mark all read" or when no new items have arrived.
+    if (unreadOnly) {
+      return (
+        <>
+          {toolbar}
+          <CaughtUpState onSeeAll={() => setReadFilter('all')} />
+        </>
+      );
+    }
+
     return (
       <>
         {toolbar}
@@ -230,6 +257,50 @@ export function ArticleList() {
         hasMore={!!infinite.hasNextPage}
       />
     </>
+  );
+}
+
+function CaughtUpState({ onSeeAll }: { onSeeAll: () => void }) {
+  return (
+    <div className="flex-1 flex items-center justify-center px-6">
+      <div className="text-center max-w-xs">
+        <svg
+          width="132"
+          height="120"
+          viewBox="0 0 132 120"
+          fill="none"
+          className="mx-auto mb-6"
+          aria-hidden="true"
+        >
+          {/* soft backdrop */}
+          <ellipse cx="66" cy="62" rx="60" ry="52" className="fill-primary-500/10" />
+          {/* stacked article cards */}
+          <g className="stroke-border" strokeWidth="2">
+            <rect x="34" y="34" width="64" height="26" rx="5" className="fill-surface" />
+            <rect x="34" y="64" width="64" height="26" rx="5" className="fill-surface" />
+          </g>
+          <g className="fill-text-tertiary/40">
+            <rect x="42" y="41" width="16" height="12" rx="2" />
+            <rect x="63" y="42" width="28" height="3.5" rx="1.75" />
+            <rect x="63" y="49" width="20" height="3.5" rx="1.75" />
+            <rect x="42" y="71" width="16" height="12" rx="2" />
+            <rect x="63" y="72" width="28" height="3.5" rx="1.75" />
+            <rect x="63" y="79" width="20" height="3.5" rx="1.75" />
+          </g>
+          {/* checkmark badge */}
+          <circle cx="92" cy="86" r="14" className="fill-primary-500" />
+          <path d="M86 86l4 4 8-8" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </svg>
+        <h2 className="text-lg font-semibold text-text-primary">Great job!</h2>
+        <p className="text-sm text-text-secondary mt-1">You've read everything in this section.</p>
+        <button
+          onClick={onSeeAll}
+          className="mt-5 px-4 py-2 text-sm font-medium rounded-lg border border-border text-text-primary bg-surface hover:bg-surface-tertiary"
+        >
+          See all articles
+        </button>
+      </div>
+    </div>
   );
 }
 
