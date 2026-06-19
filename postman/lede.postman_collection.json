@@ -2099,39 +2099,6 @@
       "name": "Discover",
       "item": [
         {
-          "name": "Detect and validate a feed URL",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/discover/detect",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "discover",
-                "detect"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"url\": \"https://news.ycombinator.com\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
           "name": "Browse curated feed directory",
           "request": {
             "method": "GET",
@@ -2194,6 +2161,39 @@
                   "disabled": true
                 }
               ]
+            }
+          }
+        },
+        {
+          "name": "Discover feeds from a site or feed URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/discover/feeds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "discover",
+                "feeds"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"theregister.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         }
