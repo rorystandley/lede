@@ -150,6 +150,8 @@ function uiState(overrides: Record<string, unknown> = {}) {
     searchQuery: '',
     isSearching: false,
     showStarred: false,
+    readFilter: 'unread',
+    setReadFilter: vi.fn(),
     addToast: vi.fn(),
     ...overrides,
   };
@@ -200,27 +202,61 @@ describe('ArticleList', () => {
     expect(container.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
-  it('shows the correct empty state for normal and search views', () => {
+  it('shows the caught-up state in the unread view when nothing is left to read', async () => {
+    const user = userEvent.setup();
+    const setReadFilter = vi.fn();
+    mocks.useUiStoreMock.mockReturnValue(uiState({ readFilter: 'unread', setReadFilter }));
     mocks.useArticlesInfiniteMock.mockReturnValue(
-      infiniteState({
-        data: { pages: [{ items: [] }] },
-      }),
+      infiniteState({ data: { pages: [{ items: [] }] } }),
     );
 
-    const { rerender } = renderWithClient(<ArticleList />);
+    renderWithClient(<ArticleList />);
+
+    expect(screen.getByText('Great job!')).toBeInTheDocument();
+    expect(screen.getByText("You've read everything in this section.")).toBeInTheDocument();
+    expect(mocks.useArticlesInfiniteMock).toHaveBeenCalledWith(expect.objectContaining({ isRead: false }));
+
+    await user.click(screen.getByRole('button', { name: 'See all articles' }));
+    expect(setReadFilter).toHaveBeenCalledWith('all');
+  });
+
+  it('shows the no-articles state in the all view and stops filtering by read state', () => {
+    mocks.useUiStoreMock.mockReturnValue(uiState({ readFilter: 'all' }));
+    mocks.useArticlesInfiniteMock.mockReturnValue(
+      infiniteState({ data: { pages: [{ items: [] }] } }),
+    );
+
+    renderWithClient(<ArticleList />);
+
     expect(screen.getByText('No articles yet')).toBeInTheDocument();
     expect(screen.getByText('Subscribe to feeds to start reading')).toBeInTheDocument();
+    expect(screen.queryByText('Great job!')).not.toBeInTheDocument();
+    expect(mocks.useArticlesInfiniteMock).toHaveBeenCalledWith(
+      expect.not.objectContaining({ isRead: false }),
+    );
+  });
 
+  it('toggles between Unread and All from the toolbar', async () => {
+    const user = userEvent.setup();
+    const setReadFilter = vi.fn();
+    mocks.useUiStoreMock.mockReturnValue(uiState({ readFilter: 'unread', setReadFilter }));
+
+    renderWithClient(<ArticleList />);
+
+    await user.click(screen.getByRole('button', { name: 'All articles' }));
+    expect(setReadFilter).toHaveBeenCalledWith('all');
+  });
+
+  it('hides the read-state filter and caught-up state for search results', () => {
     mocks.useUiStoreMock.mockReturnValue(uiState({ isSearching: true, searchQuery: 'ai' }));
     mocks.useSearchMock.mockReturnValue({ data: { items: [] }, isLoading: false });
-    rerender(
-      <QueryClientProvider client={createClient()}>
-        <ArticleList />
-      </QueryClientProvider>,
-    );
+
+    renderWithClient(<ArticleList />);
 
     expect(screen.getByText('No results found')).toBeInTheDocument();
     expect(screen.getByText('Try a different search term')).toBeInTheDocument();
+    expect(screen.queryByText('Great job!')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Filter by read state' })).not.toBeInTheDocument();
   });
 
   it('handles the card view, toolbar actions, and scroll-driven pagination', async () => {

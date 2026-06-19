@@ -148,6 +148,22 @@ describe('ui store', () => {
     });
   });
 
+  it('sets the read filter and resets it to unread when navigating', () => {
+    useUiStore.getState().setReadFilter('all');
+    expect(useUiStore.getState().readFilter).toBe('all');
+
+    useUiStore.getState().selectFeed('feed-1');
+    expect(useUiStore.getState().readFilter).toBe('unread');
+
+    useUiStore.getState().setReadFilter('all');
+    useUiStore.getState().setShowStarred(true);
+    expect(useUiStore.getState().readFilter).toBe('unread');
+
+    useUiStore.getState().setReadFilter('all');
+    useUiStore.getState().clearFilters();
+    expect(useUiStore.getState().readFilter).toBe('unread');
+  });
+
   it('re-exports the stores from the barrel file', () => {
     expect(storesIndex.useAuthStore).toBe(useAuthStore);
     expect(storesIndex.useUiStore).toBe(useUiStore);

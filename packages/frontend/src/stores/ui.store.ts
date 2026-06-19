@@ -20,6 +20,7 @@ interface UiState {
   searchQuery: string;
   isSearching: boolean;
   showStarred: boolean;
+  readFilter: 'unread' | 'all';
   toasts: Toast[];
   toggleTheme: () => void;
   setViewMode: (mode: ViewMode) => void;
@@ -33,6 +34,7 @@ interface UiState {
   setSearchQuery: (query: string) => void;
   setIsSearching: (searching: boolean) => void;
   setShowStarred: (starred: boolean) => void;
+  setReadFilter: (filter: 'unread' | 'all') => void;
   clearFilters: () => void;
   addToast: (message: string, type?: Toast['type']) => void;
   dismissToast: (id: string) => void;
@@ -52,6 +54,7 @@ export const useUiStore = create<UiState>()(
       searchQuery: '',
       isSearching: false,
       showStarred: false,
+      readFilter: 'unread',
       toasts: [],
       addToast: (message, type = 'info') => {
         const id = crypto.randomUUID();
@@ -67,15 +70,16 @@ export const useUiStore = create<UiState>()(
       setViewMode: (viewMode) => set({ viewMode }),
       toggleSidebar: () => set({ sidebarOpen: !get().sidebarOpen }),
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
-      selectFeed: (feedId) => set({ selectedFeedId: feedId, selectedFolderId: null, selectedTagId: null, selectedArticleId: null, focusedArticleIndex: 0, isSearching: false, showStarred: false }),
-      selectFolder: (folderId) => set({ selectedFolderId: folderId, selectedFeedId: null, selectedTagId: null, selectedArticleId: null, focusedArticleIndex: 0, isSearching: false, showStarred: false }),
-      selectTag: (tagId) => set({ selectedTagId: tagId, selectedFeedId: null, selectedFolderId: null, selectedArticleId: null, focusedArticleIndex: 0, isSearching: false, showStarred: false }),
+      selectFeed: (feedId) => set({ selectedFeedId: feedId, selectedFolderId: null, selectedTagId: null, selectedArticleId: null, focusedArticleIndex: 0, isSearching: false, showStarred: false, readFilter: 'unread' }),
+      selectFolder: (folderId) => set({ selectedFolderId: folderId, selectedFeedId: null, selectedTagId: null, selectedArticleId: null, focusedArticleIndex: 0, isSearching: false, showStarred: false, readFilter: 'unread' }),
+      selectTag: (tagId) => set({ selectedTagId: tagId, selectedFeedId: null, selectedFolderId: null, selectedArticleId: null, focusedArticleIndex: 0, isSearching: false, showStarred: false, readFilter: 'unread' }),
       selectArticle: (articleId) => set({ selectedArticleId: articleId }),
       setFocusedArticleIndex: (index) => set({ focusedArticleIndex: index }),
       setSearchQuery: (searchQuery) => set({ searchQuery }),
-      setIsSearching: (isSearching) => set({ isSearching, selectedFeedId: null, selectedFolderId: null, selectedTagId: null, selectedArticleId: null, focusedArticleIndex: 0, showStarred: false }),
-      setShowStarred: (showStarred) => set({ showStarred, selectedFeedId: null, selectedFolderId: null, selectedTagId: null, selectedArticleId: null, focusedArticleIndex: 0, isSearching: false }),
-      clearFilters: () => set({ selectedFeedId: null, selectedFolderId: null, selectedTagId: null, selectedArticleId: null, focusedArticleIndex: 0, isSearching: false, searchQuery: '', showStarred: false }),
+      setIsSearching: (isSearching) => set({ isSearching, selectedFeedId: null, selectedFolderId: null, selectedTagId: null, selectedArticleId: null, focusedArticleIndex: 0, showStarred: false, readFilter: 'unread' }),
+      setShowStarred: (showStarred) => set({ showStarred, selectedFeedId: null, selectedFolderId: null, selectedTagId: null, selectedArticleId: null, focusedArticleIndex: 0, isSearching: false, readFilter: 'unread' }),
+      setReadFilter: (readFilter) => set({ readFilter }),
+      clearFilters: () => set({ selectedFeedId: null, selectedFolderId: null, selectedTagId: null, selectedArticleId: null, focusedArticleIndex: 0, isSearching: false, searchQuery: '', showStarred: false, readFilter: 'unread' }),
     }),
     {
       name: 'lede-ui',
