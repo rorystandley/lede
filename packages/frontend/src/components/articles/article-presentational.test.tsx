@@ -427,4 +427,49 @@ describe('article presentational components', () => {
 
     expect(screen.getByRole('heading', { name: 'Untitled' })).toBeInTheDocument();
   });
+
+  it('shows the unread dot only for unread articles and dims read ones', () => {
+    const onClick = vi.fn();
+    const onStar = vi.fn();
+
+    // Unread list item: dot present, row not dimmed.
+    const unread = render(
+      <ArticleListItem
+        article={baseArticle as any}
+        isFocused={false}
+        isSelected={false}
+        onClick={onClick}
+        onStar={onStar}
+      />,
+    );
+    expect(unread.getByLabelText('Unread')).toBeInTheDocument();
+    expect(unread.container.querySelector('.opacity-60')).not.toBeInTheDocument();
+    unread.unmount();
+
+    // Read list item: dot gone, row dimmed.
+    const read = render(
+      <ArticleListItem
+        article={{ ...baseArticle, isRead: true } as any}
+        isFocused={false}
+        isSelected={false}
+        onClick={onClick}
+        onStar={onStar}
+      />,
+    );
+    expect(read.queryByLabelText('Unread')).not.toBeInTheDocument();
+    expect(read.container.querySelector('.opacity-60')).toBeInTheDocument();
+    read.unmount();
+
+    // Same signal in the card and magazine views.
+    const card = render(
+      <ArticleCard article={baseArticle as any} isFocused={false} onClick={onClick} onStar={onStar} />,
+    );
+    expect(card.getByLabelText('Unread')).toBeInTheDocument();
+    card.unmount();
+
+    const magazine = render(
+      <ArticleMagazineItem article={baseArticle as any} isFeatured={false} isFocused={false} onClick={onClick} onStar={onStar} />,
+    );
+    expect(magazine.getByLabelText('Unread')).toBeInTheDocument();
+  });
 });

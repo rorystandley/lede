@@ -1,5 +1,6 @@
 import type { ArticleWithState } from '@lede/shared';
 import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
+import { UnreadDot } from '../shared/UnreadDot.js';
 
 interface Props {
   article: ArticleWithState;
@@ -19,9 +20,12 @@ export function ArticleListItem({ article, isFocused, isSelected, onClick, onSta
         isSelected ? 'bg-primary-50 dark:bg-primary-900/20' : isFocused ? 'bg-surface-tertiary' : 'hover:bg-surface-secondary'
       }`}
     >
-      <div className="flex items-start gap-3">
+      <div className={`flex items-start gap-3 ${article.isRead ? 'opacity-60' : ''}`}>
+        <div className="shrink-0 flex w-2 justify-center pt-1.5">
+          {!article.isRead && <UnreadDot />}
+        </div>
         <div className="flex-1 min-w-0">
-          <h3 className={`text-sm leading-snug ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-medium'}`}>
+          <h3 className={`text-sm leading-snug ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-semibold'}`}>
             {article.title ?? 'Untitled'}
           </h3>
           <div className="flex items-center gap-2 mt-1">
