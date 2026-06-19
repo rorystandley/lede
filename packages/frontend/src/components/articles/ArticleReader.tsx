@@ -166,6 +166,10 @@ export function ArticleReader() {
     suggestTagsMut.reset();
   }, [selectedArticleId]);
 
+  // Clear any pending share-status reset on unmount so the timer can't fire
+  // (and call setState) after the component is gone.
+  useEffect(() => () => clearTimeout(shareTimerRef.current), []);
+
   if (!selectedArticleId) {
     return (
       <div className="flex-1 flex items-center justify-center text-text-tertiary bg-surface-secondary">
