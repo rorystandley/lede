@@ -27,33 +27,15 @@ export function ArticleCard({ article, isFocused, onClick, onStar, onToggleRead 
         <div className="w-full h-40"><ArticlePlaceholder size="card" seed={article.id} /></div>
       )}
       <div className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-2 min-w-0">
-            {!article.isRead && <UnreadDot className="mt-1 shrink-0" />}
-            <h3 className={`text-sm leading-snug line-clamp-2 ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-semibold'}`}>
-              {article.title ?? 'Untitled'}
-            </h3>
-          </div>
-          <div className="flex items-center gap-0.5 shrink-0">
-            <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} size={12} className="p-0.5" />
-            <button
-              onClick={(e) => { e.stopPropagation(); onStar(); }}
-              aria-label={article.isStarred ? 'Unstar' : 'Star'}
-              className={`p-0.5 ${article.isStarred ? 'text-yellow-500' : 'text-text-tertiary hover:text-yellow-500'}`}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill={article.isStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
-            </button>
-          </div>
+        <div className="flex items-start gap-2">
+          {!article.isRead && <UnreadDot className="mt-1 shrink-0" />}
+          <h3 className={`text-sm leading-snug line-clamp-2 ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-semibold'}`}>
+            {article.title ?? 'Untitled'}
+          </h3>
         </div>
         {article.summary && (
           <p className="text-xs text-text-secondary mt-2 line-clamp-3">{article.summary}</p>
         )}
-        <div className="flex items-center gap-2 mt-3 text-xs text-text-tertiary">
-          <span className="truncate">{article.feedTitle}</span>
-          {timeAgo && <span>{timeAgo}</span>}
-        </div>
         {article.tags.length > 0 && (
           <div className="flex gap-1 mt-2 flex-wrap">
             {article.tags.map((tag) => (
@@ -63,6 +45,23 @@ export function ArticleCard({ article, isFocused, onClick, onStar, onToggleRead 
             ))}
           </div>
         )}
+        {/* Action bar: source + time on the left, actions on the right. */}
+        <div className="flex items-center gap-2 mt-3 text-xs text-text-tertiary">
+          <span className="truncate min-w-0">{article.feedTitle}</span>
+          {timeAgo && <span className="shrink-0">{timeAgo}</span>}
+          <div className="ml-auto flex items-center gap-1 shrink-0">
+            <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} size={16} />
+            <button
+              onClick={(e) => { e.stopPropagation(); onStar(); }}
+              aria-label={article.isStarred ? 'Unstar' : 'Star'}
+              className={`p-1 ${article.isStarred ? 'text-yellow-500' : 'text-text-tertiary hover:text-yellow-500'}`}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill={article.isStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
