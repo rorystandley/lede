@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useArticlesInfinite } from '../../hooks/use-articles-infinite.js';
-import { useMarkRead, useStarArticle } from '../../hooks/use-articles.js';
+import { useMarkRead, useMarkUnread, useStarArticle } from '../../hooks/use-articles.js';
 import { useSearch } from '../../hooks/use-search.js';
 import { useUiStore } from '../../stores/index.js';
 import { useKeyboardNav } from '../../hooks/use-keyboard-nav.js';
@@ -11,7 +11,34 @@ import { ArticleCard } from './ArticleCard.js';
 import { ArticleMagazineItem } from './ArticleMagazineItem.js';
 import { ConfirmDialog } from '../shared/ConfirmDialog.js';
 import { articlesApi, feedsApi } from '../../api/index.js';
-import type { ArticleWithState } from '@lede/shared';
+import type { ArticleWithState, PaginatedResult } from '@lede/shared';
+
+type InfinitePages = { pages: PaginatedResult<ArticleWithState>[]; pageParams: unknown[] };
+
+/**
+ * Flip an article's read flag everywhere it's cached (the infinite feed pages
+ * and any search result set) so the feed reflects the toggle instantly. We
+ * patch in place rather than invalidate so the row stays put while browsing —
+ * read items only drop out on the next natural refetch (reader close, refresh).
+ */
+function patchCachedReadState(qc: QueryClient, articleId: string, isRead: boolean) {
+  qc.setQueriesData<InfinitePages>({ queryKey: ['articles-infinite'] }, (data) =>
+    data
+      ? {
+          ...data,
+          pages: data.pages.map((page) => ({
+            ...page,
+            items: page.items.map((a) => (a.id === articleId ? { ...a, isRead } : a)),
+          })),
+        }
+      : data,
+  );
+  qc.setQueriesData<PaginatedResult<ArticleWithState>>({ queryKey: ['search'] }, (data) =>
+    data
+      ? { ...data, items: data.items.map((a) => (a.id === articleId ? { ...a, isRead } : a)) }
+      : data,
+  );
+}
 
 export function ArticleList() {
   const qc = useQueryClient();
@@ -34,6 +61,7 @@ export function ArticleList() {
   const infinite = useArticlesInfinite(params);
   const { data: searchData, isLoading: searchLoading } = useSearch(searchQuery, isSearching);
   const markRead = useMarkRead();
+  const markUnread = useMarkUnread();
   const starArticle = useStarArticle();
 
   // Refresh the infinite list only when the reader closes (selected → null), so
@@ -95,6 +123,14 @@ export function ArticleList() {
   const handleClick = (articleId: string, isRead: boolean) => {
     selectArticle(articleId);
     if (!isRead) markRead.mutate([articleId]);
+  };
+
+  // Explicit per-article read toggle from the feed (doesn't open the reader).
+  const handleToggleRead = (articleId: string, isRead: boolean) => {
+    const next = !isRead;
+    patchCachedReadState(qc, articleId, next);
+    if (next) markRead.mutate([articleId]);
+    else markUnread.mutate([articleId]);
   };
 
   const handleLoadMore = () => {
@@ -211,6 +247,7 @@ export function ArticleList() {
                 isFocused={index === focusedArticleIndex}
                 onClick={() => handleClick(article.id, article.isRead)}
                 onStar={() => starArticle.mutate({ articleId: article.id, isStarred: !article.isStarred })}
+                onToggleRead={() => handleToggleRead(article.id, article.isRead)}
               />
             ))}
           </div>
@@ -234,6 +271,7 @@ export function ArticleList() {
                 isFocused={index === focusedArticleIndex}
                 onClick={() => handleClick(article.id, article.isRead)}
                 onStar={() => starArticle.mutate({ articleId: article.id, isStarred: !article.isStarred })}
+                onToggleRead={() => handleToggleRead(article.id, article.isRead)}
               />
             ))}
           </div>
@@ -252,6 +290,7 @@ export function ArticleList() {
         selectedArticleId={selectedArticleId}
         onClick={handleClick}
         onStar={(id, s) => starArticle.mutate({ articleId: id, isStarred: s })}
+        onToggleRead={handleToggleRead}
         onNearEnd={handleLoadMore}
         isFetchingMore={infinite.isFetchingNextPage}
         hasMore={!!infinite.hasNextPage}
@@ -329,12 +368,13 @@ function LoadMoreSentinel({ isFetching, hasMore }: { isFetching: boolean; hasMor
   return null;
 }
 
-function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick, onStar, onNearEnd, isFetchingMore, hasMore }: {
+function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick, onStar, onToggleRead, onNearEnd, isFetchingMore, hasMore }: {
   articles: ArticleWithState[];
   focusedArticleIndex: number;
   selectedArticleId: string | null;
   onClick: (id: string, isRead: boolean) => void;
   onStar: (id: string, isStarred: boolean) => void;
+  onToggleRead: (id: string, isRead: boolean) => void;
   onNearEnd: () => void;
   isFetchingMore: boolean;
   hasMore: boolean;
@@ -375,6 +415,7 @@ function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick
                 isSelected={article.id === selectedArticleId}
                 onClick={() => onClick(article.id, article.isRead)}
                 onStar={() => onStar(article.id, !article.isStarred)}
+                onToggleRead={() => onToggleRead(article.id, article.isRead)}
               />
             </div>
           );
