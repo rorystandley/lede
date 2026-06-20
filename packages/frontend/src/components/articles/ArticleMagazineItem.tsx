@@ -37,21 +37,20 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
               <span className="text-xs font-medium text-primary-600 dark:text-primary-400">{article.feedTitle}</span>
               {timeAgo && <span className="text-xs text-text-tertiary">{timeAgo}</span>}
             </div>
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2 min-w-0">
-                {!article.isRead && <UnreadDot className="mt-2 shrink-0" />}
-                <h2 className={`text-xl leading-snug ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-bold'}`}>
-                  {article.title ?? 'Untitled'}
-                </h2>
-              </div>
-              <div className="flex items-center gap-0.5 shrink-0">
-                <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} size={16} />
-                <SaveButton isSaved={article.isStarred} onToggle={onStar} size={16} />
-              </div>
+            <div className="flex items-start gap-2">
+              {!article.isRead && <UnreadDot className="mt-2 shrink-0" />}
+              <h2 className={`text-xl leading-snug ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-bold'}`}>
+                {article.title ?? 'Untitled'}
+              </h2>
             </div>
             {article.summary && (
               <p className="text-sm text-text-secondary mt-3 line-clamp-3 lg:line-clamp-4">{article.summary}</p>
             )}
+            {/* Action bar pinned to the bottom-right, matching the Cards view. */}
+            <div className="flex items-center justify-end gap-1 mt-4">
+              <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} size={16} />
+              <SaveButton isSaved={article.isStarred} onToggle={onStar} size={16} />
+            </div>
           </div>
         </div>
       </div>
@@ -74,16 +73,17 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[10px] text-text-tertiary truncate">{article.feedTitle}</span>
           {timeAgo && <span className="text-[10px] text-text-tertiary">{timeAgo}</span>}
-          <div className="ml-auto flex items-center gap-0.5 shrink-0">
-            <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} size={12} className="p-0.5" />
-            <SaveButton isSaved={article.isStarred} onToggle={onStar} size={12} className="p-0.5" />
-          </div>
         </div>
         <div className="flex items-start gap-1.5">
           {!article.isRead && <UnreadDot className="mt-1.5 shrink-0" />}
           <h3 className={`text-sm leading-snug line-clamp-2 ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-semibold'}`}>
             {article.title ?? 'Untitled'}
           </h3>
+        </div>
+        {/* Action bar pinned to the bottom-right, matching the Cards view. */}
+        <div className="flex items-center justify-end gap-1 mt-2">
+          <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} size={14} />
+          <SaveButton isSaved={article.isStarred} onToggle={onStar} size={14} />
         </div>
       </div>
     </div>
