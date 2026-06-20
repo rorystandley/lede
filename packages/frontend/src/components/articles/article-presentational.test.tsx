@@ -35,6 +35,7 @@ describe('article presentational components', () => {
   it('renders an article card, placeholder, tags, and star behavior', () => {
     const onClick = vi.fn();
     const onStar = vi.fn();
+    const onToggleRead = vi.fn();
 
     render(
       <ArticleCard
@@ -42,6 +43,7 @@ describe('article presentational components', () => {
         isFocused={true}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -55,7 +57,7 @@ describe('article presentational components', () => {
     fireEvent.click(screen.getByText('Story title'));
     expect(onClick).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('button', { name: 'Star' }));
     expect(onStar).toHaveBeenCalled();
     expect(onClick).toHaveBeenCalledTimes(1);
   });
@@ -63,6 +65,7 @@ describe('article presentational components', () => {
   it('renders a list item with selected styling and image path', () => {
     const onClick = vi.fn();
     const onStar = vi.fn();
+    const onToggleRead = vi.fn();
 
     const { container } = render(
       <ArticleListItem
@@ -71,6 +74,7 @@ describe('article presentational components', () => {
         isSelected={true}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -88,6 +92,7 @@ describe('article presentational components', () => {
   it('renders featured and compact magazine variants', () => {
     const onClick = vi.fn();
     const onStar = vi.fn();
+    const onToggleRead = vi.fn();
 
     const { rerender, container } = render(
       <ArticleMagazineItem
@@ -96,6 +101,7 @@ describe('article presentational components', () => {
         isFocused={true}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -103,7 +109,7 @@ describe('article presentational components', () => {
     expect(screen.getByText('Story summary')).toBeInTheDocument();
     expect(screen.getByTestId('placeholder-card-article-1')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('button', { name: 'Star' }));
     expect(onStar).toHaveBeenCalledTimes(1);
 
     rerender(
@@ -113,6 +119,7 @@ describe('article presentational components', () => {
         isFocused={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -124,6 +131,7 @@ describe('article presentational components', () => {
   it('covers fallback branches for card and list item timestamps, titles, and placeholders', () => {
     const onClick = vi.fn();
     const onStar = vi.fn();
+    const onToggleRead = vi.fn();
 
     const { container, rerender } = render(
       <ArticleCard
@@ -140,6 +148,7 @@ describe('article presentational components', () => {
         isFocused={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -164,6 +173,7 @@ describe('article presentational components', () => {
         isSelected={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -177,6 +187,7 @@ describe('article presentational components', () => {
   it('renders the long-age list item timestamp branch as a locale date', () => {
     const onClick = vi.fn();
     const onStar = vi.fn();
+    const onToggleRead = vi.fn();
 
     render(
       <ArticleListItem
@@ -188,6 +199,7 @@ describe('article presentational components', () => {
         isSelected={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -197,6 +209,7 @@ describe('article presentational components', () => {
   it('covers featured image and compact placeholder magazine branches', () => {
     const onClick = vi.fn();
     const onStar = vi.fn();
+    const onToggleRead = vi.fn();
 
     const { container, rerender } = render(
       <ArticleMagazineItem
@@ -212,6 +225,7 @@ describe('article presentational components', () => {
         isFocused={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -231,6 +245,7 @@ describe('article presentational components', () => {
         isFocused={true}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -242,6 +257,7 @@ describe('article presentational components', () => {
   it('covers minute/day timestamp branches and missing published-at rendering', () => {
     const onClick = vi.fn();
     const onStar = vi.fn();
+    const onToggleRead = vi.fn();
 
     const { container, rerender } = render(
       <ArticleCard
@@ -252,6 +268,7 @@ describe('article presentational components', () => {
         isFocused={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -268,6 +285,7 @@ describe('article presentational components', () => {
         isSelected={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -285,6 +303,7 @@ describe('article presentational components', () => {
         isFocused={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -296,6 +315,7 @@ describe('article presentational components', () => {
   it('covers the remaining short-age and no-date branches across presentational variants', () => {
     const onClick = vi.fn();
     const onStar = vi.fn();
+    const onToggleRead = vi.fn();
 
     const { container, rerender } = render(
       <ArticleCard
@@ -306,6 +326,7 @@ describe('article presentational components', () => {
         isFocused={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -320,6 +341,7 @@ describe('article presentational components', () => {
         isFocused={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -336,6 +358,7 @@ describe('article presentational components', () => {
         isSelected={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -352,6 +375,7 @@ describe('article presentational components', () => {
         isSelected={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -369,6 +393,7 @@ describe('article presentational components', () => {
         isFocused={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -386,6 +411,7 @@ describe('article presentational components', () => {
         isFocused={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -395,6 +421,7 @@ describe('article presentational components', () => {
   it('covers missing card dates and featured untitled magazine headlines', () => {
     const onClick = vi.fn();
     const onStar = vi.fn();
+    const onToggleRead = vi.fn();
 
     const { container, rerender } = render(
       <ArticleCard
@@ -405,6 +432,7 @@ describe('article presentational components', () => {
         isFocused={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -422,6 +450,7 @@ describe('article presentational components', () => {
         isFocused={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
 
@@ -431,6 +460,7 @@ describe('article presentational components', () => {
   it('shows the unread dot only for unread articles and dims read ones', () => {
     const onClick = vi.fn();
     const onStar = vi.fn();
+    const onToggleRead = vi.fn();
 
     // Unread list item: dot present, row not dimmed.
     const unread = render(
@@ -440,6 +470,7 @@ describe('article presentational components', () => {
         isSelected={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
     expect(unread.getByLabelText('Unread')).toBeInTheDocument();
@@ -454,6 +485,7 @@ describe('article presentational components', () => {
         isSelected={false}
         onClick={onClick}
         onStar={onStar}
+        onToggleRead={onToggleRead}
       />,
     );
     expect(read.queryByLabelText('Unread')).not.toBeInTheDocument();
@@ -462,14 +494,59 @@ describe('article presentational components', () => {
 
     // Same signal in the card and magazine views.
     const card = render(
-      <ArticleCard article={baseArticle as any} isFocused={false} onClick={onClick} onStar={onStar} />,
+      <ArticleCard article={baseArticle as any} isFocused={false} onClick={onClick} onStar={onStar} onToggleRead={onToggleRead} />,
     );
     expect(card.getByLabelText('Unread')).toBeInTheDocument();
     card.unmount();
 
     const magazine = render(
-      <ArticleMagazineItem article={baseArticle as any} isFeatured={false} isFocused={false} onClick={onClick} onStar={onStar} />,
+      <ArticleMagazineItem article={baseArticle as any} isFeatured={false} isFocused={false} onClick={onClick} onStar={onStar} onToggleRead={onToggleRead} />,
     );
     expect(magazine.getByLabelText('Unread')).toBeInTheDocument();
+  });
+
+  it('exposes a read toggle on each variant that fires without opening the article', () => {
+    const onClick = vi.fn();
+    const onStar = vi.fn();
+    const onToggleRead = vi.fn();
+
+    // Unread article: the toggle invites you to mark it read.
+    const card = render(
+      <ArticleCard article={baseArticle as any} isFocused={false} onClick={onClick} onStar={onStar} onToggleRead={onToggleRead} />,
+    );
+    fireEvent.click(card.getByRole('button', { name: 'Mark as read' }));
+    expect(onToggleRead).toHaveBeenCalledTimes(1);
+    expect(onClick).not.toHaveBeenCalled();
+    card.unmount();
+
+    // Read article: the toggle flips to mark unread.
+    const listItem = render(
+      <ArticleListItem
+        article={{ ...baseArticle, isRead: true } as any}
+        isFocused={false}
+        isSelected={false}
+        onClick={onClick}
+        onStar={onStar}
+        onToggleRead={onToggleRead}
+      />,
+    );
+    fireEvent.click(listItem.getByRole('button', { name: 'Mark as unread' }));
+    expect(onToggleRead).toHaveBeenCalledTimes(2);
+    listItem.unmount();
+
+    // Featured and compact magazine variants both surface the toggle.
+    const featured = render(
+      <ArticleMagazineItem article={baseArticle as any} isFeatured={true} isFocused={false} onClick={onClick} onStar={onStar} onToggleRead={onToggleRead} />,
+    );
+    fireEvent.click(featured.getByRole('button', { name: 'Mark as read' }));
+    expect(onToggleRead).toHaveBeenCalledTimes(3);
+    featured.unmount();
+
+    const compact = render(
+      <ArticleMagazineItem article={baseArticle as any} isFeatured={false} isFocused={false} onClick={onClick} onStar={onStar} onToggleRead={onToggleRead} />,
+    );
+    fireEvent.click(compact.getByRole('button', { name: 'Mark as read' }));
+    expect(onToggleRead).toHaveBeenCalledTimes(4);
+    expect(onClick).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,6 @@
 import type { ArticleWithState } from '@lede/shared';
 import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
+import { ReadToggleButton } from '../shared/ReadToggleButton.js';
 import { UnreadDot } from '../shared/UnreadDot.js';
 
 interface Props {
@@ -8,9 +9,10 @@ interface Props {
   isSelected: boolean;
   onClick: () => void;
   onStar: () => void;
+  onToggleRead: () => void;
 }
 
-export function ArticleListItem({ article, isFocused, isSelected, onClick, onStar }: Props) {
+export function ArticleListItem({ article, isFocused, isSelected, onClick, onStar, onToggleRead }: Props) {
   const timeAgo = article.publishedAt ? formatTimeAgo(new Date(article.publishedAt)) : '';
 
   return (
@@ -36,6 +38,8 @@ export function ArticleListItem({ article, isFocused, isSelected, onClick, onSta
             <p className="text-xs text-text-secondary mt-1 line-clamp-2">{article.summary}</p>
           )}
         </div>
+
+        <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} />
 
         <button
           onClick={(e) => { e.stopPropagation(); onStar(); }}

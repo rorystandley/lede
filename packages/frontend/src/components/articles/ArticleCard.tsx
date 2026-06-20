@@ -1,5 +1,6 @@
 import type { ArticleWithState } from '@lede/shared';
 import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
+import { ReadToggleButton } from '../shared/ReadToggleButton.js';
 import { UnreadDot } from '../shared/UnreadDot.js';
 
 interface Props {
@@ -7,9 +8,10 @@ interface Props {
   isFocused: boolean;
   onClick: () => void;
   onStar: () => void;
+  onToggleRead: () => void;
 }
 
-export function ArticleCard({ article, isFocused, onClick, onStar }: Props) {
+export function ArticleCard({ article, isFocused, onClick, onStar, onToggleRead }: Props) {
   const timeAgo = article.publishedAt ? formatTimeAgo(new Date(article.publishedAt)) : '';
 
   return (
@@ -32,14 +34,18 @@ export function ArticleCard({ article, isFocused, onClick, onStar }: Props) {
               {article.title ?? 'Untitled'}
             </h3>
           </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); onStar(); }}
-            className={`p-0.5 shrink-0 ${article.isStarred ? 'text-yellow-500' : 'text-text-tertiary hover:text-yellow-500'}`}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill={article.isStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} size={12} className="p-0.5" />
+            <button
+              onClick={(e) => { e.stopPropagation(); onStar(); }}
+              aria-label={article.isStarred ? 'Unstar' : 'Star'}
+              className={`p-0.5 ${article.isStarred ? 'text-yellow-500' : 'text-text-tertiary hover:text-yellow-500'}`}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill={article.isStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            </button>
+          </div>
         </div>
         {article.summary && (
           <p className="text-xs text-text-secondary mt-2 line-clamp-3">{article.summary}</p>

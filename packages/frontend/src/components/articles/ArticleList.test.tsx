@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   useArticlesInfiniteMock: vi.fn(),
   useSearchMock: vi.fn(),
   useMarkReadMock: vi.fn(),
+  useMarkUnreadMock: vi.fn(),
   useStarArticleMock: vi.fn(),
   useUiStoreMock: vi.fn(),
   useKeyboardNavMock: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock('../../hooks/use-search.js', () => ({
 
 vi.mock('../../hooks/use-articles.js', () => ({
   useMarkRead: () => mocks.useMarkReadMock(),
+  useMarkUnread: () => mocks.useMarkUnreadMock(),
   useStarArticle: () => mocks.useStarArticleMock(),
 }));
 
@@ -68,28 +70,31 @@ vi.mock('@tanstack/react-virtual', () => ({
 }));
 
 vi.mock('./ArticleCard.js', () => ({
-  ArticleCard: ({ article, onClick, onStar, isFocused }: { article: { id: string; title: string }; onClick: () => void; onStar: () => void; isFocused: boolean }) => (
+  ArticleCard: ({ article, onClick, onStar, onToggleRead, isFocused }: { article: { id: string; title: string }; onClick: () => void; onStar: () => void; onToggleRead: () => void; isFocused: boolean }) => (
     <div data-testid={`card-${article.id}`} data-focused={String(isFocused)}>
       <button type="button" onClick={onClick}>{article.title}</button>
       <button type="button" onClick={onStar}>Star {article.id}</button>
+      <button type="button" onClick={onToggleRead}>Toggle read {article.id}</button>
     </div>
   ),
 }));
 
 vi.mock('./ArticleMagazineItem.js', () => ({
-  ArticleMagazineItem: ({ article, onClick, onStar, isFeatured, isFocused }: { article: { id: string; title: string }; onClick: () => void; onStar: () => void; isFeatured: boolean; isFocused: boolean }) => (
+  ArticleMagazineItem: ({ article, onClick, onStar, onToggleRead, isFeatured, isFocused }: { article: { id: string; title: string }; onClick: () => void; onStar: () => void; onToggleRead: () => void; isFeatured: boolean; isFocused: boolean }) => (
     <div data-testid={`magazine-${article.id}`} data-featured={String(isFeatured)} data-focused={String(isFocused)}>
       <button type="button" onClick={onClick}>{article.title}</button>
       <button type="button" onClick={onStar}>Star magazine {article.id}</button>
+      <button type="button" onClick={onToggleRead}>Toggle read magazine {article.id}</button>
     </div>
   ),
 }));
 
 vi.mock('./ArticleListItem.js', () => ({
-  ArticleListItem: ({ article, onClick, onStar, isFocused, isSelected }: { article: { id: string; title: string }; onClick: () => void; onStar: () => void; isFocused: boolean; isSelected: boolean }) => (
+  ArticleListItem: ({ article, onClick, onStar, onToggleRead, isFocused, isSelected }: { article: { id: string; title: string }; onClick: () => void; onStar: () => void; onToggleRead: () => void; isFocused: boolean; isSelected: boolean }) => (
     <div data-testid={`list-item-${article.id}`} data-focused={String(isFocused)} data-selected={String(isSelected)}>
       <button type="button" onClick={onClick}>{article.title}</button>
       <button type="button" onClick={onStar}>Star list {article.id}</button>
+      <button type="button" onClick={onToggleRead}>Toggle read list {article.id}</button>
     </div>
   ),
 }));
@@ -175,6 +180,7 @@ describe('ArticleList', () => {
     mocks.useArticlesInfiniteMock.mockReturnValue(infiniteState());
     mocks.useSearchMock.mockReturnValue({ data: { items: [] }, isLoading: false });
     mocks.useMarkReadMock.mockReturnValue({ mutate: vi.fn() });
+    mocks.useMarkUnreadMock.mockReturnValue({ mutate: vi.fn() });
     mocks.useStarArticleMock.mockReturnValue({ mutate: vi.fn() });
     mocks.markAllReadApiMock.mockResolvedValue({ marked: 2 });
     mocks.refreshAllApiMock.mockResolvedValue({ queued: true });
@@ -370,6 +376,28 @@ describe('ArticleList', () => {
         articles: expect.arrayContaining([expect.objectContaining({ id: 'article-1' })]),
       }),
     );
+  });
+
+  it('toggles read state from a feed item without opening the reader', async () => {
+    const user = userEvent.setup();
+    const markReadMutate = vi.fn();
+    const markUnreadMutate = vi.fn();
+    const selectArticle = vi.fn();
+    mocks.useUiStoreMock.mockReturnValue(uiState({ selectArticle }));
+    mocks.useMarkReadMock.mockReturnValue({ mutate: markReadMutate });
+    mocks.useMarkUnreadMock.mockReturnValue({ mutate: markUnreadMutate });
+
+    renderWithClient(<ArticleList />);
+
+    // Unread article -> mark read, and it does not open the reader.
+    await user.click(screen.getByRole('button', { name: 'Toggle read list article-1' }));
+    expect(markReadMutate).toHaveBeenCalledWith(['article-1']);
+    expect(markUnreadMutate).not.toHaveBeenCalled();
+    expect(selectArticle).not.toHaveBeenCalled();
+
+    // Already-read article -> mark unread.
+    await user.click(screen.getByRole('button', { name: 'Toggle read list article-2' }));
+    expect(markUnreadMutate).toHaveBeenCalledWith(['article-2']);
   });
 
   it('passes combined filter params, uses search results, and handles singular mark-all-read scope', async () => {
