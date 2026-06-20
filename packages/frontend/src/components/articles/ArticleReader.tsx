@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { aiApi, articlesApi, sharingApi } from '../../api/index.js';
 import { tagsApi } from '../../api/tags.api.js';
 import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
+import { SaveButton } from '../shared/SaveButton.js';
 import { AnnotatedContent } from './AnnotatedContent.js';
 
 /** Mirror of backend isThinContent — keep them in sync. */
@@ -246,15 +247,12 @@ export function ArticleReader() {
               )}
               {suggestTagsMut.isPending ? 'Thinking...' : 'Tags'}
             </button>
-            <button
-              onClick={() => starArticle.mutate({ articleId: article.id, isStarred: !article.isStarred })}
-              className={`p-2 md:p-1.5 rounded ${article.isStarred ? 'text-yellow-500' : 'text-text-tertiary hover:text-yellow-500'}`}
-              aria-label={article.isStarred ? 'Unstar' : 'Star'}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill={article.isStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
-            </button>
+            <SaveButton
+              isSaved={article.isStarred}
+              onToggle={() => starArticle.mutate({ articleId: article.id, isStarred: !article.isStarred })}
+              size={16}
+              className="p-2 md:p-1.5 rounded"
+            />
             <button
               onClick={() => handleShare(article.id)}
               disabled={shareStatus === 'loading'}

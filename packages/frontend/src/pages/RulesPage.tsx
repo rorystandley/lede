@@ -128,7 +128,7 @@ function RuleEditor({ ruleId, tags, feeds, onSave, onCancel }: {
 
       <div className="mb-3">
         <label className="block text-xs text-text-secondary mb-1">Rule Name</label>
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Star AI articles"
+        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Save AI articles"
           className="w-full px-2.5 py-1.5 text-sm bg-surface border border-border rounded text-text-primary focus:outline-none focus:ring-1 focus:ring-primary-500" />
       </div>
 
@@ -184,7 +184,7 @@ function RuleEditor({ ruleId, tags, feeds, onSave, onCancel }: {
           <div key={i} className="flex gap-2 mb-1.5">
             <select value={action.type} onChange={(e) => { const a = [...actions]; a[i] = { type: e.target.value as RuleAction['type'] }; setActions(a); }}
               className="px-2 py-1 text-xs bg-surface border border-border rounded text-text-primary">
-              <option value="star">Star article</option>
+              <option value="star">Save article</option>
               <option value="mark_read">Mark as read</option>
               <option value="mark_archived">Archive</option>
               <option value="tag">Apply tag</option>

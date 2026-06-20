@@ -167,7 +167,7 @@ describe('RulesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save Rule' }));
     expect(rulesApi.create).not.toHaveBeenCalled();
 
-    fireEvent.change(screen.getByPlaceholderText('e.g. Star AI articles'), { target: { value: 'Route feed to tag' } });
+    fireEvent.change(screen.getByPlaceholderText('e.g. Save AI articles'), { target: { value: 'Route feed to tag' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save Rule' }));
     expect(rulesApi.create).not.toHaveBeenCalled();
 
@@ -229,7 +229,7 @@ describe('RulesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save Rule' }));
     expect(rulesApi.update).not.toHaveBeenCalled();
 
-    fireEvent.change(screen.getByPlaceholderText('e.g. Star AI articles'), { target: { value: 'Updated rule' } });
+    fireEvent.change(screen.getByPlaceholderText('e.g. Save AI articles'), { target: { value: 'Updated rule' } });
     fireEvent.change(screen.getByPlaceholderText('value...'), { target: { value: 'TypeScript' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save Rule' }));
 
