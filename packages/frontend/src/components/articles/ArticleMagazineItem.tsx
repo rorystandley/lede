@@ -60,16 +60,16 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
   return (
     <div
       onClick={onClick}
-      className={`rounded-lg border cursor-pointer overflow-hidden transition-all ${
+      className={`flex flex-col h-full rounded-lg border cursor-pointer overflow-hidden transition-all ${
         isFocused ? 'border-primary-400 shadow-md' : 'border-border hover:shadow-sm'
       } bg-surface ${article.isRead ? 'opacity-60' : ''}`}
     >
       {article.imageUrl ? (
-        <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full h-32 object-cover" />
+        <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full h-32 object-cover shrink-0" />
       ) : (
-        <div className="w-full h-32"><ArticlePlaceholder size="card" seed={article.id} /></div>
+        <div className="w-full h-32 shrink-0"><ArticlePlaceholder size="card" seed={article.id} /></div>
       )}
-      <div className="p-3">
+      <div className="p-3 flex-1 flex flex-col">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[10px] text-text-tertiary truncate">{article.feedTitle}</span>
           {timeAgo && <span className="text-[10px] text-text-tertiary">{timeAgo}</span>}
@@ -80,8 +80,9 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
             {article.title ?? 'Untitled'}
           </h3>
         </div>
-        {/* Action bar pinned to the bottom-right, matching the Cards view. */}
-        <div className="flex items-center justify-end gap-1 mt-2">
+        {/* Action bar pinned to the bottom so it aligns across cards of varying
+            title length, matching the Cards view. */}
+        <div className="flex items-center justify-end gap-1 mt-auto pt-2">
           <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} size={14} />
           <SaveButton isSaved={article.isStarred} onToggle={onStar} size={14} />
         </div>

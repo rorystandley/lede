@@ -18,16 +18,16 @@ export function ArticleCard({ article, isFocused, onClick, onStar, onToggleRead 
   return (
     <div
       onClick={onClick}
-      className={`rounded-lg border cursor-pointer overflow-hidden transition-all ${
+      className={`flex flex-col h-full rounded-lg border cursor-pointer overflow-hidden transition-all ${
         isFocused ? 'border-primary-400 shadow-md' : 'border-border hover:shadow-sm'
       } bg-surface ${article.isRead ? 'opacity-60' : ''}`}
     >
       {article.imageUrl ? (
-        <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full h-40 object-cover" />
+        <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-full h-40 object-cover shrink-0" />
       ) : (
-        <div className="w-full h-40"><ArticlePlaceholder size="card" seed={article.id} /></div>
+        <div className="w-full h-40 shrink-0"><ArticlePlaceholder size="card" seed={article.id} /></div>
       )}
-      <div className="p-4">
+      <div className="p-4 flex-1 flex flex-col">
         <div className="flex items-start gap-2">
           {!article.isRead && <UnreadDot className="mt-1 shrink-0" />}
           <h3 className={`text-sm leading-snug line-clamp-2 ${article.isRead ? 'text-text-secondary font-normal' : 'text-text-primary font-semibold'}`}>
@@ -46,8 +46,9 @@ export function ArticleCard({ article, isFocused, onClick, onStar, onToggleRead 
             ))}
           </div>
         )}
-        {/* Action bar: source + time on the left, actions on the right. */}
-        <div className="flex items-center gap-2 mt-3 text-xs text-text-tertiary">
+        {/* Action bar pinned to the bottom so it aligns across cards of varying
+            title/summary length. source + time on the left, actions on the right. */}
+        <div className="flex items-center gap-2 mt-auto pt-3 text-xs text-text-tertiary">
           <span className="truncate min-w-0">{article.feedTitle}</span>
           {timeAgo && <span className="shrink-0">{timeAgo}</span>}
           <div className="ml-auto flex items-center gap-1 shrink-0">
