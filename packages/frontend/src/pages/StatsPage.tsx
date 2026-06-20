@@ -27,7 +27,7 @@ export function StatsPage({ onClose }: Props) {
           {/* Summary cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <StatCard label="Articles Read" value={summary?.totalArticlesRead ?? 0} />
-            <StatCard label="Starred" value={summary?.totalStarred ?? 0} />
+            <StatCard label="Saved" value={summary?.totalStarred ?? 0} />
             <StatCard label="Feeds" value={summary?.totalFeeds ?? 0} />
             <StatCard label="This Week" value={summary?.weeklyArticlesRead ?? 0} subtitle={summary ? `${summary.weeklyReadingTimeMin} min` : undefined} />
           </div>

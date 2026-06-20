@@ -57,7 +57,7 @@ describe('article presentational components', () => {
     fireEvent.click(screen.getByText('Story title'));
     expect(onClick).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Star' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(onStar).toHaveBeenCalled();
     expect(onClick).toHaveBeenCalledTimes(1);
   });
@@ -79,11 +79,11 @@ describe('article presentational components', () => {
     );
 
     expect(container.querySelector('img[src="https://example.com/image.jpg"]')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Unstar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove from saved' })).toBeInTheDocument();
     expect(container.querySelector('.bg-primary-50')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Story title'));
-    fireEvent.click(screen.getByRole('button', { name: 'Unstar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove from saved' }));
 
     expect(onClick).toHaveBeenCalledTimes(1);
     expect(onStar).toHaveBeenCalledTimes(1);
@@ -109,7 +109,7 @@ describe('article presentational components', () => {
     expect(screen.getByText('Story summary')).toBeInTheDocument();
     expect(screen.getByTestId('placeholder-card-article-1')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Star' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(onStar).toHaveBeenCalledTimes(1);
 
     rerender(
@@ -126,6 +126,11 @@ describe('article presentational components', () => {
     expect(screen.getByText('Untitled')).toBeInTheDocument();
     expect(container.querySelector('img[src="https://example.com/mag.jpg"]')).toBeInTheDocument();
     expect(screen.queryByText('Story summary')).not.toBeInTheDocument();
+
+    // The compact (non-featured) magazine card also surfaces the Save button —
+    // previously the star only appeared on the featured item.
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onStar).toHaveBeenCalledTimes(2);
   });
 
   it('covers fallback branches for card and list item timestamps, titles, and placeholders', () => {
@@ -181,7 +186,7 @@ describe('article presentational components', () => {
     expect(screen.getByTestId('placeholder-thumb-article-1')).toBeInTheDocument();
     expect(screen.getByText('now')).toBeInTheDocument();
     expect(container.querySelector('.bg-surface-tertiary')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Star' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   });
 
   it('renders the long-age list item timestamp branch as a locale date', () => {

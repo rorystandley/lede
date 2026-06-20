@@ -1,6 +1,7 @@
 import type { ArticleWithState } from '@lede/shared';
 import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
 import { ReadToggleButton } from '../shared/ReadToggleButton.js';
+import { SaveButton } from '../shared/SaveButton.js';
 import { UnreadDot } from '../shared/UnreadDot.js';
 
 interface Props {
@@ -45,15 +46,7 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
               </div>
               <div className="flex items-center gap-0.5 shrink-0">
                 <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} size={16} />
-                <button
-                  onClick={(e) => { e.stopPropagation(); onStar(); }}
-                  aria-label={article.isStarred ? 'Unstar' : 'Star'}
-                  className={`p-1 ${article.isStarred ? 'text-yellow-500' : 'text-text-tertiary hover:text-yellow-500'}`}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill={article.isStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                </button>
+                <SaveButton isSaved={article.isStarred} onToggle={onStar} size={16} />
               </div>
             </div>
             {article.summary && (
@@ -81,7 +74,10 @@ export function ArticleMagazineItem({ article, isFeatured, isFocused, onClick, o
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[10px] text-text-tertiary truncate">{article.feedTitle}</span>
           {timeAgo && <span className="text-[10px] text-text-tertiary">{timeAgo}</span>}
-          <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} size={12} className="ml-auto p-0.5" />
+          <div className="ml-auto flex items-center gap-0.5 shrink-0">
+            <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} size={12} className="p-0.5" />
+            <SaveButton isSaved={article.isStarred} onToggle={onStar} size={12} className="p-0.5" />
+          </div>
         </div>
         <div className="flex items-start gap-1.5">
           {!article.isRead && <UnreadDot className="mt-1.5 shrink-0" />}

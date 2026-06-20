@@ -202,7 +202,7 @@ describe('ArticleReader', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(selectArticle).toHaveBeenCalledWith(null);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Star' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(mocks.starMutate).toHaveBeenCalledWith({ articleId: 'article-1', isStarred: true });
 
     fireEvent.click(screen.getByRole('button', { name: 'Share article' }));
@@ -354,7 +354,7 @@ describe('ArticleReader', () => {
 
     renderReader();
 
-    expect(screen.getByRole('button', { name: 'Unstar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove from saved' })).toBeInTheDocument();
     expect(screen.getByTestId('annotated-content')).toHaveTextContent('https://example.com/not%20a%20valid%20url');
     expect(screen.getByTestId('annotated-content')).not.toHaveTextContent('srcset=');
 

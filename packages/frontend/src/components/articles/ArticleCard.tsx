@@ -1,6 +1,7 @@
 import type { ArticleWithState } from '@lede/shared';
 import { ArticlePlaceholder } from '../shared/ArticlePlaceholder.js';
 import { ReadToggleButton } from '../shared/ReadToggleButton.js';
+import { SaveButton } from '../shared/SaveButton.js';
 import { UnreadDot } from '../shared/UnreadDot.js';
 
 interface Props {
@@ -51,15 +52,7 @@ export function ArticleCard({ article, isFocused, onClick, onStar, onToggleRead 
           {timeAgo && <span className="shrink-0">{timeAgo}</span>}
           <div className="ml-auto flex items-center gap-1 shrink-0">
             <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} size={16} />
-            <button
-              onClick={(e) => { e.stopPropagation(); onStar(); }}
-              aria-label={article.isStarred ? 'Unstar' : 'Star'}
-              className={`p-1 ${article.isStarred ? 'text-yellow-500' : 'text-text-tertiary hover:text-yellow-500'}`}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill={article.isStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
-            </button>
+            <SaveButton isSaved={article.isStarred} onToggle={onStar} size={16} />
           </div>
         </div>
       </div>

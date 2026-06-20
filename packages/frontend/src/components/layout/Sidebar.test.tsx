@@ -280,7 +280,7 @@ describe('Sidebar', () => {
     await user.click(screen.getByRole('button', { name: /News Feed/i }));
     expect(uiState.clearFilters).toHaveBeenCalledTimes(1);
 
-    await user.click(screen.getByRole('button', { name: /Starred/i }));
+    await user.click(screen.getByRole('button', { name: /Saved/i }));
     expect(uiState.setShowStarred).toHaveBeenCalledWith(true);
 
     const searchInput = screen.getByPlaceholderText('Search... (press /)');
@@ -623,7 +623,7 @@ describe('Sidebar', () => {
 
     renderWithClient(<Sidebar />);
 
-    expect(screen.getByRole('button', { name: /Starred/i }).querySelector('svg')).toHaveAttribute('fill', 'currentColor');
+    expect(screen.getByRole('button', { name: /Saved/i }).querySelector('svg')).toHaveAttribute('fill', 'currentColor');
     expect(screen.getByRole('button', { name: /Digest/i })).toHaveClass('bg-primary-50');
     expect(screen.getByRole('button', { name: /Plain/i })).toHaveClass('bg-primary-100');
     expect(screen.getByText('Saving...')).toBeInTheDocument();

@@ -45,7 +45,7 @@ export function ArticleList() {
   const { selectedFeedId, selectedFolderId, selectedTagId, selectedArticleId, selectArticle, focusedArticleIndex, viewMode, searchQuery, isSearching, showStarred, readFilter, setReadFilter } = useUiStore();
 
   // Feed-like views (News Feed aggregate, a specific feed, a folder, or a tag)
-  // support the Unread / All toggle. Starred and search are excluded: starred
+  // support the Unread / All toggle. Saved and search are excluded: saved
   // should always surface read items, and search has its own result path.
   const supportsReadFilter = !showStarred && !isSearching;
   const unreadOnly = supportsReadFilter && readFilter === 'unread';
