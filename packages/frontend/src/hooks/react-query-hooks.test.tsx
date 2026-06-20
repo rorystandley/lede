@@ -487,5 +487,7 @@ describe('React Query hooks', () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['articles'] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['feeds'] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['article'] });
+    // Starring must refresh the infinite feed/Saved view, not just ['articles'].
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['articles-infinite'] });
   });
 });

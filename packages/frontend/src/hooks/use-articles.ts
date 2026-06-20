@@ -45,7 +45,10 @@ export function useStarArticle() {
     mutationFn: ({ articleId, isStarred }: { articleId: string; isStarred: boolean }) =>
       articlesApi.star(articleId, isStarred),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['articles'] });
+      // The feed and the sidebar's "Saved" view are driven by the infinite
+      // query (['articles-infinite']), so invalidate that key — ['articles']
+      // does not prefix-match it and would leave the bookmark/Saved view stale.
+      qc.invalidateQueries({ queryKey: ['articles-infinite'] });
       qc.invalidateQueries({ queryKey: ['article'] });
     },
   });
