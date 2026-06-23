@@ -32,6 +32,10 @@ vi.mock('../components/articles/ArticleReader.js', () => ({
   },
 }));
 
+vi.mock('../hooks/use-document-title.js', () => ({
+  useUnreadTitle: vi.fn(),
+}));
+
 describe('FeedPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
