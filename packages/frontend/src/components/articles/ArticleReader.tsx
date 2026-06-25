@@ -205,11 +205,11 @@ export function ArticleReader() {
       <div className="p-4 md:p-6">
         <div
           data-testid="article-reader-toolbar"
-          className="sticky top-0 z-20 -mx-4 -mt-4 mb-4 flex items-center justify-between gap-3 border-b border-border bg-surface-secondary/95 px-4 py-3 backdrop-blur md:-mx-6 md:-mt-6 md:px-6"
+          className="sticky top-0 z-20 -mx-4 -mt-4 mb-4 flex h-10 items-center justify-between gap-3 border-b border-border bg-surface-secondary px-4 md:-mx-6 md:-mt-6"
         >
           <button
             onClick={() => selectArticle(null)}
-            className="p-2 -ml-2 rounded text-sm text-text-secondary hover:bg-surface-tertiary hover:text-text-primary flex shrink-0 items-center gap-1"
+            className="p-1.5 -ml-1.5 rounded text-sm text-text-secondary hover:bg-surface-tertiary hover:text-text-primary flex shrink-0 items-center gap-1"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="15 18 9 12 15 6" />
