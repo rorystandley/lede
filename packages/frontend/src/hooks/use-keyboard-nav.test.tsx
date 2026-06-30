@@ -91,4 +91,16 @@ describe('useKeyboardNav', () => {
 
     input.remove();
   });
+
+  it('ignores browser shortcuts and does not move focus for an empty feed', () => {
+    const { rerender } = render(<TestHarness articles={articles} onStar={vi.fn()} />);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'j', metaKey: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'j', ctrlKey: true }));
+    expect(storeState.setFocusedArticleIndex).not.toHaveBeenCalled();
+
+    rerender(<TestHarness articles={[]} onStar={vi.fn()} />);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'j' }));
+    expect(storeState.setFocusedArticleIndex).not.toHaveBeenCalled();
+  });
 });

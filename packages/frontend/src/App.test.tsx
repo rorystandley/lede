@@ -21,12 +21,13 @@ vi.mock('./stores/index.js', () => ({
 }));
 
 vi.mock('./components/layout/Header.js', () => ({
-  Header: ({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats }: Record<string, () => void>) => (
+  Header: ({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats, onOpenKeyboardShortcuts }: Record<string, () => void>) => (
     <div>
       <button onClick={onOpenSettings}>settings</button>
       <button onClick={onOpenRules}>rules</button>
       <button onClick={onOpenDigest}>digest</button>
       <button onClick={onOpenStats}>stats</button>
+      <button onClick={onOpenKeyboardShortcuts}>shortcuts</button>
     </div>
   ),
 }));
@@ -125,5 +126,18 @@ describe('App', () => {
     expect(screen.queryByText('rules-page')).not.toBeInTheDocument();
     expect(screen.queryByText('stats-page')).not.toBeInTheDocument();
     expect(screen.queryByText('add-sources-page')).not.toBeInTheDocument();
+  });
+
+  it('opens shortcut help from the header or ? key and closes it with Escape', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByText('shortcuts'));
+    expect(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).not.toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: '?', shiftKey: true });
+    expect(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeInTheDocument();
   });
 });

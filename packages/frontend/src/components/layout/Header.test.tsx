@@ -35,6 +35,7 @@ describe('Header', () => {
     const onOpenRules = vi.fn();
     const onOpenDigest = vi.fn();
     const onOpenStats = vi.fn();
+    const onOpenKeyboardShortcuts = vi.fn();
 
     render(
       <Header
@@ -42,6 +43,7 @@ describe('Header', () => {
         onOpenRules={onOpenRules}
         onOpenDigest={onOpenDigest}
         onOpenStats={onOpenStats}
+        onOpenKeyboardShortcuts={onOpenKeyboardShortcuts}
       />,
     );
 
@@ -52,6 +54,7 @@ describe('Header', () => {
     fireEvent.click(screen.getByLabelText('Morning Briefing'));
     fireEvent.click(screen.getByLabelText('Rules'));
     fireEvent.click(screen.getByLabelText('Settings'));
+    fireEvent.click(screen.getByLabelText('Keyboard shortcuts'));
     fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
 
     expect(toggleSidebarMock).toHaveBeenCalled();
@@ -61,7 +64,12 @@ describe('Header', () => {
     expect(onOpenDigest).toHaveBeenCalled();
     expect(onOpenRules).toHaveBeenCalled();
     expect(onOpenSettings).toHaveBeenCalled();
+    expect(onOpenKeyboardShortcuts).toHaveBeenCalled();
     expect(logoutMock).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByLabelText('More options'));
+    fireEvent.click(screen.getByText('Keyboard shortcuts'));
+    expect(onOpenKeyboardShortcuts).toHaveBeenCalledTimes(2);
   });
 
   it('renders the dark theme icon state and omits logout without a user', () => {
