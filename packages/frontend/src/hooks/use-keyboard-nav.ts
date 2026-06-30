@@ -14,14 +14,25 @@ export function useKeyboardNav({ articles, onStar, onMarkRead }: UseKeyboardNavO
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      if (
+        e.defaultPrevented ||
+        e.metaKey ||
+        e.ctrlKey ||
+        e.altKey ||
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) return;
 
       const article = articles[focusedArticleIndex];
 
       switch (e.key) {
         case 'j':
           e.preventDefault();
-          setFocusedArticleIndex(Math.min(focusedArticleIndex + 1, articles.length - 1));
+          if (articles.length > 0) {
+            setFocusedArticleIndex(Math.min(focusedArticleIndex + 1, articles.length - 1));
+          }
           break;
         case 'k':
           e.preventDefault();

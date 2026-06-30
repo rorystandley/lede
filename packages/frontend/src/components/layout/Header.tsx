@@ -6,9 +6,10 @@ interface HeaderProps {
   onOpenRules?: () => void;
   onOpenDigest?: () => void;
   onOpenStats?: () => void;
+  onOpenKeyboardShortcuts?: () => void;
 }
 
-export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats }: HeaderProps) {
+export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats, onOpenKeyboardShortcuts }: HeaderProps) {
   const { theme, toggleTheme, toggleSidebar, viewMode, setViewMode } = useUiStore();
   const { user, logout } = useAuthStore();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -107,6 +108,16 @@ export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats 
               </svg>
             </button>
           )}
+          {onOpenKeyboardShortcuts && (
+            <button
+              onClick={onOpenKeyboardShortcuts}
+              className="p-1.5 rounded hover:bg-surface-tertiary text-text-secondary"
+              aria-label="Keyboard shortcuts"
+              title="Keyboard shortcuts (?)"
+            >
+              <KeyboardIcon />
+            </button>
+          )}
           {user && (
             <button onClick={logout} className="text-xs text-text-secondary hover:text-text-primary px-2 py-1">
               Logout
@@ -139,6 +150,9 @@ export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats 
               {onOpenSettings && (
                 <MobileMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>} label="Settings" onClick={() => { onOpenSettings(); setMoreOpen(false); }} />
               )}
+              {onOpenKeyboardShortcuts && (
+                <MobileMenuItem icon={<KeyboardIcon />} label="Keyboard shortcuts" onClick={() => { onOpenKeyboardShortcuts(); setMoreOpen(false); }} />
+              )}
               {user && (
                 <>
                   <div className="border-t border-border my-1" />
@@ -159,6 +173,15 @@ function MobileMenuItem({ icon, label, onClick }: { icon: React.ReactNode; label
       {icon}
       {label}
     </button>
+  );
+}
+
+function KeyboardIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M7 9h.01M11 9h.01M15 9h.01M19 9h.01M7 13h.01M11 13h.01M15 13h.01M8 16h8" />
+    </svg>
   );
 }
 
