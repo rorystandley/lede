@@ -113,14 +113,14 @@ describe('articleService', () => {
     const rows = [{
       article: {
         id: 'article-1',
-        title: 'Story',
-        summary: 'Summary',
+        title: 'Story &#8216;quoted&#8217;',
+        summary: 'Summary &amp; context',
         contentHtml: '<p>Body</p>',
         imageUrl: 'https://example.com/image.jpg',
         createdAt,
         publishedAt,
       },
-      feedTitle: 'Feed',
+      feedTitle: 'Feed &amp; friends',
       feedFaviconUrl: 'https://example.com/favicon.ico',
       isRead: true,
       isStarred: false,
@@ -153,13 +153,13 @@ describe('articleService', () => {
     })).resolves.toEqual({
       items: [{
         id: 'article-1',
-        title: 'Story',
-        summary: 'Summary',
+        title: 'Story ‘quoted’',
+        summary: 'Summary & context',
         contentHtml: 'safe:<p>Body</p>',
         imageUrl: 'img:https://example.com/image.jpg',
         createdAt: '2026-06-06T12:00:00.000Z',
         publishedAt: '2026-06-06T10:00:00.000Z',
-        feedTitle: 'Feed',
+        feedTitle: 'Feed & friends',
         feedFaviconUrl: 'https://example.com/favicon.ico',
         isRead: true,
         isStarred: false,
@@ -178,7 +178,7 @@ describe('articleService', () => {
     expect(mainChain.orderBy).toHaveBeenCalledTimes(1);
     expect(selectDistinctOnMock).toHaveBeenCalledTimes(1);
     expect(distinctOn.where).toHaveBeenCalledTimes(1);
-    expect(sanitizeArticleDisplayHtml).toHaveBeenCalledWith('<p>Body</p>', 'Summary');
+    expect(sanitizeArticleDisplayHtml).toHaveBeenCalledWith('<p>Body</p>', 'Summary &amp; context');
     expect(sanitizeArticleImageUrl).toHaveBeenCalledWith('https://example.com/image.jpg');
   });
 

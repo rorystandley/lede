@@ -262,6 +262,37 @@ describe('feed parser', () => {
     });
   });
 
+  it('decodes character references in feed metadata', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: vi.fn().mockResolvedValue('<rss version="2.0"></rss>'),
+      headers: { get: vi.fn(() => 'application/rss+xml') },
+    });
+    parseStringMock.mockResolvedValue({
+      title: 'The Verge &amp; friends',
+      description: 'News &hellip; daily',
+      items: [{
+        guid: 'encoded-story',
+        title: 'Meta &#8216;rate limits&#8217;',
+        creator: 'Jane &amp; John',
+        contentSnippet: 'It&#x2019;s a soft paywall &hellip;',
+      }],
+    });
+
+    const { parseFeed } = await import('./feed-parser.js');
+
+    await expect(parseFeed('https://feeds.example.com/entities')).resolves.toMatchObject({
+      title: 'The Verge & friends',
+      description: 'News … daily',
+      items: [{
+        title: 'Meta ‘rate limits’',
+        author: 'Jane & John',
+        summary: 'It’s a soft paywall …',
+      }],
+    });
+  });
+
   it('extracts images from media:content, media:thumbnail, and itunes:image', async () => {
     fetchMock
       .mockResolvedValueOnce({
