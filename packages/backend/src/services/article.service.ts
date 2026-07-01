@@ -2,6 +2,7 @@ import { eq, and, sql, count, inArray, type SQL } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
 import { articles, userArticleStates, feeds, userFeedSubscriptions, articleTags, tags } from '../db/schema/index.js';
 import { sanitizeArticleDisplayHtml, sanitizeArticleImageUrl } from '../lib/html-sanitizer.js';
+import { decodeHtmlEntities } from '../lib/html-entities.js';
 import { accessControlService } from './access-control.service.js';
 import type { ArticleWithState, PaginatedResult, ListArticlesQuery, SearchArticlesQuery } from '@lede/shared';
 
@@ -20,6 +21,17 @@ const articleDedupeKey = sql`lower(coalesce(
 ))`;
 
 type DedupeScope = { feedId?: string; folderId?: string };
+
+function decodeArticleMetadata<
+  T extends { title?: string | null; author?: string | null; summary?: string | null },
+>(article: T): T {
+  return {
+    ...article,
+    ...(article.title !== undefined ? { title: decodeHtmlEntities(article.title) } : {}),
+    ...(article.author !== undefined ? { author: decodeHtmlEntities(article.author) } : {}),
+    ...(article.summary !== undefined ? { summary: decodeHtmlEntities(article.summary) } : {}),
+  } as T;
+}
 
 export class ArticleService {
   /**
@@ -131,12 +143,12 @@ export class ArticleService {
       .offset(offset);
 
     const items: ArticleWithState[] = rows.map((r) => ({
-      ...r.article,
+      ...decodeArticleMetadata(r.article),
       contentHtml: sanitizeArticleDisplayHtml(r.article.contentHtml, r.article.summary),
       imageUrl: sanitizeArticleImageUrl(r.article.imageUrl),
       createdAt: r.article.createdAt.toISOString(),
       publishedAt: r.article.publishedAt?.toISOString() ?? null,
-      feedTitle: r.feedTitle,
+      feedTitle: decodeHtmlEntities(r.feedTitle),
       feedFaviconUrl: r.feedFaviconUrl,
       isRead: r.isRead,
       isStarred: r.isStarred,
@@ -212,12 +224,12 @@ export class ArticleService {
       .where(and(eq(articleTags.articleId, articleId), eq(articleTags.userId, userId)));
 
     return {
-      ...row.article,
+      ...decodeArticleMetadata(row.article),
       contentHtml: sanitizeArticleDisplayHtml(row.article.contentHtml, row.article.summary),
       imageUrl: sanitizeArticleImageUrl(row.article.imageUrl),
       createdAt: row.article.createdAt.toISOString(),
       publishedAt: row.article.publishedAt?.toISOString() ?? null,
-      feedTitle: row.feedTitle,
+      feedTitle: decodeHtmlEntities(row.feedTitle),
       feedFaviconUrl: row.feedFaviconUrl,
       isRead: row.isRead,
       isStarred: row.isStarred,
@@ -380,12 +392,12 @@ export class ArticleService {
       .offset(offset);
 
     const items: ArticleWithState[] = rows.map((r) => ({
-      ...r.article,
+      ...decodeArticleMetadata(r.article),
       contentHtml: sanitizeArticleDisplayHtml(r.article.contentHtml, r.article.summary),
       imageUrl: sanitizeArticleImageUrl(r.article.imageUrl),
       createdAt: r.article.createdAt.toISOString(),
       publishedAt: r.article.publishedAt?.toISOString() ?? null,
-      feedTitle: r.feedTitle,
+      feedTitle: decodeHtmlEntities(r.feedTitle),
       feedFaviconUrl: r.feedFaviconUrl,
       isRead: r.isRead,
       isStarred: r.isStarred,

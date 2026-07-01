@@ -1,5 +1,6 @@
 import Parser from 'rss-parser';
 import type { FeedType } from '@lede/shared';
+import { decodeHtmlEntities } from './html-entities.js';
 
 type MediaContent = { $?: { url?: string; medium?: string; type?: string } };
 
@@ -108,9 +109,9 @@ function parseJsonFeed(body: string): ParsedFeed {
     return {
       guid: (item.id as string) ?? (item.url as string) ?? (item.title as string) ?? crypto.randomUUID(),
       url: (item.url as string) ?? (item.external_url as string) ?? null,
-      title: (item.title as string) ?? null,
-      author,
-      summary,
+      title: decodeHtmlEntities((item.title as string) ?? null),
+      author: decodeHtmlEntities(author),
+      summary: decodeHtmlEntities(summary),
       contentHtml,
       imageUrl,
       publishedAt: dateStr ? new Date(dateStr) : null,
@@ -118,8 +119,8 @@ function parseJsonFeed(body: string): ParsedFeed {
   });
 
   return {
-    title: (json.title as string) ?? null,
-    description: (json.description as string) ?? null,
+    title: decodeHtmlEntities((json.title as string) ?? null),
+    description: decodeHtmlEntities((json.description as string) ?? null),
     siteUrl: (json.home_page_url as string) ?? null,
     feedType: 'json',
     items,
@@ -191,9 +192,9 @@ export async function parseFeed(url: string): Promise<ParsedFeed> {
     return {
       guid: item.guid ?? item.link ?? item.title ?? crypto.randomUUID(),
       url: item.link ?? null,
-      title: item.title ?? null,
-      author: item.creator ?? item.author ?? null,
-      summary,
+      title: decodeHtmlEntities(item.title ?? null),
+      author: decodeHtmlEntities(item.creator ?? item.author ?? null),
+      summary: decodeHtmlEntities(summary),
       contentHtml,
       imageUrl,
       publishedAt: item.isoDate ? new Date(item.isoDate) : null,
@@ -201,8 +202,8 @@ export async function parseFeed(url: string): Promise<ParsedFeed> {
   });
 
   return {
-    title: feed.title ?? null,
-    description: feed.description ?? null,
+    title: decodeHtmlEntities(feed.title ?? null),
+    description: decodeHtmlEntities(feed.description ?? null),
     siteUrl: feed.link ?? null,
     feedType,
     items,
