@@ -143,13 +143,16 @@ export function ArticleList() {
 
   const toolbar = (
     <>
-    <div className="flex items-center justify-between px-4 h-10 border-b border-border bg-surface-secondary shrink-0">
-      <div className="text-xs text-text-tertiary">
+    <div
+      data-testid="article-list-toolbar"
+      className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b border-border bg-surface-secondary px-3 py-1.5 min-h-10 shrink-0 sm:h-10 sm:flex-nowrap sm:px-4 sm:py-0"
+    >
+      <div className="shrink-0 text-xs text-text-tertiary">
         {totalCount} {totalCount === 1 ? 'article' : 'articles'}
       </div>
-      <div className="flex items-center gap-1">
+      <div className="ml-auto flex min-w-0 items-center gap-1">
         {supportsReadFilter && (
-          <div className="flex bg-surface-tertiary rounded p-0.5 mr-1" role="group" aria-label="Filter by read state">
+          <div className="mr-1 flex shrink-0 rounded bg-surface-tertiary p-0.5" role="group" aria-label="Filter by read state">
             {(['unread', 'all'] as const).map((filter) => (
               <button
                 key={filter}
@@ -175,13 +178,14 @@ export function ArticleList() {
         <button
           onClick={() => { if (totalCount > 0) setConfirmMarkAllOpen(true); }}
           disabled={markAllReadMut.isPending || articles.length === 0}
-          className="flex items-center gap-1.5 px-2 py-1 rounded text-xs border border-border text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50"
+          className="flex shrink-0 items-center gap-1.5 rounded border border-border p-1.5 text-xs text-text-secondary hover:bg-surface-tertiary hover:text-text-primary disabled:opacity-50 sm:px-2 sm:py-1"
           title="Mark all read"
+          aria-label="Mark all read"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </svg>
-          <span>Mark all read</span>
+          <span className="hidden sm:inline">Mark all read</span>
         </button>
       </div>
     </div>

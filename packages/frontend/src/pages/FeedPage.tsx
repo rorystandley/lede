@@ -13,10 +13,10 @@ export function FeedPage({ onOpenAddSources }: Props) {
   useUnreadTitle();
 
   return (
-    <div className="flex flex-1 overflow-hidden">
+    <div className="flex min-w-0 flex-1 overflow-hidden">
       <Sidebar onOpenAddSources={onOpenAddSources} />
-      <div className="flex flex-1 overflow-hidden">
-        <div className={`${selectedArticleId ? 'hidden' : 'flex flex-1'} flex-col border-r border-border`}>
+      <div className="flex min-w-0 flex-1 overflow-hidden">
+        <div className={`${selectedArticleId ? 'hidden' : 'flex flex-1'} min-w-0 flex-col border-r border-border`}>
           <ArticleList />
         </div>
         {selectedArticleId && <ArticleReader />}
