@@ -128,6 +128,26 @@ describe('App', () => {
     expect(screen.queryByText('add-sources-page')).not.toBeInTheDocument();
   });
 
+  it('closes every open modal with Escape', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByText('settings'));
+    fireEvent.click(screen.getByText('rules'));
+    fireEvent.click(screen.getByText('digest'));
+    fireEvent.click(screen.getByText('stats'));
+    fireEvent.click(screen.getByText('feed-page'));
+    fireEvent.click(screen.getByText('shortcuts'));
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(screen.queryByText('settings-page')).not.toBeInTheDocument();
+    expect(screen.queryByText('rules-page')).not.toBeInTheDocument();
+    expect(screen.queryByText('digest-page')).not.toBeInTheDocument();
+    expect(screen.queryByText('stats-page')).not.toBeInTheDocument();
+    expect(screen.queryByText('add-sources-page')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).not.toBeInTheDocument();
+  });
+
   it('opens shortcut help from the header or ? key and closes it with Escape', () => {
     render(<App />);
 

@@ -57,6 +57,34 @@ function AppContent() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  const hasOpenModal =
+    showSettings ||
+    showRules ||
+    showDigest ||
+    showStats ||
+    showAddSources ||
+    showKeyboardShortcuts;
+
+  useEffect(() => {
+    if (!hasOpenModal) return;
+
+    const closeAllModals = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      setShowSettings(false);
+      setShowRules(false);
+      setShowDigest(false);
+      setShowStats(false);
+      setShowAddSources(false);
+      setShowKeyboardShortcuts(false);
+    };
+
+    window.addEventListener('keydown', closeAllModals, true);
+    return () => window.removeEventListener('keydown', closeAllModals, true);
+  }, [hasOpenModal]);
+
   // Close sidebar when viewport is narrow
   useEffect(() => {
     const mql = window.matchMedia('(max-width: 767px)');
