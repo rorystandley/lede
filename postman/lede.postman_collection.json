@@ -1580,6 +1580,32 @@
               ]
             }
           }
+        },
+        {
+          "name": "Apply a noise filter to existing articles",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rules/:ruleId/run",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rules",
+                ":ruleId",
+                "run"
+              ],
+              "variable": [
+                {
+                  "key": "ruleId",
+                  "value": ""
+                }
+              ]
+            }
+          }
         }
       ]
     },

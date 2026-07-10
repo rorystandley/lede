@@ -95,6 +95,7 @@ const EXAMPLES = {
   // --- Rules ---
   'POST /api/v1/rules': { body: { name: 'Star AI stories', matchMode: 'any', priority: 0, conditions: [{ field: 'title', op: 'contains', value: 'AI' }], actions: [{ type: 'star' }] } },
   'PATCH /api/v1/rules/{ruleId}': { body: { enabled: false } },
+  'POST /api/v1/rules/{ruleId}/run': {}, // action: no body
 
   // --- Digests ---
   'POST /api/v1/digests/build': {}, // action: no body
