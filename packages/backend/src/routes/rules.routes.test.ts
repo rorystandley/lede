@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   listForUserMock: vi.fn(),
   createMock: vi.fn(),
   updateMock: vi.fn(),
+  runFilterMock: vi.fn(),
   deleteMock: vi.fn(),
 }));
 
@@ -13,6 +14,7 @@ vi.mock('../services/rule.service.js', () => ({
     listForUser: mocks.listForUserMock,
     create: mocks.createMock,
     update: mocks.updateMock,
+    runFilter: mocks.runFilterMock,
     delete: mocks.deleteMock,
   },
 }));
@@ -73,8 +75,9 @@ describe('rules.routes', () => {
     }
   });
 
-  it('updates and deletes rules', async () => {
+  it('updates, runs, and deletes rules', async () => {
     mocks.updateMock.mockResolvedValue({ id: 'rule-1', enabled: false });
+    mocks.runFilterMock.mockResolvedValue(12);
     mocks.deleteMock.mockResolvedValue(undefined);
 
     const app = await buildApp();
@@ -89,10 +92,18 @@ describe('rules.routes', () => {
         method: 'DELETE',
         url: '/rules/rule-1',
       });
+      const runResponse = await app.inject({
+        method: 'POST',
+        url: '/rules/rule-1/run',
+      });
 
       expect(updateResponse.statusCode).toBe(200);
       expect(updateResponse.json()).toEqual({ id: 'rule-1', enabled: false });
       expect(mocks.updateMock).toHaveBeenCalledWith('user-1', 'rule-1', { enabled: false, priority: 2 });
+
+      expect(runResponse.statusCode).toBe(200);
+      expect(runResponse.json()).toEqual({ matched: 12 });
+      expect(mocks.runFilterMock).toHaveBeenCalledWith('user-1', 'rule-1');
 
       expect(deleteResponse.statusCode).toBe(204);
       expect(mocks.deleteMock).toHaveBeenCalledWith('user-1', 'rule-1');

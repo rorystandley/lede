@@ -15,6 +15,7 @@ export function RulesPage({ onClose }: Props) {
   const { data: tagsData } = useTags();
   const { data: feedsData } = useFeeds();
   const [editing, setEditing] = useState<'new' | string | null>(null);
+  const automationRules = (rules ?? []).filter((rule) => !rule.actions.some((action) => action.type === 'hide'));
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => rulesApi.delete(id),
@@ -56,10 +57,10 @@ export function RulesPage({ onClose }: Props) {
 
           {!editing && (
             <div className="space-y-3">
-              {(rules ?? []).length === 0 && (
+              {automationRules.length === 0 && (
                 <p className="text-sm text-text-tertiary text-center py-6">No rules yet. Create one to automate article processing.</p>
               )}
-              {(rules ?? []).map((rule) => (
+              {automationRules.map((rule) => (
                 <div key={rule.id} className="border border-border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">

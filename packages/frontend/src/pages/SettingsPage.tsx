@@ -5,12 +5,14 @@ import { deliveryApi, pushApi } from '../api/push.api.js';
 import { subscribeToPush, unsubscribeFromPush, isCurrentlySubscribed, isPushSupported, getPushPermission } from '../lib/push-helper.js';
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import type { AIProvider } from '@lede/shared';
+import { NoiseFiltersSection } from '../components/settings/NoiseFiltersSection.js';
 
 interface Props {
   onClose: () => void;
 }
 
 export function SettingsPage({ onClose }: Props) {
+  const [activeSection, setActiveSection] = useState<'general' | 'noise-filters'>('general');
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -127,7 +129,26 @@ export function SettingsPage({ onClose }: Props) {
           </button>
         </div>
 
-        <div className="p-4 space-y-6">
+        <div className="flex gap-1 border-b border-border px-4 pt-2" role="tablist" aria-label="Settings sections">
+          <button
+            role="tab"
+            aria-selected={activeSection === 'general'}
+            onClick={() => setActiveSection('general')}
+            className={`border-b-2 px-3 py-2 text-xs font-medium ${activeSection === 'general' ? 'border-primary-500 text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
+          >
+            General
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeSection === 'noise-filters'}
+            onClick={() => setActiveSection('noise-filters')}
+            className={`border-b-2 px-3 py-2 text-xs font-medium ${activeSection === 'noise-filters' ? 'border-primary-500 text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
+          >
+            Noise filters
+          </button>
+        </div>
+
+        {activeSection === 'general' ? <div className="p-4 space-y-6">
           {/* Digest & Profile */}
           <section>
             <h3 className="text-sm font-medium text-text-primary mb-3">Morning Digest</h3>
@@ -313,7 +334,7 @@ export function SettingsPage({ onClose }: Props) {
               ))}
             </div>
           </section>
-        </div>
+        </div> : <NoiseFiltersSection />}
       </div>
     </div>
   );

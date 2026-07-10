@@ -8,7 +8,7 @@ const ruleConditionSchema = z.object({
 });
 
 const ruleActionSchema = z.object({
-  type: z.enum(['tag', 'star', 'mark_read', 'webhook', 'mark_archived']),
+  type: z.enum(['tag', 'star', 'mark_read', 'webhook', 'mark_archived', 'hide']),
   tagId: z.string().uuid().optional(),
   url: z.string().url().optional(),
 });

@@ -69,6 +69,7 @@ describe('api modules', () => {
     rulesApi.list();
     rulesApi.create({ name: 'Rule', conditions: [], actions: [] });
     rulesApi.update('rule-1', { name: 'Updated' });
+    rulesApi.run('rule-1');
     rulesApi.delete('rule-2');
 
     digestsApi.latest();
@@ -140,6 +141,7 @@ describe('api modules', () => {
     expect(api.get).toHaveBeenCalledWith('/rules');
     expect(api.post).toHaveBeenCalledWith('/rules', { name: 'Rule', conditions: [], actions: [] });
     expect(api.patch).toHaveBeenCalledWith('/rules/rule-1', { name: 'Updated' });
+    expect(api.post).toHaveBeenCalledWith('/rules/rule-1/run', {});
     expect(api.delete).toHaveBeenCalledWith('/rules/rule-2');
     expect(api.get).toHaveBeenCalledWith('/digests/latest');
     expect(api.post).toHaveBeenCalledWith('/digests/build');

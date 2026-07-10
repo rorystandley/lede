@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm';
 import { getDb } from '../db/client.js';
-import { rules, articles, userArticleStates, feeds, userFeedSubscriptions } from '../db/schema/index.js';
+import { rules, articles, userArticleStates, feeds, userFeedSubscriptions, filteredArticles } from '../db/schema/index.js';
 import { tagService } from './tag.service.js';
 import { getLogger } from '../lib/logger.js';
 import type { RuleCondition, RuleAction, Rule } from '@lede/shared';
@@ -40,6 +40,16 @@ export class RuleService {
       .where(and(eq(rules.id, ruleId), eq(rules.userId, userId)))
       .returning();
     if (!rule) throw new Error('Rule not found');
+
+    // A content filter is reversible. Remove its old matches whenever its
+    // definition changes; the settings flow immediately runs the updated
+    // filter over existing articles to rebuild the match set.
+    if (data.conditions !== undefined || data.actions !== undefined) {
+      await db.delete(filteredArticles).where(and(
+        eq(filteredArticles.ruleId, ruleId),
+        eq(filteredArticles.userId, userId),
+      ));
+    }
     return this.toRule(rule);
   }
 
@@ -56,6 +66,65 @@ export class RuleService {
       .where(eq(rules.userId, userId))
       .orderBy(rules.priority, rules.name);
     return rows.map((r) => this.toRule(r));
+  }
+
+  /** Apply one noise filter to every article currently in the user's library. */
+  async runFilter(userId: string, ruleId: string): Promise<number> {
+    const db = getDb();
+    const [rule] = await db
+      .select()
+      .from(rules)
+      .where(and(eq(rules.id, ruleId), eq(rules.userId, userId)))
+      .limit(1);
+
+    if (!rule) throw new Error('Rule not found');
+
+    const actions = rule.actions as RuleAction[];
+    if (!actions.some((action) => action.type === 'hide')) {
+      throw new Error('Rule is not a noise filter');
+    }
+
+    await db.delete(filteredArticles).where(and(
+      eq(filteredArticles.ruleId, ruleId),
+      eq(filteredArticles.userId, userId),
+    ));
+
+    if (!rule.enabled) return 0;
+
+    const candidates = await db
+      .select({ article: articles, feed: feeds, folderId: userFeedSubscriptions.folderId })
+      .from(articles)
+      .innerJoin(feeds, eq(feeds.id, articles.feedId))
+      .innerJoin(userFeedSubscriptions, and(
+        eq(userFeedSubscriptions.feedId, articles.feedId),
+        eq(userFeedSubscriptions.userId, userId),
+      ));
+
+    const conditions = rule.conditions as RuleCondition[];
+    const matchMode = rule.matchMode as 'all' | 'any';
+    const matches = candidates.filter(({ article, feed, folderId }) => {
+      return this.matchesRule(conditions, matchMode, article, feed, { folderId }, true);
+    });
+
+    // Keep inserts bounded for accounts with a large article history.
+    for (let i = 0; i < matches.length; i += 500) {
+      await db.insert(filteredArticles).values(
+        matches.slice(i, i + 500).map(({ article }) => ({
+          userId,
+          ruleId,
+          articleId: article.id,
+        })),
+      ).onConflictDoNothing();
+    }
+
+    if (matches.length > 0) {
+      await db.update(rules).set({
+        runCount: rule.runCount + matches.length,
+        lastRunAt: new Date(),
+      }).where(eq(rules.id, ruleId));
+    }
+
+    return matches.length;
   }
 
   async evaluateForArticle(userId: string, articleId: string) {
@@ -84,8 +153,8 @@ export class RuleService {
       const actions = rule.actions as RuleAction[];
       const matchMode = rule.matchMode as 'all' | 'any';
 
-      const matches = conditions.map((c) => this.evaluateCondition(c, article, feed, sub));
-      const ruleMatches = matchMode === 'all' ? matches.every(Boolean) : matches.some(Boolean);
+      const isNoiseFilter = actions.some((action) => action.type === 'hide');
+      const ruleMatches = this.matchesRule(conditions, matchMode, article, feed, sub, isNoiseFilter);
 
       if (ruleMatches) {
         logger.info({ ruleId: rule.id, articleId, ruleName: rule.name }, 'Rule matched');
@@ -148,6 +217,32 @@ export class RuleService {
     }
   }
 
+  private matchesRule(
+    conditions: RuleCondition[],
+    matchMode: 'all' | 'any',
+    article: typeof articles.$inferSelect,
+    feed: typeof feeds.$inferSelect | undefined,
+    sub: { folderId: string | null } | undefined,
+    isNoiseFilter: boolean,
+  ): boolean {
+    if (!isNoiseFilter) {
+      const matches = conditions.map((condition) => this.evaluateCondition(condition, article, feed, sub));
+      return matchMode === 'all' ? matches.every(Boolean) : matches.some(Boolean);
+    }
+
+    // A filter's feed/folder choice is its scope, not one of its OR-able
+    // content criteria. Scope must always match before evaluating all/any.
+    const scope = conditions.filter((condition) => condition.field === 'feed_id' || condition.field === 'folder_id');
+    const criteria = conditions.filter((condition) => condition.field !== 'feed_id' && condition.field !== 'folder_id');
+    const scopeMatches = scope.every((condition) => this.evaluateCondition(condition, article, feed, sub));
+    const criteriaMatches = criteria.length > 0 && (
+      matchMode === 'all'
+        ? criteria.every((condition) => this.evaluateCondition(condition, article, feed, sub))
+        : criteria.some((condition) => this.evaluateCondition(condition, article, feed, sub))
+    );
+    return scopeMatches && criteriaMatches;
+  }
+
   private async executeActions(userId: string, articleId: string, actions: RuleAction[], ruleId: string) {
     const db = getDb();
 
@@ -184,6 +279,12 @@ export class RuleService {
               target: [userArticleStates.userId, userArticleStates.articleId],
               set: { isArchived: true, updatedAt: new Date() },
             });
+          break;
+        case 'hide':
+          await db
+            .insert(filteredArticles)
+            .values({ userId, articleId, ruleId })
+            .onConflictDoNothing();
           break;
         case 'webhook':
           if (action.url) {

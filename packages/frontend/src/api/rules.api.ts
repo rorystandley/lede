@@ -10,6 +10,9 @@ export const rulesApi = {
   update: (ruleId: string, data: UpdateRuleInput) =>
     api.patch<Rule>(`/rules/${ruleId}`, data),
 
+  run: (ruleId: string) =>
+    api.post<{ matched: number }>(`/rules/${ruleId}/run`, {}),
+
   delete: (ruleId: string) =>
     api.delete(`/rules/${ruleId}`),
 };

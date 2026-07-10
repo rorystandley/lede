@@ -34,6 +34,14 @@ function decodeArticleMetadata<
 }
 
 export class ArticleService {
+  private notHiddenByNoiseFilter(userId: string): SQL {
+    return sql`NOT EXISTS (
+      SELECT 1 FROM filtered_articles fa
+      INNER JOIN rules r ON r.id = fa.rule_id AND r.enabled = true
+      WHERE fa.user_id = ${userId} AND fa.article_id = ${articles.id}
+    )`;
+  }
+
   /**
    * Subquery selecting one representative article id per dedupe key, so callers
    * can filter a listing down to a single copy of each story via
@@ -64,6 +72,7 @@ export class ArticleService {
     // Keep only one copy of each story, scoped to the same feeds the listing shows.
     const conditions: SQL[] = [
       inArray(articles.id, this.representativeArticleIds(db, userId, { feedId: query.feedId, folderId: query.folderId })),
+      this.notHiddenByNoiseFilter(userId),
     ];
 
     if (query.feedId) {
@@ -89,6 +98,11 @@ export class ArticleService {
     if (query.isStarred !== undefined) {
       conditions.push(eq(userArticleStates.isStarred, query.isStarred));
     }
+    conditions.push(
+      query.isArchived
+        ? eq(userArticleStates.isArchived, true)
+        : sql`(${userArticleStates.isArchived} IS NULL OR ${userArticleStates.isArchived} = false)`,
+    );
 
     return conditions;
   }
@@ -272,6 +286,8 @@ export class ArticleService {
     const conditions: SQL[] = [
       inArray(articles.feedId, subscribedFeeds),
       sql`(${userArticleStates.isRead} IS NULL OR ${userArticleStates.isRead} = false)`,
+      sql`(${userArticleStates.isArchived} IS NULL OR ${userArticleStates.isArchived} = false)`,
+      this.notHiddenByNoiseFilter(userId),
     ];
 
     if (scope.feedId) {
@@ -385,6 +401,8 @@ export class ArticleService {
       .where(and(
         inArray(articles.feedId, subscribedFeeds),
         inArray(articles.id, this.representativeArticleIds(db, userId, {})),
+        sql`(${userArticleStates.isArchived} IS NULL OR ${userArticleStates.isArchived} = false)`,
+        this.notHiddenByNoiseFilter(userId),
         sql`to_tsvector('english', coalesce(${articles.title}, '') || ' ' || coalesce(${articles.contentText}, '')) @@ to_tsquery('english', ${tsQuery})`,
       ))
       .orderBy(sql`search_rank DESC`)
