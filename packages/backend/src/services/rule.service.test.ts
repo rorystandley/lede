@@ -224,6 +224,61 @@ describe('ruleService', () => {
     ]);
   });
 
+  it('runs a noise filter across existing articles and records only matches', async () => {
+    const rule = {
+      id: 'filter-1',
+      userId: 'user-1',
+      name: 'Hide sponsored posts',
+      enabled: true,
+      conditions: [
+        { field: 'feed_id', op: 'equals', value: 'feed-1' },
+        { field: 'title', op: 'contains', value: 'sponsored' },
+        { field: 'author', op: 'equals', value: 'Newswire' },
+      ],
+      actions: [{ type: 'hide' }],
+      matchMode: 'any',
+      runCount: 2,
+    };
+    const candidates = [
+      {
+        article: { id: 'article-1', feedId: 'feed-1', title: 'Sponsored: launch', contentText: null, summary: null, author: null, url: null },
+        feed: { id: 'feed-1' },
+        folderId: null,
+      },
+      {
+        article: { id: 'article-2', feedId: 'feed-2', title: 'Sponsored elsewhere', contentText: null, summary: null, author: null, url: null },
+        feed: { id: 'feed-2' },
+        folderId: null,
+      },
+    ];
+
+    const ruleLimit = vi.fn().mockResolvedValue([rule]);
+    const ruleWhere = vi.fn(() => ({ limit: ruleLimit }));
+    const ruleFrom = vi.fn(() => ({ where: ruleWhere }));
+    const secondJoin = vi.fn().mockResolvedValue(candidates);
+    const firstJoin = vi.fn(() => ({ innerJoin: secondJoin }));
+    const candidatesFrom = vi.fn(() => ({ innerJoin: firstJoin }));
+    const select = vi.fn()
+      .mockReturnValueOnce({ from: ruleFrom })
+      .mockReturnValueOnce({ from: candidatesFrom });
+    const deleteWhere = vi.fn().mockResolvedValue(undefined);
+    const insertOnConflict = vi.fn().mockResolvedValue(undefined);
+    const insertValues = vi.fn(() => ({ onConflictDoNothing: insertOnConflict }));
+    const updateWhere = vi.fn().mockResolvedValue(undefined);
+    const updateSet = vi.fn(() => ({ where: updateWhere }));
+
+    vi.mocked(getDb).mockReturnValue({
+      select,
+      delete: vi.fn(() => ({ where: deleteWhere })),
+      insert: vi.fn(() => ({ values: insertValues })),
+      update: vi.fn(() => ({ set: updateSet })),
+    } as never);
+
+    await expect(ruleService.runFilter('user-1', 'filter-1')).resolves.toBe(1);
+    expect(insertValues).toHaveBeenCalledWith([{ userId: 'user-1', ruleId: 'filter-1', articleId: 'article-1' }]);
+    expect(updateSet).toHaveBeenCalledWith({ runCount: 3, lastRunAt: expect.any(Date) });
+  });
+
   it('evaluates matching rules and executes tag, state, and webhook actions', async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });

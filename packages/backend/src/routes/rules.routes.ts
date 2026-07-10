@@ -27,6 +27,14 @@ export default async function rulesRoutes(app: FastifyInstance) {
     return ruleService.update(req.user.id, ruleId, body);
   });
 
+  app.post('/:ruleId/run', {
+    schema: { tags: ['Rules'], summary: 'Apply a noise filter to existing articles' },
+  }, async (req) => {
+    const { ruleId } = req.params as { ruleId: string };
+    const matched = await ruleService.runFilter(req.user.id, ruleId);
+    return { matched };
+  });
+
   app.delete('/:ruleId', {
     schema: { tags: ['Rules'], summary: 'Delete a rule' },
   }, async (req, reply) => {

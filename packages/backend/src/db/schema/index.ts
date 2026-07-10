@@ -4,6 +4,7 @@ export * from './folders.js';
 export * from './articles.js';
 export * from './tags.js';
 export * from './rules.js';
+export * from './filtered-articles.js';
 export * from './digests.js';
 export * from './reading-stats.js';
 export * from './annotations.js';

@@ -42,6 +42,12 @@ export class DigestService {
       .where(and(
         gt(articles.createdAt, since),
         sql`(${userArticleStates.isRead} IS NULL OR ${userArticleStates.isRead} = false)`,
+        sql`(${userArticleStates.isArchived} IS NULL OR ${userArticleStates.isArchived} = false)`,
+        sql`NOT EXISTS (
+          SELECT 1 FROM filtered_articles fa
+          INNER JOIN rules r ON r.id = fa.rule_id AND r.enabled = true
+          WHERE fa.user_id = ${userId} AND fa.article_id = ${articles.id}
+        )`,
       ))
       .orderBy(desc(articles.publishedAt))
       .limit(200);

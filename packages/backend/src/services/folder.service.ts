@@ -48,6 +48,12 @@ export class FolderService {
           LEFT JOIN user_article_states uas ON uas.article_id = a.id AND uas.user_id = ${userId}
           WHERE ufs.folder_id = folders.id
           AND (uas.is_read IS NULL OR uas.is_read = false)
+          AND (uas.is_archived IS NULL OR uas.is_archived = false)
+          AND NOT EXISTS (
+            SELECT 1 FROM filtered_articles fa
+            INNER JOIN rules r ON r.id = fa.rule_id AND r.enabled = true
+            WHERE fa.user_id = ${userId} AND fa.article_id = a.id
+          )
         )`,
       })
       .from(folders)

@@ -57,6 +57,13 @@
       "when": 1781366400000,
       "tag": "0007_fix_refresh_interval_data",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783676479663,
+      "tag": "0008_curious_human_cannonball",
+      "breakpoints": true
     }
   ]
 }

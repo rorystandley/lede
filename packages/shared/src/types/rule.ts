@@ -7,7 +7,7 @@ export interface RuleCondition {
 }
 
 export interface RuleAction {
-  type: 'tag' | 'star' | 'mark_read' | 'webhook' | 'mark_archived';
+  type: 'tag' | 'star' | 'mark_read' | 'webhook' | 'mark_archived' | 'hide';
   tagId?: string;
   url?: string;
 }
