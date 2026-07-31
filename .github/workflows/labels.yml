@@ -1,0 +1,28 @@
+name: Sync labels
+
+# Keeps repo labels in sync with .github/labels.yml.
+# Runs when the label file changes on main, and can be run on demand.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/labels.yml
+      - .github/workflows/labels.yml
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  labeler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync labels from .github/labels.yml
+        uses: crazy-max/ghaction-github-labeler@v5
+        with:
+          yaml-file: .github/labels.yml
+          # Set to true for a no-op preview run in logs; false actually applies changes.
+          dry-run: false
+          # Do not delete labels that aren't in the file (e.g. GitHub defaults, Dependabot).
+          skip-delete: true
