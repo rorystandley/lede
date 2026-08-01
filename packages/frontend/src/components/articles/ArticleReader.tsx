@@ -1,5 +1,7 @@
 import { useArticle, useMarkRead, useStarArticle } from '../../hooks/use-articles.js';
 import { useUiStore } from '../../stores/index.js';
+import { useIsMobile } from '../../hooks/use-media-query.js';
+import { useSwipe } from '../../hooks/use-swipe.js';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { aiApi, articlesApi, sharingApi } from '../../api/index.js';
@@ -20,8 +22,33 @@ function isThinContent(html: string | null, text: string | null): boolean {
 
 export function ArticleReader() {
   const qc = useQueryClient();
-  const { selectedArticleId, selectArticle } = useUiStore();
+  const { selectedArticleId, selectArticle, articleOrder } = useUiStore();
+  const isMobile = useIsMobile();
   const { data: article, isLoading } = useArticle(selectedArticleId);
+
+  // Swipe navigation on touch: left/right moves through the list order, and a
+  // swipe that starts at the very left edge closes the reader (iOS-style back).
+  // Buttons remain the primary, always-visible controls.
+  const order = articleOrder ?? [];
+  const currentIndex = selectedArticleId ? order.indexOf(selectedArticleId) : -1;
+  const goToOffset = (offset: number) => {
+    if (currentIndex < 0) return;
+    const next = order[currentIndex + offset];
+    if (next) selectArticle(next);
+  };
+  const readerSwipe = useSwipe({
+    axis: 'x',
+    threshold: 70,
+    enabled: isMobile,
+    onSwipe: (direction, info) => {
+      if (direction === 'right') {
+        if (info.startX <= 32) selectArticle(null);
+        else goToOffset(-1);
+      } else if (direction === 'left') {
+        goToOffset(1);
+      }
+    },
+  });
   const markRead = useMarkRead();
   const starArticle = useStarArticle();
   const [aiSummary, setAiSummary] = useState<string | null>(null);
@@ -201,7 +228,14 @@ export function ArticleReader() {
   const onlyMetadata = !isExtracting && stillThin && lastExtractStatus === 'metadata';
 
   return (
-    <div className="flex-1 overflow-y-auto bg-surface-secondary">
+    <div
+      className="flex-1 overflow-y-auto bg-surface-secondary"
+      style={{ touchAction: 'pan-y' }}
+      onPointerDown={readerSwipe.onPointerDown}
+      onPointerMove={readerSwipe.onPointerMove}
+      onPointerUp={readerSwipe.onPointerUp}
+      onPointerCancel={readerSwipe.onPointerCancel}
+    >
       <div className="p-4 md:p-6">
         <div
           data-testid="article-reader-toolbar"

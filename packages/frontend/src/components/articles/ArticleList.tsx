@@ -6,9 +6,11 @@ import { useMarkRead, useMarkUnread, useStarArticle } from '../../hooks/use-arti
 import { useSearch } from '../../hooks/use-search.js';
 import { useUiStore } from '../../stores/index.js';
 import { useKeyboardNav } from '../../hooks/use-keyboard-nav.js';
+import { useIsMobile } from '../../hooks/use-media-query.js';
 import { ArticleListItem } from './ArticleListItem.js';
 import { ArticleCard } from './ArticleCard.js';
 import { ArticleMagazineItem } from './ArticleMagazineItem.js';
+import { SwipeableRow } from './SwipeableRow.js';
 import { ConfirmDialog } from '../shared/ConfirmDialog.js';
 import { articlesApi, feedsApi } from '../../api/index.js';
 import type { ArticleWithState, PaginatedResult } from '@lede/shared';
@@ -114,6 +116,17 @@ export function ArticleList() {
   const articles = isSearching && searchQuery ? (searchData?.items ?? []) : infiniteArticles;
   const loading = isSearching ? searchLoading : (infinite.isLoading && articles.length === 0);
 
+  const isMobile = useIsMobile();
+  const setArticleOrder = useUiStore((s) => s.setArticleOrder);
+
+  // Keep the store's ordered id list in sync with what's rendered so the reader
+  // can swipe to the previous/next article. Keyed on the joined ids so it only
+  // writes when the ordering actually changes.
+  const articleIds = useMemo(() => articles.map((a) => a.id), [articles]);
+  useEffect(() => {
+    setArticleOrder?.(articleIds);
+  }, [articleIds, setArticleOrder]);
+
   useKeyboardNav({
     articles,
     onStar: (articleId, isStarred) => starArticle.mutate({ articleId, isStarred }),
@@ -131,6 +144,26 @@ export function ArticleList() {
     patchCachedReadState(qc, articleId, next);
     if (next) markRead.mutate([articleId]);
     else markUnread.mutate([articleId]);
+  };
+
+  // Swipe-right on a row toggles the star (same action as the Save button).
+  const handleSwipeStar = (article: ArticleWithState) => {
+    starArticle.mutate({ articleId: article.id, isStarred: !article.isStarred });
+  };
+
+  // Swipe-left on a row marks it read (the mobile equivalent of "archive"),
+  // with an Undo so the destructive-feeling gesture is always recoverable.
+  const handleSwipeArchive = (article: ArticleWithState) => {
+    if (article.isRead) return;
+    patchCachedReadState(qc, article.id, true);
+    markRead.mutate([article.id]);
+    addToast('Marked as read', 'info', {
+      label: 'Undo',
+      onClick: () => {
+        patchCachedReadState(qc, article.id, false);
+        markUnread.mutate([article.id]);
+      },
+    });
   };
 
   const handleLoadMore = () => {
@@ -298,8 +331,30 @@ export function ArticleList() {
         onNearEnd={handleLoadMore}
         isFetchingMore={infinite.isFetchingNextPage}
         hasMore={!!infinite.hasNextPage}
+        swipeEnabled={isMobile}
+        onSwipeStar={handleSwipeStar}
+        onSwipeArchive={handleSwipeArchive}
       />
     </>
+  );
+}
+
+/** Bookmark glyph shown in the swipe-to-save reveal panel. */
+function SwipeSaveIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+/** Check-circle glyph shown in the swipe-to-mark-read reveal panel. */
+function SwipeReadIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="7.5 12 10.5 15 16.5 9" />
+    </svg>
   );
 }
 
@@ -372,7 +427,7 @@ function LoadMoreSentinel({ isFetching, hasMore }: { isFetching: boolean; hasMor
   return null;
 }
 
-function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick, onStar, onToggleRead, onNearEnd, isFetchingMore, hasMore }: {
+function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick, onStar, onToggleRead, onNearEnd, isFetchingMore, hasMore, swipeEnabled, onSwipeStar, onSwipeArchive }: {
   articles: ArticleWithState[];
   focusedArticleIndex: number;
   selectedArticleId: string | null;
@@ -382,6 +437,9 @@ function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick
   onNearEnd: () => void;
   isFetchingMore: boolean;
   hasMore: boolean;
+  swipeEnabled: boolean;
+  onSwipeStar: (article: ArticleWithState) => void;
+  onSwipeArchive: (article: ArticleWithState) => void;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -406,6 +464,16 @@ function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick
       <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
         {virtualItems.map((virtualRow) => {
           const article = articles[virtualRow.index];
+          const row = (
+            <ArticleListItem
+              article={article}
+              isFocused={virtualRow.index === focusedArticleIndex}
+              isSelected={article.id === selectedArticleId}
+              onClick={() => onClick(article.id, article.isRead)}
+              onStar={() => onStar(article.id, !article.isStarred)}
+              onToggleRead={() => onToggleRead(article.id, article.isRead)}
+            />
+          );
           return (
             <div
               key={article.id}
@@ -413,14 +481,30 @@ function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick
               data-index={virtualRow.index}
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)` }}
             >
-              <ArticleListItem
-                article={article}
-                isFocused={virtualRow.index === focusedArticleIndex}
-                isSelected={article.id === selectedArticleId}
-                onClick={() => onClick(article.id, article.isRead)}
-                onStar={() => onStar(article.id, !article.isStarred)}
-                onToggleRead={() => onToggleRead(article.id, article.isRead)}
-              />
+              {swipeEnabled ? (
+                <SwipeableRow
+                  rightAction={{
+                    label: article.isStarred ? 'Unsave' : 'Save',
+                    icon: <SwipeSaveIcon />,
+                    bg: 'bg-primary-600',
+                    onAction: () => onSwipeStar(article),
+                  }}
+                  leftAction={
+                    article.isRead
+                      ? undefined
+                      : {
+                          label: 'Mark read',
+                          icon: <SwipeReadIcon />,
+                          bg: 'bg-text-secondary',
+                          onAction: () => onSwipeArchive(article),
+                        }
+                  }
+                >
+                  {row}
+                </SwipeableRow>
+              ) : (
+                row
+              )}
             </div>
           );
         })}

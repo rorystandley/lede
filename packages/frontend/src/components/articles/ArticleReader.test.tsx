@@ -622,6 +622,43 @@ describe('ArticleReader', () => {
     });
   });
 
+  it('navigates the list order with horizontal swipes and closes on an edge swipe', () => {
+    const selectArticle = vi.fn();
+    mocks.useUiStoreMock.mockReturnValue({
+      selectedArticleId: 'article-2',
+      selectArticle,
+      articleOrder: ['article-1', 'article-2', 'article-3'],
+    });
+
+    const { container } = renderReader();
+    const surface = container.querySelector('.overflow-y-auto') as HTMLElement;
+
+    // Swipe left -> next article.
+    fireEvent.pointerDown(surface, { pointerId: 1, clientX: 220, clientY: 300 });
+    fireEvent.pointerMove(surface, { pointerId: 1, clientX: 180, clientY: 302 });
+    fireEvent.pointerUp(surface, { pointerId: 1, clientX: 130, clientY: 302 });
+    expect(selectArticle).toHaveBeenLastCalledWith('article-3');
+
+    // Swipe right (not from the edge) -> previous article.
+    fireEvent.pointerDown(surface, { pointerId: 1, clientX: 220, clientY: 300 });
+    fireEvent.pointerMove(surface, { pointerId: 1, clientX: 260, clientY: 301 });
+    fireEvent.pointerUp(surface, { pointerId: 1, clientX: 300, clientY: 301 });
+    expect(selectArticle).toHaveBeenLastCalledWith('article-1');
+
+    // Swipe right starting at the left edge -> close the reader.
+    fireEvent.pointerDown(surface, { pointerId: 1, clientX: 10, clientY: 300 });
+    fireEvent.pointerMove(surface, { pointerId: 1, clientX: 60, clientY: 300 });
+    fireEvent.pointerUp(surface, { pointerId: 1, clientX: 110, clientY: 300 });
+    expect(selectArticle).toHaveBeenLastCalledWith(null);
+
+    // A near-vertical drag is ignored so the page can scroll.
+    selectArticle.mockClear();
+    fireEvent.pointerDown(surface, { pointerId: 1, clientX: 200, clientY: 100 });
+    fireEvent.pointerMove(surface, { pointerId: 1, clientX: 205, clientY: 220 });
+    fireEvent.pointerUp(surface, { pointerId: 1, clientX: 205, clientY: 320 });
+    expect(selectArticle).not.toHaveBeenCalled();
+  });
+
   it('falls back to the generic tag error when the AI error message is empty', async () => {
     mocks.suggestTagsMock.mockRejectedValueOnce(new Error(''));
 

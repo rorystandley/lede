@@ -20,8 +20,20 @@ export function ToastContainer() {
           }`}
         >
           <span className="flex-1">{toast.message}</span>
+          {toast.action && (
+            <button
+              onClick={() => {
+                toast.action?.onClick();
+                dismiss(toast.id);
+              }}
+              className="ml-1 shrink-0 rounded px-2 py-1 text-xs font-semibold underline underline-offset-2 hover:opacity-80"
+            >
+              {toast.action.label}
+            </button>
+          )}
           <button
             onClick={() => dismiss(toast.id)}
+            aria-label="Dismiss"
             className="opacity-60 hover:opacity-100 ml-2 text-xs"
           >
             &times;
