@@ -40,9 +40,17 @@ export function ArticleListItem({ article, isFocused, isSelected, onClick, onSta
           )}
         </div>
 
-        <ReadToggleButton isRead={article.isRead} onToggle={onToggleRead} />
+        <ReadToggleButton
+          isRead={article.isRead}
+          onToggle={onToggleRead}
+          className="flex min-h-11 min-w-11 items-center justify-center p-1 sm:min-h-0 sm:min-w-0"
+        />
 
-        <SaveButton isSaved={article.isStarred} onToggle={onStar} />
+        <SaveButton
+          isSaved={article.isStarred}
+          onToggle={onStar}
+          className="flex min-h-11 min-w-11 items-center justify-center p-1 sm:min-h-0 sm:min-w-0"
+        />
 
         {article.imageUrl ? (
           <img src={article.imageUrl} alt="" loading="lazy" decoding="async" className="w-16 h-12 rounded object-cover shrink-0" />
