@@ -6,6 +6,7 @@ const toggleThemeMock = vi.fn();
 const toggleSidebarMock = vi.fn();
 const setViewModeMock = vi.fn();
 const logoutMock = vi.fn();
+const apiLogoutMock = vi.fn();
 const useUiStoreMock = vi.fn();
 const useAuthStoreMock = vi.fn();
 
@@ -14,9 +15,16 @@ vi.mock('../../stores/index.js', () => ({
   useAuthStore: () => useAuthStoreMock(),
 }));
 
+vi.mock('../../api/index.js', () => ({
+  authApi: {
+    logout: () => apiLogoutMock(),
+  },
+}));
+
 describe('Header', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    apiLogoutMock.mockResolvedValue(undefined);
     useUiStoreMock.mockReturnValue({
       theme: 'light',
       toggleTheme: toggleThemeMock,
@@ -65,6 +73,7 @@ describe('Header', () => {
     expect(onOpenRules).toHaveBeenCalled();
     expect(onOpenSettings).toHaveBeenCalled();
     expect(onOpenKeyboardShortcuts).toHaveBeenCalled();
+    expect(apiLogoutMock).toHaveBeenCalled();
     expect(logoutMock).toHaveBeenCalled();
   });
 

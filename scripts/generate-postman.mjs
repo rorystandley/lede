@@ -42,7 +42,9 @@ const EXAMPLES = {
   // --- Auth ---
   'POST /api/v1/auth/register': { auth: 'noauth', capture: 'tokens', body: { email: 'you@example.com', password: 'supersecret123', displayName: 'Your Name' } },
   'POST /api/v1/auth/login': { auth: 'noauth', capture: 'tokens', body: { email: 'you@example.com', password: 'supersecret123' } },
-  'POST /api/v1/auth/refresh': { auth: 'noauth', capture: 'tokens', body: { refreshToken: '{{refreshToken}}' } },
+  // Refresh reads the HttpOnly refresh_token cookie set by login/register — no body, Postman's cookie jar sends it.
+  'POST /api/v1/auth/refresh': { auth: 'noauth', capture: 'tokens' },
+  'POST /api/v1/auth/logout': { auth: 'noauth' }, // clears the refresh cookie; no body
   'POST /api/v1/auth/forgot-password': { auth: 'noauth', body: { email: 'you@example.com' } },
   'POST /api/v1/auth/reset-password': { auth: 'noauth', body: { token: '<reset-token-from-email>', password: 'newsupersecret123' } },
   'POST /api/v1/auth/api-keys': { capture: 'apiKey', body: { name: 'my-script' } },

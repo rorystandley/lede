@@ -248,6 +248,16 @@ describe('authService', () => {
     vi.useRealTimers();
   });
 
+  it('revokes a refresh token by digest', async () => {
+    const deleteWhere = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(getDb).mockReturnValue({
+      delete: vi.fn(() => ({ where: deleteWhere })),
+    } as never);
+
+    await expect(authService.revokeRefreshToken('session-token')).resolves.toBeUndefined();
+    expect(deleteWhere).toHaveBeenCalledTimes(1);
+  });
+
   it('creates api keys, lists them, and deletes them', async () => {
     (vi.spyOn(crypto, 'randomBytes') as ReturnType<typeof vi.fn>).mockReturnValue(Buffer.from('k'.repeat(32)));
     mockBcryptHash.mockResolvedValue('hashed-api-key');

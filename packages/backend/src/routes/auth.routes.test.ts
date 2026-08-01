@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import cookie from '@fastify/cookie';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -6,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   loginMock: vi.fn(),
   createRefreshTokenMock: vi.fn(),
   verifyRefreshTokenMock: vi.fn(),
+  revokeRefreshTokenMock: vi.fn(),
   createApiKeyMock: vi.fn(),
   listApiKeysMock: vi.fn(),
   deleteApiKeyMock: vi.fn(),
@@ -19,6 +21,7 @@ vi.mock('../services/auth.service.js', () => ({
     login: mocks.loginMock,
     createRefreshToken: mocks.createRefreshTokenMock,
     verifyRefreshToken: mocks.verifyRefreshTokenMock,
+    revokeRefreshToken: mocks.revokeRefreshTokenMock,
     createApiKey: mocks.createApiKeyMock,
     listApiKeys: mocks.listApiKeysMock,
     deleteApiKey: mocks.deleteApiKeyMock,
@@ -39,6 +42,7 @@ let authenticatedUser = { id: 'user-auth', email: 'auth@example.com' };
 
 async function buildApp() {
   const app = Fastify();
+  await app.register(cookie);
   app.decorate('jwt', { sign: mocks.jwtSignMock } as never);
   app.decorate('authenticate', async (req) => {
     (req as typeof req & { user: typeof authenticatedUser }).user = authenticatedUser;
@@ -49,13 +53,22 @@ async function buildApp() {
   return app;
 }
 
+/** Find a Set-Cookie entry by name in a light-my-request response. */
+function getCookie(response: Awaited<ReturnType<Awaited<ReturnType<typeof buildApp>>['inject']>>, name: string) {
+  const cookies = response.cookies as Array<{ name: string; value: string; httpOnly?: boolean; sameSite?: string; path?: string; maxAge?: number }>;
+  return cookies.find((c) => c.name === name);
+}
+
 describe('auth.routes', () => {
   beforeEach(() => {
     authenticatedUser = { id: 'user-auth', email: 'auth@example.com' };
     mocks.findUserMock.mockReset();
+    mocks.verifyRefreshTokenMock.mockReset();
+    mocks.revokeRefreshTokenMock.mockReset();
+    mocks.createRefreshTokenMock.mockReset();
   });
 
-  it('registers users and returns access and refresh tokens', async () => {
+  it('registers users, returns the access token, and sets the refresh cookie', async () => {
     mocks.registerMock.mockResolvedValue({ id: 'user-1', email: 'reader@example.com' });
     mocks.jwtSignMock.mockReturnValue('access-token');
     mocks.createRefreshTokenMock.mockResolvedValue('refresh-token');
@@ -74,11 +87,16 @@ describe('auth.routes', () => {
       });
 
       expect(response.statusCode).toBe(201);
+      // The refresh token must NOT be in the JSON body — it's cookie-only.
       expect(response.json()).toEqual({
         user: { id: 'user-1', email: 'reader@example.com' },
         accessToken: 'access-token',
-        refreshToken: 'refresh-token',
       });
+      const cookie = getCookie(response, 'refresh_token');
+      expect(cookie?.value).toBe('refresh-token');
+      expect(cookie?.httpOnly).toBe(true);
+      expect(cookie?.sameSite).toBe('Strict');
+      expect(cookie?.path).toBe('/api/v1/auth');
       expect(mocks.registerMock).toHaveBeenCalledWith('reader@example.com', 'password123', 'Reader');
       expect(mocks.jwtSignMock).toHaveBeenCalledWith({ id: 'user-1', email: 'reader@example.com' });
       expect(mocks.createRefreshTokenMock).toHaveBeenCalledWith('user-1');
@@ -87,7 +105,7 @@ describe('auth.routes', () => {
     }
   });
 
-  it('logs users in and issues a fresh token pair', async () => {
+  it('logs users in, returns the access token, and sets the refresh cookie', async () => {
     mocks.loginMock.mockResolvedValue({ id: 'user-2', email: 'member@example.com' });
     mocks.jwtSignMock.mockReturnValue('login-access-token');
     mocks.createRefreshTokenMock.mockResolvedValue('login-refresh-token');
@@ -108,8 +126,8 @@ describe('auth.routes', () => {
       expect(response.json()).toEqual({
         user: { id: 'user-2', email: 'member@example.com' },
         accessToken: 'login-access-token',
-        refreshToken: 'login-refresh-token',
       });
+      expect(getCookie(response, 'refresh_token')?.value).toBe('login-refresh-token');
       expect(mocks.loginMock).toHaveBeenCalledWith('member@example.com', 'password123');
       expect(mocks.createRefreshTokenMock).toHaveBeenCalledWith('user-2');
     } finally {
@@ -117,7 +135,24 @@ describe('auth.routes', () => {
     }
   });
 
-  it('rejects refresh requests when the refresh token is invalid', async () => {
+  it('rejects refresh requests when no refresh cookie is present', async () => {
+    const app = await buildApp();
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/auth/refresh',
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(response.json()).toEqual({ error: 'Invalid refresh token' });
+      expect(mocks.verifyRefreshTokenMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects refresh requests when the cookie token is invalid and clears the cookie', async () => {
     mocks.verifyRefreshTokenMock.mockResolvedValue(null);
 
     const app = await buildApp();
@@ -126,12 +161,15 @@ describe('auth.routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/auth/refresh',
-        payload: { refreshToken: 'bad-token' },
+        cookies: { refresh_token: 'bad-token' },
       });
 
       expect(response.statusCode).toBe(401);
       expect(response.json()).toEqual({ error: 'Invalid refresh token' });
+      expect(mocks.verifyRefreshTokenMock).toHaveBeenCalledWith('bad-token');
       expect(mocks.findUserMock).not.toHaveBeenCalled();
+      // Cleared cookie is emitted with an immediate expiry.
+      expect(getCookie(response, 'refresh_token')?.value).toBe('');
     } finally {
       await app.close();
     }
@@ -147,18 +185,19 @@ describe('auth.routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/auth/refresh',
-        payload: { refreshToken: 'refresh-token' },
+        cookies: { refresh_token: 'refresh-token' },
       });
 
       expect(response.statusCode).toBe(401);
       expect(response.json()).toEqual({ error: 'User not found' });
       expect(mocks.findUserMock).toHaveBeenCalledTimes(1);
+      expect(getCookie(response, 'refresh_token')?.value).toBe('');
     } finally {
       await app.close();
     }
   });
 
-  it('rotates refresh tokens when the refresh token is valid', async () => {
+  it('rotates the refresh cookie and returns a new access token when the cookie is valid', async () => {
     mocks.verifyRefreshTokenMock.mockResolvedValue({ userId: 'user-3' });
     const routeEq = vi.fn();
     mocks.findUserMock.mockImplementation(async ({ where }) => {
@@ -174,17 +213,52 @@ describe('auth.routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/auth/refresh',
-        payload: { refreshToken: 'valid-refresh-token' },
+        cookies: { refresh_token: 'valid-refresh-token' },
       });
 
       expect(response.statusCode).toBe(200);
-      expect(response.json()).toEqual({
-        accessToken: 'refreshed-access-token',
-        refreshToken: 'rotated-refresh-token',
-      });
+      expect(response.json()).toEqual({ accessToken: 'refreshed-access-token' });
+      expect(getCookie(response, 'refresh_token')?.value).toBe('rotated-refresh-token');
+      expect(mocks.verifyRefreshTokenMock).toHaveBeenCalledWith('valid-refresh-token');
       expect(mocks.jwtSignMock).toHaveBeenCalledWith({ id: 'user-3', email: 'refresh@example.com' });
       expect(mocks.createRefreshTokenMock).toHaveBeenCalledWith('user-3');
       expect(routeEq).toHaveBeenCalledWith('users.id', 'user-3');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('revokes the refresh token and clears the cookie on logout', async () => {
+    mocks.revokeRefreshTokenMock.mockResolvedValue(undefined);
+
+    const app = await buildApp();
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/auth/logout',
+        cookies: { refresh_token: 'session-token' },
+      });
+
+      expect(response.statusCode).toBe(204);
+      expect(mocks.revokeRefreshTokenMock).toHaveBeenCalledWith('session-token');
+      expect(getCookie(response, 'refresh_token')?.value).toBe('');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('logs out cleanly even without a refresh cookie', async () => {
+    const app = await buildApp();
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/auth/logout',
+      });
+
+      expect(response.statusCode).toBe(204);
+      expect(mocks.revokeRefreshTokenMock).not.toHaveBeenCalled();
     } finally {
       await app.close();
     }

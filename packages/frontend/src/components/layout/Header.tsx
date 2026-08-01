@@ -1,4 +1,5 @@
 import { useUiStore, useAuthStore } from '../../stores/index.js';
+import { authApi } from '../../api/index.js';
 
 interface HeaderProps {
   onOpenSettings?: () => void;
@@ -11,6 +12,13 @@ interface HeaderProps {
 export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats, onOpenKeyboardShortcuts }: HeaderProps) {
   const { theme, toggleTheme, toggleSidebar, viewMode, setViewMode } = useUiStore();
   const { user, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    // Best-effort server-side logout: revoke the refresh token and clear the
+    // HttpOnly cookie. Clear local state regardless of the request outcome.
+    void authApi.logout().catch(() => {});
+    logout();
+  };
 
   return (
     <header className="h-14 border-b border-border bg-surface flex items-center justify-between px-3 md:px-4 shrink-0">
@@ -108,7 +116,7 @@ export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats,
             </button>
           )}
           {user && (
-            <button onClick={logout} className="text-xs text-text-secondary hover:text-text-primary px-2 py-1">
+            <button onClick={handleLogout} className="text-xs text-text-secondary hover:text-text-primary px-2 py-1">
               Logout
             </button>
           )}

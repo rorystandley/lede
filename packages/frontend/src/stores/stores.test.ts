@@ -8,27 +8,25 @@ describe('auth store', () => {
     localStorage.clear();
     useAuthStore.setState({
       accessToken: null,
-      refreshToken: null,
       user: null,
     });
   });
 
-  it('supports login, token updates, user updates, logout, and auth checks', () => {
-    useAuthStore.getState().login({ id: 'user-1', email: 'user@example.com' }, 'access-1', 'refresh-1');
+  it('supports login, access-token updates, user updates, logout, and auth checks', () => {
+    useAuthStore.getState().login({ id: 'user-1', email: 'user@example.com' }, 'access-1');
     expect(useAuthStore.getState().user).toEqual({ id: 'user-1', email: 'user@example.com' });
+    expect(useAuthStore.getState().accessToken).toBe('access-1');
     expect(useAuthStore.getState().isAuthenticated()).toBe(true);
 
-    useAuthStore.getState().setTokens('access-2', 'refresh-2');
+    useAuthStore.getState().setAccessToken('access-2');
     useAuthStore.getState().setUser({ id: 'user-2', email: 'second@example.com' });
 
     expect(useAuthStore.getState().accessToken).toBe('access-2');
-    expect(useAuthStore.getState().refreshToken).toBe('refresh-2');
     expect(useAuthStore.getState().user).toEqual({ id: 'user-2', email: 'second@example.com' });
 
     useAuthStore.getState().logout();
 
     expect(useAuthStore.getState().accessToken).toBeNull();
-    expect(useAuthStore.getState().refreshToken).toBeNull();
     expect(useAuthStore.getState().user).toBeNull();
     expect(useAuthStore.getState().isAuthenticated()).toBe(false);
   });

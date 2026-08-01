@@ -66,6 +66,35 @@ server {
 
 Adjust in `auth.plugin.ts` and `auth.service.ts` if needed.
 
+### Token storage
+
+- **Access token** — short-lived (1 hour) JWT. The SPA keeps it in memory
+  (Zustand) and sends it as `Authorization: Bearer …`. Because it expires
+  quickly, its blast radius if leaked is small.
+- **Refresh token** — the long-lived credential, so it never touches
+  JavaScript-reachable storage. The backend delivers it in an **`HttpOnly`,
+  `SameSite=Strict`** cookie (`Secure` in production), scoped to the
+  `/api/v1/auth` path. `HttpOnly` means an XSS payload cannot read or
+  exfiltrate it, which is the whole point — a stolen access token expires in
+  an hour, but a stolen refresh token would be a persistent account
+  compromise.
+
+Flow:
+
+- `POST /auth/login` and `/auth/register` set the refresh cookie and return
+  only the access token in the JSON body.
+- `POST /auth/refresh` reads the cookie (no request body), rotates the token
+  (issuing a new cookie), and returns a fresh access token. A rejected token
+  clears the cookie.
+- `POST /auth/logout` revokes the refresh token server-side (deletes the DB
+  row) and clears the cookie.
+
+**CSRF:** `SameSite=Strict` is the CSRF defence for the cookie-based refresh
+and logout endpoints. The SPA is served same-origin with the API, so its own
+`fetch` calls are same-site and unaffected, while a cross-site request can't
+carry the cookie. If you ever split the frontend onto a different origin,
+revisit this — you'd need `SameSite=None; Secure` plus an explicit CSRF token.
+
 ### API keys
 
 API keys are long-lived bearer tokens prefixed with `nrk_`. They're hashed with bcrypt before storage. Each user can create multiple keys and revoke them individually.
@@ -159,7 +188,7 @@ For container images: scan with `docker scan` or Trivy in CI.
 | Insecure Design | ✅ Untrusted feed/article HTML sanitised server-side (see above) |
 | Security Misconfiguration | ⚠️ Default secrets in `.env.example` — must override |
 | Vulnerable Components | ⚠️ Run `pnpm audit` regularly |
-| Auth Failures | ✅ Bcrypt, rate-limited, refresh token rotation |
+| Auth Failures | ✅ Bcrypt, rate-limited, refresh token rotation, HttpOnly refresh cookie |
 | Software & Data Integrity | ✅ pnpm checksums, lockfile pinned |
 | Logging Failures | ✅ Pino structured logs |
 | SSRF | ⚠️ Feed fetcher uses user-supplied URLs — keep `rss-parser` on its latest version |
