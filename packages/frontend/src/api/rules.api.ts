@@ -1,0 +1,18 @@
+import { api } from './client.js';
+import type { Rule, CreateRuleInput, UpdateRuleInput } from '@lede/shared';
+
+export const rulesApi = {
+  list: () => api.get<Rule[]>('/rules'),
+
+  create: (data: CreateRuleInput) =>
+    api.post<Rule>('/rules', data),
+
+  update: (ruleId: string, data: UpdateRuleInput) =>
+    api.patch<Rule>(`/rules/${ruleId}`, data),
+
+  run: (ruleId: string) =>
+    api.post<{ matched: number }>(`/rules/${ruleId}/run`, {}),
+
+  delete: (ruleId: string) =>
+    api.delete(`/rules/${ruleId}`),
+};

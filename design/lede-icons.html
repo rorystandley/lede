@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>lede — identity concepts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:#F6F7F9; color:#14151A;
+    font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:1040px; margin:0 auto; padding:56px 28px 110px; }
+  .eyebrow { font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:#8A90A0; margin:0 0 24px; }
+
+  /* wordmark */
+  .lockup { display:flex; align-items:center; gap:22px; }
+  .lockup .ic { width:76px; height:76px; border-radius:19px; box-shadow:0 10px 30px rgba(20,21,26,.12); }
+  .word { font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:64px; letter-spacing:-0.03em; line-height:1; }
+  .word .dot { color:#FB4D3D; }
+  .sub { color:#6B7180; font-size:15px; margin:14px 0 0; max-width:60ch; line-height:1.6; }
+
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.14em; color:#7A8090; font-weight:600; margin:56px 0 6px; }
+  .rec { color:#FB4D3D; }
+  .desc { color:#6B7180; font-size:14px; line-height:1.6; max-width:64ch; margin:0 0 20px; }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:18px; }
+  .card { border-radius:22px; padding:30px; display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .card.light { background:#FFFFFF; border:1px solid #ECEDF1; }
+  .card.dark  { background:#101117; }
+  .card .lbl { font-size:12px; color:#9499A6; }
+  .ic-lg { width:132px; height:132px; border-radius:29px; }
+  .card.light .ic-lg { box-shadow:0 12px 34px rgba(20,21,26,.10); }
+
+  .sizes { display:flex; align-items:flex-end; gap:22px; }
+  .sizes .s { display:flex; flex-direction:column; align-items:center; gap:9px; }
+  .sizes .s span { font-size:11px; color:#9499A6; }
+  .s64{width:64px;height:64px;border-radius:15px;box-shadow:0 6px 16px rgba(20,21,26,.10);}
+  .s32{width:32px;height:32px;border-radius:8px;box-shadow:0 4px 10px rgba(20,21,26,.10);}
+  .s16{width:16px;height:16px;border-radius:4px;}
+
+  .swatches{display:flex;gap:10px;margin-top:8px;}
+  .sw{width:30px;height:30px;border-radius:9px;border:1px solid rgba(0,0,0,.06);}
+</style>
+</head>
+<body>
+
+<!-- symbol library: color set via CSS `color` (currentColor) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+  <radialGradient id="sheen" cx="0.28" cy="0.22" r="0.95">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.22"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/>
+  </radialGradient>
+
+  <!-- light bg, accent = currentColor -->
+  <symbol id="ico-light" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="114" fill="#FFFFFF"/>
+    <rect x="140" y="160" width="236" height="44" rx="22" fill="currentColor"/>
+    <rect x="140" y="242" width="196" height="26" rx="13" fill="#C4C9D2"/>
+    <rect x="140" y="284" width="214" height="26" rx="13" fill="#C4C9D2"/>
+    <rect x="140" y="326" width="150" height="26" rx="13" fill="#C4C9D2"/>
+    <rect x="0.75" y="0.75" width="510.5" height="510.5" rx="113.25" fill="none" stroke="#000" stroke-opacity="0.06"/>
+  </symbol>
+
+  <!-- solid bg = currentColor -->
+  <symbol id="ico-solid" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="114" fill="currentColor"/>
+    <rect width="512" height="512" rx="114" fill="url(#sheen)"/>
+    <rect x="140" y="160" width="236" height="44" rx="22" fill="#fff"/>
+    <rect x="140" y="242" width="196" height="26" rx="13" fill="#fff" fill-opacity="0.5"/>
+    <rect x="140" y="284" width="214" height="26" rx="13" fill="#fff" fill-opacity="0.5"/>
+    <rect x="140" y="326" width="150" height="26" rx="13" fill="#fff" fill-opacity="0.5"/>
+  </symbol>
+</defs>
+</svg>
+
+<div class="wrap">
+  <p class="eyebrow">Identity concept · preview only</p>
+
+  <div class="lockup">
+    <svg class="ic" style="color:#FB4D3D"><use href="#ico-solid"/></svg>
+    <div class="word">lede<span class="dot">.</span></div>
+  </div>
+  <p class="sub">The mark is the idea: a block of story with the top line — the <em>lede</em> — lifted up and lit. The trailing period in the wordmark gives it that confident, editorial finish (think modern media brands). Clean, flat, vibrant. No gradients fighting the message.</p>
+
+  <h2>Recommended colorway · Vermillion <span class="rec">●</span></h2>
+  <p class="desc">Warm, energetic, unmistakably editorial — and the furthest thing from purple. Pops on both light and dark, and the shape stays legible down to a 16px favicon.</p>
+  <div class="grid">
+    <div class="card light"><svg class="ic-lg" style="color:#FB4D3D"><use href="#ico-light"/></svg><span class="lbl">on light</span></div>
+    <div class="card dark"><svg class="ic-lg" style="color:#FB4D3D"><use href="#ico-light"/></svg><span class="lbl">on dark</span></div>
+    <div class="card light"><svg class="ic-lg" style="color:#FB4D3D"><use href="#ico-solid"/></svg><span class="lbl">solid fill</span></div>
+    <div class="card light">
+      <div class="sizes">
+        <div class="s"><svg class="s64" style="color:#FB4D3D"><use href="#ico-light"/></svg><span>64</span></div>
+        <div class="s"><svg class="s32" style="color:#FB4D3D"><use href="#ico-light"/></svg><span>32</span></div>
+        <div class="s"><svg class="s16" style="color:#FB4D3D"><use href="#ico-light"/></svg><span>16</span></div>
+      </div>
+      <span class="lbl">small sizes</span>
+    </div>
+  </div>
+
+  <h2>Alt · Cobalt</h2>
+  <p class="desc">Crisp, confident, trustworthy — the clean modern blue, with none of the indigo/violet drift.</p>
+  <div class="grid">
+    <div class="card light"><svg class="ic-lg" style="color:#2F6BFF"><use href="#ico-light"/></svg><span class="lbl">on light</span></div>
+    <div class="card dark"><svg class="ic-lg" style="color:#2F6BFF"><use href="#ico-light"/></svg><span class="lbl">on dark</span></div>
+    <div class="card light"><svg class="ic-lg" style="color:#2F6BFF"><use href="#ico-solid"/></svg><span class="lbl">solid fill</span></div>
+    <div class="card light"><div class="lockup" style="gap:14px"><svg style="width:40px;height:40px;border-radius:10px;color:#2F6BFF"><use href="#ico-solid"/></svg><div class="word" style="font-size:34px">lede<span class="dot" style="color:#2F6BFF">.</span></div></div><span class="lbl">lockup</span></div>
+  </div>
+
+  <h2>Alt · Emerald</h2>
+  <p class="desc">Fresh and vivid; reads “modern product” and stays calm at the same time.</p>
+  <div class="grid">
+    <div class="card light"><svg class="ic-lg" style="color:#12B981"><use href="#ico-light"/></svg><span class="lbl">on light</span></div>
+    <div class="card dark"><svg class="ic-lg" style="color:#12B981"><use href="#ico-light"/></svg><span class="lbl">on dark</span></div>
+    <div class="card light"><svg class="ic-lg" style="color:#12B981"><use href="#ico-solid"/></svg><span class="lbl">solid fill</span></div>
+    <div class="card light"><div class="lockup" style="gap:14px"><svg style="width:40px;height:40px;border-radius:10px;color:#12B981"><use href="#ico-solid"/></svg><div class="word" style="font-size:34px">lede<span class="dot" style="color:#12B981">.</span></div></div><span class="lbl">lockup</span></div>
+  </div>
+
+  <h2>Palette</h2>
+  <p class="desc">Single vibrant accent + neutral ink + clean white. That’s the whole system.</p>
+  <div class="swatches">
+    <div class="sw" style="background:#FB4D3D" title="Vermillion #FB4D3D"></div>
+    <div class="sw" style="background:#2F6BFF" title="Cobalt #2F6BFF"></div>
+    <div class="sw" style="background:#12B981" title="Emerald #12B981"></div>
+    <div class="sw" style="background:#14151A" title="Ink #14151A"></div>
+    <div class="sw" style="background:#C4C9D2" title="Mute #C4C9D2"></div>
+    <div class="sw" style="background:#FFFFFF" title="Paper #FFFFFF"></div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1 @@
+UPDATE "feeds" SET "refresh_interval" = 60 WHERE "refresh_interval" = 3600;

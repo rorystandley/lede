@@ -1,0 +1,73 @@
+# Label taxonomy for the lede project board, managed as code.
+# Synced to the repo by .github/workflows/labels.yml (crazy-max/ghaction-github-labeler).
+# Groups: type / priority / status / area.
+
+# --- Type ---
+- name: "type: bug"
+  color: "d73a4a"
+  description: Something isn't working
+- name: "type: feature"
+  color: "0e8a16"
+  description: New capability or enhancement
+- name: "type: chore"
+  color: "fef2c0"
+  description: Tooling, deps, refactor, or maintenance
+- name: "type: docs"
+  color: "0075ca"
+  description: Documentation only
+- name: "type: security"
+  color: "b60205"
+  description: Security hardening or fix
+
+# --- Priority ---
+- name: "priority: high"
+  color: "b60205"
+  description: Do this next
+- name: "priority: medium"
+  color: "fbca04"
+  description: Should happen soon
+- name: "priority: low"
+  color: "c2e0c6"
+  description: Nice to have
+
+# --- Status (drives the project board) ---
+- name: "status: triage"
+  color: "ededed"
+  description: Needs to be reviewed and prioritised
+- name: "status: ready"
+  color: "bfd4f2"
+  description: Scoped and ready to be picked up
+- name: "status: in progress"
+  color: "1d76db"
+  description: Actively being worked on
+- name: "status: blocked"
+  color: "5319e7"
+  description: Waiting on something else
+
+# --- Area ---
+- name: "area: backend"
+  color: "1d76db"
+  description: Fastify API, services, workers
+- name: "area: frontend"
+  color: "5319e7"
+  description: React web UI
+- name: "area: mcp"
+  color: "006b75"
+  description: MCP server and tools
+- name: "area: ai"
+  color: "c5def5"
+  description: Summaries, tagging, digest
+- name: "area: infra"
+  color: "0052cc"
+  description: Deployment, Docker, CI/CD, backups
+- name: "area: auth"
+  color: "d4c5f9"
+  description: Authentication and authorization
+
+# --- Meta ---
+- name: "good first issue"
+  color: "7057ff"
+  description: Good for newcomers
+- name: "help wanted"
+  color: "008672"
+  description: Extra attention is welcome

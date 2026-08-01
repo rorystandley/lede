@@ -1,0 +1,31 @@
+# Production overrides — use with: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Runs one low-cost app container. The image contains the backend, workers, and
+# built React frontend; PROCESS_ROLE=all keeps background jobs in-process.
+
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    ports: !reset []
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PROCESS_ROLE: all
+      DATABASE_URL: postgresql://newsreader:newsreader@postgres:5432/newsreader
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:3000/api/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

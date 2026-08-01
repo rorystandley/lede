@@ -1,0 +1,160 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useAuthStore } from './stores/index.js';
+import { Header } from './components/layout/Header.js';
+import { FeedPage } from './pages/FeedPage.js';
+import { LoginPage } from './pages/LoginPage.js';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage.js';
+import { ResetPasswordPage } from './pages/ResetPasswordPage.js';
+import { SettingsPage } from './pages/SettingsPage.js';
+import { RulesPage } from './pages/RulesPage.js';
+import { DigestPage } from './pages/DigestPage.js';
+import { StatsPage } from './pages/StatsPage.js';
+import { AddSourcesPage } from './pages/AddSourcesPage.js';
+import { ToastContainer } from './components/shared/Toast.js';
+import { KeyboardShortcutsDialog } from './components/shared/KeyboardShortcutsDialog.js';
+import { useCallback, useEffect, useState } from 'react';
+import { useUiStore } from './stores/index.js';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      retry: 1,
+    },
+  },
+});
+
+type AuthView = 'login' | 'forgot-password' | 'reset-password';
+
+function getInitialAuthView(): { view: AuthView; resetToken?: string } {
+  const url = new URL(window.location.href);
+  if (url.pathname === '/reset-password') {
+    const token = url.searchParams.get('token');
+    if (token) {
+      window.history.replaceState({}, '', '/');
+      return { view: 'reset-password', resetToken: token };
+    }
+  }
+  return { view: 'login' };
+}
+
+function AppContent() {
+  const { isAuthenticated } = useAuthStore();
+  const { theme, selectArticle, setSidebarOpen } = useUiStore();
+  const [showSettings, setShowSettings] = useState(false);
+  const [showRules, setShowRules] = useState(false);
+  const [showDigest, setShowDigest] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [showAddSources, setShowAddSources] = useState(false);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+
+  const [initialAuth] = useState(getInitialAuthView);
+  const [authView, setAuthView] = useState<AuthView>(initialAuth.view);
+  const [resetToken] = useState(initialAuth.resetToken ?? '');
+  const closeKeyboardShortcuts = useCallback(() => setShowKeyboardShortcuts(false), []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  const hasOpenModal =
+    showSettings ||
+    showRules ||
+    showDigest ||
+    showStats ||
+    showAddSources ||
+    showKeyboardShortcuts;
+
+  useEffect(() => {
+    if (!hasOpenModal) return;
+
+    const closeAllModals = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      setShowSettings(false);
+      setShowRules(false);
+      setShowDigest(false);
+      setShowStats(false);
+      setShowAddSources(false);
+      setShowKeyboardShortcuts(false);
+    };
+
+    window.addEventListener('keydown', closeAllModals, true);
+    return () => window.removeEventListener('keydown', closeAllModals, true);
+  }, [hasOpenModal]);
+
+  // Close sidebar when viewport is narrow
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    if (mql.matches) setSidebarOpen(false);
+    const handler = (e: MediaQueryListEvent) => { if (e.matches) setSidebarOpen(false); };
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [setSidebarOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        event.defaultPrevented ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if (event.key === '?' || (event.key === '/' && event.shiftKey)) {
+        event.preventDefault();
+        setShowKeyboardShortcuts(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  if (!isAuthenticated()) {
+    if (authView === 'forgot-password') {
+      return <ForgotPasswordPage onBack={() => setAuthView('login')} />;
+    }
+    if (authView === 'reset-password' && resetToken) {
+      return <ResetPasswordPage token={resetToken} onBack={() => setAuthView('login')} />;
+    }
+    return <LoginPage onForgotPassword={() => setAuthView('forgot-password')} />;
+  }
+
+  return (
+    <div className="h-screen flex flex-col bg-surface">
+      <Header
+        onOpenSettings={() => setShowSettings(true)}
+        onOpenRules={() => setShowRules(true)}
+        onOpenDigest={() => setShowDigest(true)}
+        onOpenStats={() => setShowStats(true)}
+        onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
+      />
+      <FeedPage onOpenAddSources={() => setShowAddSources(true)} />
+      {showSettings && <SettingsPage onClose={() => setShowSettings(false)} />}
+      {showRules && <RulesPage onClose={() => setShowRules(false)} />}
+      {showDigest && <DigestPage onClose={() => setShowDigest(false)} onOpenArticle={(id) => selectArticle(id)} />}
+      {showStats && <StatsPage onClose={() => setShowStats(false)} />}
+      {showAddSources && <AddSourcesPage onClose={() => setShowAddSources(false)} />}
+      <KeyboardShortcutsDialog open={showKeyboardShortcuts} onClose={closeKeyboardShortcuts} />
+      <ToastContainer />
+    </div>
+  );
+}
+
+export function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppContent />
+    </QueryClientProvider>
+  );
+}
