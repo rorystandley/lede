@@ -1,4 +1,3 @@
-import { useState, useRef, useEffect } from 'react';
 import { useUiStore, useAuthStore } from '../../stores/index.js';
 
 interface HeaderProps {
@@ -12,24 +11,14 @@ interface HeaderProps {
 export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats, onOpenKeyboardShortcuts }: HeaderProps) {
   const { theme, toggleTheme, toggleSidebar, viewMode, setViewMode } = useUiStore();
   const { user, logout } = useAuthStore();
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!moreOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [moreOpen]);
 
   return (
     <header className="h-14 border-b border-border bg-surface flex items-center justify-between px-3 md:px-4 shrink-0">
       <div className="flex items-center gap-2 md:gap-3">
+        {/* Sidebar toggle — desktop only; on mobile the bottom nav's "Feeds" opens the drawer. */}
         <button
           onClick={toggleSidebar}
-          className="p-2 md:p-1.5 rounded hover:bg-surface-tertiary text-text-secondary"
+          className="hidden md:inline-flex p-1.5 rounded hover:bg-surface-tertiary text-text-secondary"
           aria-label="Toggle sidebar"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -124,55 +113,8 @@ export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats,
             </button>
           )}
         </div>
-
-        {/* Mobile: overflow menu — hidden on desktop */}
-        <div className="relative md:hidden" ref={moreRef}>
-          <button
-            onClick={() => setMoreOpen(!moreOpen)}
-            className="p-2 rounded hover:bg-surface-tertiary text-text-secondary"
-            aria-label="More options"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="5" r="1" fill="currentColor" /><circle cx="12" cy="12" r="1" fill="currentColor" /><circle cx="12" cy="19" r="1" fill="currentColor" />
-            </svg>
-          </button>
-          {moreOpen && (
-            <div className="absolute right-0 top-full mt-1 w-48 bg-surface border border-border rounded-lg shadow-lg py-1 z-50 animate-slide-up">
-              {onOpenStats && (
-                <MobileMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>} label="Reading Stats" onClick={() => { onOpenStats(); setMoreOpen(false); }} />
-              )}
-              {onOpenDigest && (
-                <MobileMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>} label="Morning Briefing" onClick={() => { onOpenDigest(); setMoreOpen(false); }} />
-              )}
-              {onOpenRules && (
-                <MobileMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>} label="Rules" onClick={() => { onOpenRules(); setMoreOpen(false); }} />
-              )}
-              {onOpenSettings && (
-                <MobileMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>} label="Settings" onClick={() => { onOpenSettings(); setMoreOpen(false); }} />
-              )}
-              {onOpenKeyboardShortcuts && (
-                <MobileMenuItem icon={<KeyboardIcon />} label="Keyboard shortcuts" onClick={() => { onOpenKeyboardShortcuts(); setMoreOpen(false); }} />
-              )}
-              {user && (
-                <>
-                  <div className="border-t border-border my-1" />
-                  <MobileMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>} label="Logout" onClick={() => { logout(); setMoreOpen(false); }} />
-                </>
-              )}
-            </div>
-          )}
-        </div>
       </div>
     </header>
-  );
-}
-
-function MobileMenuItem({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-surface-tertiary hover:text-text-primary">
-      {icon}
-      {label}
-    </button>
   );
 }
 

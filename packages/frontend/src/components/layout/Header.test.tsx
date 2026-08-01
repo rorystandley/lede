@@ -66,10 +66,6 @@ describe('Header', () => {
     expect(onOpenSettings).toHaveBeenCalled();
     expect(onOpenKeyboardShortcuts).toHaveBeenCalled();
     expect(logoutMock).toHaveBeenCalled();
-
-    fireEvent.click(screen.getByLabelText('More options'));
-    fireEvent.click(screen.getByText('Keyboard shortcuts'));
-    expect(onOpenKeyboardShortcuts).toHaveBeenCalledTimes(2);
   });
 
   it('renders the dark theme icon state and omits logout without a user', () => {
