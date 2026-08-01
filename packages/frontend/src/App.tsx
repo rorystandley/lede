@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './stores/index.js';
 import { Header } from './components/layout/Header.js';
+import { BottomNav } from './components/layout/BottomNav.js';
 import { FeedPage } from './pages/FeedPage.js';
 import { LoginPage } from './pages/LoginPage.js';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage.js';
@@ -140,6 +141,13 @@ function AppContent() {
         onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
       />
       <FeedPage onOpenAddSources={() => setShowAddSources(true)} />
+      <BottomNav
+        onOpenAddSources={() => setShowAddSources(true)}
+        onOpenSettings={() => setShowSettings(true)}
+        onOpenStats={() => setShowStats(true)}
+        onOpenDigest={() => setShowDigest(true)}
+        onOpenRules={() => setShowRules(true)}
+      />
       {showSettings && <SettingsPage onClose={() => setShowSettings(false)} />}
       {showRules && <RulesPage onClose={() => setShowRules(false)} />}
       {showDigest && <DigestPage onClose={() => setShowDigest(false)} onOpenArticle={(id) => selectArticle(id)} />}
