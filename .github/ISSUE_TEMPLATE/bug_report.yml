@@ -1,0 +1,63 @@
+name: Bug report
+description: Report something that isn't working as expected
+title: "[Bug]: "
+labels: ["type: bug", "status: triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please fill in as much as you can — it makes fixing it much faster.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, and what you expected instead.
+      placeholder: When I subscribe to feed X, the article list stays empty...
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The exact steps so we can see it too.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the stack is affected?
+      options:
+        - Backend / API
+        - Frontend / Web UI
+        - Feed ingestion / workers
+        - MCP server
+        - AI (summaries / digest)
+        - Auth
+        - Deployment / infra
+        - Other / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: How are you running lede? Include versions where relevant.
+      value: |
+        - Deployment: (docker compose / bare / hosted)
+        - Node / pnpm version:
+        - Browser (if a UI bug):
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or screenshots
+      description: Paste any error output. This is automatically formatted, so no backticks needed.
+      render: shell
+    validations:
+      required: false
