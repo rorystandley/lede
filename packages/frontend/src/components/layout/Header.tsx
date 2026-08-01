@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useUiStore, useAuthStore } from '../../stores/index.js';
+import { authApi } from '../../api/index.js';
 
 interface HeaderProps {
   onOpenSettings?: () => void;
@@ -14,6 +15,13 @@ export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats,
   const { user, logout } = useAuthStore();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+
+  const handleLogout = () => {
+    // Best-effort server-side logout: revoke the refresh token and clear the
+    // HttpOnly cookie. Clear local state regardless of the request outcome.
+    void authApi.logout().catch(() => {});
+    logout();
+  };
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -119,7 +127,7 @@ export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats,
             </button>
           )}
           {user && (
-            <button onClick={logout} className="text-xs text-text-secondary hover:text-text-primary px-2 py-1">
+            <button onClick={handleLogout} className="text-xs text-text-secondary hover:text-text-primary px-2 py-1">
               Logout
             </button>
           )}
@@ -156,7 +164,7 @@ export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats,
               {user && (
                 <>
                   <div className="border-t border-border my-1" />
-                  <MobileMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>} label="Logout" onClick={() => { logout(); setMoreOpen(false); }} />
+                  <MobileMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>} label="Logout" onClick={() => { handleLogout(); setMoreOpen(false); }} />
                 </>
               )}
             </div>

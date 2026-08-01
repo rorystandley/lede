@@ -34,7 +34,6 @@ describe('LoginPage', () => {
     loginMock.mockResolvedValue({
       user: { id: 'user-1', email: 'user@example.com' },
       accessToken: 'access-token',
-      refreshToken: 'refresh-token',
     });
 
     render(<LoginPage onForgotPassword={vi.fn()} />);
@@ -53,7 +52,6 @@ describe('LoginPage', () => {
     expect(storeLoginMock).toHaveBeenCalledWith(
       { id: 'user-1', email: 'user@example.com' },
       'access-token',
-      'refresh-token',
     );
   });
 
@@ -61,7 +59,6 @@ describe('LoginPage', () => {
     registerMock.mockResolvedValue({
       user: { id: 'user-2', email: 'new@example.com' },
       accessToken: 'new-access',
-      refreshToken: 'new-refresh',
     });
 
     render(<LoginPage onForgotPassword={vi.fn()} />);
@@ -86,7 +83,6 @@ describe('LoginPage', () => {
     expect(storeLoginMock).toHaveBeenCalledWith(
       { id: 'user-2', email: 'new@example.com' },
       'new-access',
-      'new-refresh',
     );
   });
 
@@ -94,7 +90,6 @@ describe('LoginPage', () => {
     registerMock.mockResolvedValue({
       user: { id: 'user-3', email: 'blank@example.com' },
       accessToken: 'blank-access',
-      refreshToken: 'blank-refresh',
     });
 
     render(<LoginPage onForgotPassword={vi.fn()} />);

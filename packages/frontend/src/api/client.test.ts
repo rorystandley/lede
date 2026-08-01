@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const authState = {
   accessToken: 'access-token' as string | null,
-  refreshToken: 'refresh-token' as string | null,
-  setTokens: vi.fn(),
+  setAccessToken: vi.fn(),
   logout: vi.fn(),
 };
 
@@ -18,7 +17,6 @@ describe('api client', () => {
     vi.resetModules();
     vi.clearAllMocks();
     authState.accessToken = 'access-token';
-    authState.refreshToken = 'refresh-token';
     vi.stubGlobal('fetch', vi.fn());
   });
 
@@ -185,12 +183,11 @@ describe('api client', () => {
     });
   });
 
-  it('refreshes expired sessions, retries the request, and returns the retry payload', async () => {
+  it('refreshes expired sessions via the cookie, retries the request, and returns the retry payload', async () => {
     const fetchMock = vi.mocked(fetch);
     authState.accessToken = 'old-access-token';
-    authState.setTokens.mockImplementation((accessToken: string, refreshToken: string) => {
+    authState.setAccessToken.mockImplementation((accessToken: string) => {
       authState.accessToken = accessToken;
-      authState.refreshToken = refreshToken;
     });
 
     fetchMock
@@ -203,7 +200,6 @@ describe('api client', () => {
         status: 200,
         json: vi.fn().mockResolvedValue({
           accessToken: 'new-access-token',
-          refreshToken: 'new-refresh-token',
         }),
       } as unknown as Response)
       .mockResolvedValueOnce({
@@ -216,16 +212,18 @@ describe('api client', () => {
     const result = await api.get('/articles');
 
     expect(result).toEqual({ articles: [] });
-    expect(authState.setTokens).toHaveBeenCalledWith('new-access-token', 'new-refresh-token');
+    expect(authState.setAccessToken).toHaveBeenCalledWith('new-access-token');
+    // Refresh sends no body and no token — the HttpOnly cookie carries it.
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       '/api/v1/auth/refresh',
       expect.objectContaining({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: 'refresh-token' }),
+        credentials: 'include',
       }),
     );
+    const refreshInit = fetchMock.mock.calls[1][1] as RequestInit;
+    expect(refreshInit.body).toBeUndefined();
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,
       '/api/v1/articles',
@@ -239,9 +237,8 @@ describe('api client', () => {
 
   it('throws the retry error after a successful refresh when the second attempt still fails', async () => {
     const fetchMock = vi.mocked(fetch);
-    authState.setTokens.mockImplementation((accessToken: string, refreshToken: string) => {
+    authState.setAccessToken.mockImplementation((accessToken: string) => {
       authState.accessToken = accessToken;
-      authState.refreshToken = refreshToken;
     });
 
     fetchMock
@@ -254,7 +251,6 @@ describe('api client', () => {
         status: 200,
         json: vi.fn().mockResolvedValue({
           accessToken: 'fresh-access-token',
-          refreshToken: 'fresh-refresh-token',
         }),
       } as unknown as Response)
       .mockResolvedValueOnce({
@@ -273,9 +269,8 @@ describe('api client', () => {
 
   it('falls back to raw retry text errors and handles retry 204 responses', async () => {
     const fetchMock = vi.mocked(fetch);
-    authState.setTokens.mockImplementation((accessToken: string, refreshToken: string) => {
+    authState.setAccessToken.mockImplementation((accessToken: string) => {
       authState.accessToken = accessToken;
-      authState.refreshToken = refreshToken;
     });
 
     fetchMock
@@ -288,7 +283,6 @@ describe('api client', () => {
         status: 200,
         json: vi.fn().mockResolvedValue({
           accessToken: 'fresh-access-token',
-          refreshToken: 'fresh-refresh-token',
         }),
       } as unknown as Response)
       .mockResolvedValueOnce({
@@ -315,7 +309,6 @@ describe('api client', () => {
         status: 200,
         json: vi.fn().mockResolvedValue({
           accessToken: 'fresher-access-token',
-          refreshToken: 'fresher-refresh-token',
         }),
       } as unknown as Response)
       .mockResolvedValueOnce({
@@ -347,9 +340,9 @@ describe('api client', () => {
     expect(authState.logout).toHaveBeenCalled();
   });
 
-  it('does not attempt refresh when no refresh token exists or the refresh request throws', async () => {
+  it('does not attempt refresh when there is no access token or the refresh request throws', async () => {
     const fetchMock = vi.mocked(fetch);
-    authState.refreshToken = null;
+    authState.accessToken = null;
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 401,
@@ -361,9 +354,10 @@ describe('api client', () => {
       status: 401,
       message: 'Session expired',
     });
+    // No refresh attempt made — only the original request.
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    authState.refreshToken = 'refresh-token';
+    authState.accessToken = 'access-token';
     fetchMock.mockReset();
     fetchMock
       .mockResolvedValueOnce({

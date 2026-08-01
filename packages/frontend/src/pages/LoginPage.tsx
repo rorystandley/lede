@@ -23,7 +23,7 @@ export function LoginPage({ onForgotPassword }: LoginPageProps) {
       const res = isRegister
         ? await authApi.register(email, password, displayName || undefined)
         : await authApi.login(email, password);
-      login(res.user, res.accessToken, res.refreshToken);
+      login(res.user, res.accessToken);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {

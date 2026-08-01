@@ -64,18 +64,19 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 }
 
 async function tryRefresh(): Promise<boolean> {
-  const { refreshToken } = useAuthStore.getState();
-  if (!refreshToken) return false;
+  // The refresh token lives in an HttpOnly cookie, so we send no body — the
+  // browser attaches the cookie automatically. Skip the round-trip entirely
+  // when there's no session to refresh.
+  if (!useAuthStore.getState().accessToken) return false;
 
   try {
     const res = await fetch(`${BASE_URL}/auth/refresh`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
+      credentials: 'include',
     });
     if (!res.ok) return false;
     const data = await res.json();
-    useAuthStore.getState().setTokens(data.accessToken, data.refreshToken);
+    useAuthStore.getState().setAccessToken(data.accessToken);
     return true;
   } catch {
     return false;

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
-import { registerSchema, loginSchema, refreshTokenSchema, createApiKeySchema, forgotPasswordSchema, resetPasswordSchema } from '@lede/shared';
+import { registerSchema, loginSchema, createApiKeySchema, forgotPasswordSchema, resetPasswordSchema } from '@lede/shared';
 import { authService } from '../services/auth.service.js';
+import { REFRESH_COOKIE, setRefreshCookie, clearRefreshCookie } from '../lib/auth-cookie.js';
 
 export default async function authRoutes(app: FastifyInstance) {
   app.post('/register', {
@@ -13,7 +14,8 @@ export default async function authRoutes(app: FastifyInstance) {
     const user = await authService.register(body.email, body.password, body.displayName);
     const accessToken = app.jwt.sign({ id: user.id, email: user.email });
     const refreshToken = await authService.createRefreshToken(user.id);
-    return reply.status(201).send({ user, accessToken, refreshToken });
+    setRefreshCookie(reply, refreshToken);
+    return reply.status(201).send({ user, accessToken });
   });
 
   app.post('/login', {
@@ -26,18 +28,25 @@ export default async function authRoutes(app: FastifyInstance) {
     const user = await authService.login(body.email, body.password);
     const accessToken = app.jwt.sign({ id: user.id, email: user.email });
     const refreshToken = await authService.createRefreshToken(user.id);
-    return reply.send({ user, accessToken, refreshToken });
+    setRefreshCookie(reply, refreshToken);
+    return reply.send({ user, accessToken });
   });
 
   app.post('/refresh', {
     schema: {
       tags: ['Auth'],
       summary: 'Refresh access token',
+      description: 'Reads the refresh token from the HttpOnly cookie, rotates it, and returns a new access token.',
     },
   }, async (req, reply) => {
-    const body = refreshTokenSchema.parse(req.body);
-    const result = await authService.verifyRefreshToken(body.refreshToken);
+    const token = req.cookies?.[REFRESH_COOKIE];
+    if (!token) {
+      return reply.status(401).send({ error: 'Invalid refresh token' });
+    }
+
+    const result = await authService.verifyRefreshToken(token);
     if (!result) {
+      clearRefreshCookie(reply);
       return reply.status(401).send({ error: 'Invalid refresh token' });
     }
 
@@ -45,11 +54,30 @@ export default async function authRoutes(app: FastifyInstance) {
     const user = await db.query.users.findFirst({
       where: (u, { eq }) => eq(u.id, result.userId),
     });
-    if (!user) return reply.status(401).send({ error: 'User not found' });
+    if (!user) {
+      clearRefreshCookie(reply);
+      return reply.status(401).send({ error: 'User not found' });
+    }
 
     const accessToken = app.jwt.sign({ id: user.id, email: user.email });
     const refreshToken = await authService.createRefreshToken(user.id);
-    return reply.send({ accessToken, refreshToken });
+    setRefreshCookie(reply, refreshToken);
+    return reply.send({ accessToken });
+  });
+
+  app.post('/logout', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Log out',
+      description: 'Revokes the current refresh token server-side and clears the refresh cookie.',
+    },
+  }, async (req, reply) => {
+    const token = req.cookies?.[REFRESH_COOKIE];
+    if (token) {
+      await authService.revokeRefreshToken(token);
+    }
+    clearRefreshCookie(reply);
+    return reply.status(204).send();
   });
 
   app.post('/forgot-password', {
