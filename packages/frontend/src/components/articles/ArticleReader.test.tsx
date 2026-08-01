@@ -197,7 +197,7 @@ describe('ArticleReader', () => {
     expect(screen.getByText('3 min read')).toBeInTheDocument();
     expect(screen.getByTestId('annotated-content')).toHaveAttribute('data-article-id', 'article-1');
     expect(document.querySelector('img')).toHaveAttribute('src', 'https://cdn.example.com/image.jpg');
-    expect(screen.getByTestId('article-reader-toolbar')).toHaveClass('sticky', 'top-0', 'h-10');
+    expect(screen.getByTestId('article-reader-toolbar')).toHaveClass('sticky', 'top-0', 'md:h-10');
     expect(mocks.markReadMutate).toHaveBeenCalledWith(['article-1']);
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
