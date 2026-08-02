@@ -13,9 +13,8 @@ export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats,
   const { user, logout } = useAuthStore();
 
   return (
-    <header className="border-b border-border bg-surface shrink-0 pt-[env(safe-area-inset-top)]">
-      <div className="flex h-14 items-center justify-between px-3 md:px-4">
-        <div className="flex items-center gap-2 md:gap-3">
+    <header className="h-14 border-b border-border bg-surface flex items-center justify-between px-3 md:px-4 shrink-0">
+      <div className="flex items-center gap-2 md:gap-3">
         {/* Sidebar toggle — desktop only; on mobile the bottom nav's "Feeds" opens the drawer. */}
         <button
           onClick={toggleSidebar}
@@ -114,7 +113,6 @@ export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats,
             </button>
           )}
         </div>
-      </div>
       </div>
     </header>
   );

@@ -32,7 +32,7 @@ export function BottomNav({ onOpenAddSources, onOpenSettings, onOpenStats, onOpe
   return (
     <>
       <nav
-        className="md:hidden shrink-0 grid grid-cols-5 border-t border-border bg-surface pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
+        className="md:hidden shrink-0 grid grid-cols-5 border-t border-border bg-surface pt-1.5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]"
         aria-label="Primary"
       >
         <NavButton label="Home" active={isHome} onClick={() => clearFilters()} icon={<HomeIcon active={isHome} />} />
