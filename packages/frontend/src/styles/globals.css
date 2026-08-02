@@ -36,6 +36,14 @@
     --color-text-tertiary: #6b7280;
   }
 
+  html,
+  body {
+    height: 100%;
+    /* Stop the iOS/PWA rubber-band bounce so the app shell stays put and the
+       list's custom pull-to-refresh can own the downward drag. */
+    overscroll-behavior: none;
+  }
+
   body {
     background-color: var(--color-surface);
     color: var(--color-text-primary);
