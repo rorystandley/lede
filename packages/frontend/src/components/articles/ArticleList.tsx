@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useArticlesInfinite } from '../../hooks/use-articles-infinite.js';
@@ -420,7 +420,7 @@ function ScrollContainer({ children, onNearBottom, pull }: { children: React.Rea
   };
 
   return (
-    <div className="relative flex-1 overflow-y-auto overscroll-y-contain" onScroll={handleScroll} {...(pull?.handlers ?? {})}>
+    <div ref={pull?.containerRef} className="relative flex-1 overflow-y-auto overscroll-y-contain" onScroll={handleScroll}>
       {pull && <PullIndicator pull={pull.pull} refreshing={pull.refreshing} threshold={pull.threshold} />}
       {children}
     </div>
@@ -481,6 +481,16 @@ function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
 
+  // Merge the virtualizer's scroll ref with the pull-to-refresh ref. Kept stable
+  // (via a ref to the latest callback) so touch listeners aren't torn down and
+  // reattached on every re-render.
+  const pullRefCb = useRef(pull?.containerRef);
+  pullRefCb.current = pull?.containerRef;
+  const setScrollEl = useCallback((node: HTMLDivElement | null) => {
+    parentRef.current = node;
+    pullRefCb.current?.(node);
+  }, []);
+
   const rowVirtualizer = useVirtualizer({
     count: articles.length,
     getScrollElement: () => parentRef.current,
@@ -498,7 +508,7 @@ function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick
   }, [lastVirtualIndex, articles.length, hasMore, isFetchingMore, onNearEnd]);
 
   return (
-    <div ref={parentRef} className="relative flex-1 overflow-y-auto overscroll-y-contain" {...(pull?.handlers ?? {})}>
+    <div ref={setScrollEl} className="relative flex-1 overflow-y-auto overscroll-y-contain">
       {pull && <PullIndicator pull={pull.pull} refreshing={pull.refreshing} threshold={pull.threshold} />}
       <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
         {virtualItems.map((virtualRow) => {
