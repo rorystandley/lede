@@ -32,10 +32,10 @@ export function BottomNav({ onOpenAddSources, onOpenSettings, onOpenStats, onOpe
   return (
     <>
       <nav
-        className="md:hidden shrink-0 grid grid-cols-5 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]"
+        className="md:hidden shrink-0 grid grid-cols-5 border-t border-border bg-surface pt-1.5 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"
         aria-label="Primary"
       >
-        <NavButton label="Home" active={isHome} onClick={() => clearFilters()} icon={<HomeIcon />} />
+        <NavButton label="Home" active={isHome} onClick={() => clearFilters()} icon={<HomeIcon active={isHome} />} />
         <NavButton label="Feeds" onClick={() => setSidebarOpen(true)} icon={<FeedsIcon />} />
         <NavButton label="Search" active={isSearching} onClick={openSearch} icon={<SearchIcon />} />
         <NavButton label="Saved" active={showStarred} onClick={() => setShowStarred(true)} icon={<SavedIcon active={showStarred} />} />
@@ -174,7 +174,11 @@ function MagazineViewIcon() {
   );
 }
 
-function HomeIcon() {
+function HomeIcon({ active }: { active?: boolean }) {
+  // Solid house when active (X-style), outlined with a door otherwise.
+  if (active) {
+    return <svg {...S} fill="currentColor" stroke="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>;
+  }
   return <svg {...S}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>;
 }
 function FeedsIcon() {
