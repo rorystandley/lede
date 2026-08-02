@@ -8,9 +8,11 @@ const uiMock = {
   selectedFolderId: null as string | null,
   selectedTagId: null as string | null,
   isSearching: false,
+  viewMode: 'list' as 'list' | 'card' | 'magazine',
   clearFilters: vi.fn(),
   setShowStarred: vi.fn(),
   setSidebarOpen: vi.fn(),
+  setViewMode: vi.fn(),
 };
 const authMock = { user: { id: 'u1', email: 'user@example.com' } as { id: string; email: string } | null, logout: vi.fn() };
 
@@ -40,6 +42,7 @@ describe('BottomNav', () => {
     uiMock.selectedFolderId = null;
     uiMock.selectedTagId = null;
     uiMock.isSearching = false;
+    uiMock.viewMode = 'list';
     authMock.user = { id: 'u1', email: 'user@example.com' };
   });
 
@@ -98,6 +101,13 @@ describe('BottomNav', () => {
     expect(handlers.onOpenStats).toHaveBeenCalled();
     // Selecting an item dismisses the sheet.
     expect(screen.queryByRole('dialog', { name: 'More options' })).not.toBeInTheDocument();
+  });
+
+  it('switches the view mode from the More sheet', () => {
+    renderNav();
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('button', { name: 'card' }));
+    expect(uiMock.setViewMode).toHaveBeenCalledWith('card');
   });
 
   it('logs out from the More sheet', () => {
