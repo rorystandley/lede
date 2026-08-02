@@ -494,7 +494,7 @@ function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick
   const rowVirtualizer = useVirtualizer({
     count: articles.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 96,
+    estimateSize: () => 132,
     overscan: 6,
   });
 
