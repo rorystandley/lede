@@ -1,5 +1,4 @@
 import { useCallback, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
 
 export interface UsePullToRefreshOptions {
   /** Called when the user pulls past the threshold. May return a promise; the
@@ -7,17 +6,14 @@ export interface UsePullToRefreshOptions {
   onRefresh: () => void | Promise<void>;
   /** Pull distance (px) required to trigger a refresh. Default 64. */
   threshold?: number;
-  /** When false the handlers are inert (e.g. on desktop). Default true. */
+  /** When false the gesture is inert (e.g. on desktop). Default true. */
   enabled?: boolean;
 }
 
 export interface UsePullToRefreshResult {
-  handlers: {
-    onPointerDown: (e: ReactPointerEvent) => void;
-    onPointerMove: (e: ReactPointerEvent) => void;
-    onPointerUp: (e: ReactPointerEvent) => void;
-    onPointerCancel: (e: ReactPointerEvent) => void;
-  };
+  /** Attach to the scrollable element. Wires native touch listeners so the
+   *  pull survives iOS claiming the gesture as a scroll. */
+  containerRef: (node: HTMLElement | null) => void;
   /** Current visible pull distance in px (after resistance). */
   pull: number;
   /** True while onRefresh is in flight. */
@@ -25,89 +21,95 @@ export interface UsePullToRefreshResult {
   threshold: number;
 }
 
-interface Gesture {
-  pointerId: number;
-  startY: number;
-  active: boolean;
-}
-
 /**
  * Touch pull-to-refresh for a scroll container. Only engages when the element
  * is scrolled to the very top and the drag is downward, so it never fights
- * normal scrolling. Attach `handlers` to the scrollable element and render an
- * indicator from `pull`/`refreshing`.
+ * normal scrolling.
+ *
+ * It uses native (non-passive) touch listeners rather than React's pointer
+ * events: on iOS Safari a drag on a scrollable element is claimed as a native
+ * scroll — which cancels pointer tracking — so we listen for `touchmove` with
+ * `{ passive: false }` and `preventDefault()` while pulling to keep the gesture.
  */
 export function usePullToRefresh({ onRefresh, threshold = 64, enabled = true }: UsePullToRefreshOptions): UsePullToRefreshResult {
-  const gesture = useRef<Gesture | null>(null);
-  const pulledRef = useRef(0);
   const [pull, setPull] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
-  const onPointerDown = useCallback(
-    (e: ReactPointerEvent) => {
-      if (!enabled || refreshing) return;
-      if (e.pointerType === 'mouse') return; // touch / pen only
-      const el = e.currentTarget as HTMLElement;
-      if (el.scrollTop > 0) return; // only start from the top
-      gesture.current = { pointerId: e.pointerId, startY: e.clientY, active: true };
-    },
-    [enabled, refreshing],
-  );
+  // Latest values, read inside listeners without re-attaching them.
+  const opts = useRef({ onRefresh, threshold, enabled, refreshing });
+  opts.current = { onRefresh, threshold, enabled, refreshing };
 
-  const onPointerMove = useCallback(
-    (e: ReactPointerEvent) => {
-      const g = gesture.current;
-      if (!g || !g.active || e.pointerId !== g.pointerId) return;
-      const el = e.currentTarget as HTMLElement;
-      const dy = e.clientY - g.startY;
-      // Abandon if the user scrolled or is dragging upward.
-      if (dy <= 0 || el.scrollTop > 0) {
-        pulledRef.current = 0;
-        setPull(0);
+  const startY = useRef(0);
+  const pulling = useRef(false);
+  const pulled = useRef(0);
+  const detach = useRef<() => void>(() => {});
+
+  const containerRef = useCallback((node: HTMLElement | null) => {
+    detach.current();
+    detach.current = () => {};
+    if (!node) return;
+
+    const reset = () => {
+      pulled.current = 0;
+      setPull(0);
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      const { enabled, refreshing } = opts.current;
+      if (!enabled || refreshing || e.touches.length !== 1 || node.scrollTop > 0) {
+        pulling.current = false;
         return;
       }
-      // Rubber-band resistance, capped a little past the threshold.
-      const next = Math.min(dy * 0.5, threshold * 1.5);
-      pulledRef.current = next;
-      setPull(next);
-    },
-    [threshold],
-  );
+      startY.current = e.touches[0].clientY;
+      pulling.current = true;
+      pulled.current = 0;
+    };
 
-  const finish = useCallback(
-    async (e: ReactPointerEvent) => {
-      const g = gesture.current;
-      if (!g || e.pointerId !== g.pointerId) return;
-      gesture.current = null;
-      const triggered = pulledRef.current >= threshold;
-      pulledRef.current = 0;
+    const onTouchMove = (e: TouchEvent) => {
+      if (!pulling.current) return;
+      const dy = e.touches[0].clientY - startY.current;
+      // Not a downward pull from the top — let native scrolling have it.
+      if (dy <= 0 || node.scrollTop > 0) {
+        reset();
+        return;
+      }
+      // Actively pulling: take the gesture from native scroll.
+      if (e.cancelable) e.preventDefault();
+      const next = Math.min(dy * 0.5, opts.current.threshold * 1.5); // rubber-band resistance
+      pulled.current = next;
+      setPull(next);
+    };
+
+    const onTouchEnd = () => {
+      if (!pulling.current) return;
+      pulling.current = false;
+      const { onRefresh, threshold, refreshing } = opts.current;
+      const triggered = pulled.current >= threshold;
+      pulled.current = 0;
       setPull(0);
       if (triggered && !refreshing) {
         setRefreshing(true);
-        try {
-          await onRefresh();
-        } finally {
-          setRefreshing(false);
-        }
+        Promise.resolve(onRefresh()).finally(() => setRefreshing(false));
       }
-    },
-    [onRefresh, refreshing, threshold],
-  );
+    };
 
-  const onPointerUp = useCallback((e: ReactPointerEvent) => void finish(e), [finish]);
-  const onPointerCancel = useCallback(
-    (e: ReactPointerEvent) => {
-      if (gesture.current) gesture.current.active = false;
-      pulledRef.current = 0;
-      setPull(0);
-    },
-    [],
-  );
+    const onTouchCancel = () => {
+      pulling.current = false;
+      reset();
+    };
 
-  return {
-    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel },
-    pull,
-    refreshing,
-    threshold,
-  };
+    node.addEventListener('touchstart', onTouchStart, { passive: true });
+    node.addEventListener('touchmove', onTouchMove, { passive: false });
+    node.addEventListener('touchend', onTouchEnd);
+    node.addEventListener('touchcancel', onTouchCancel);
+
+    detach.current = () => {
+      node.removeEventListener('touchstart', onTouchStart);
+      node.removeEventListener('touchmove', onTouchMove);
+      node.removeEventListener('touchend', onTouchEnd);
+      node.removeEventListener('touchcancel', onTouchCancel);
+    };
+  }, []);
+
+  return { containerRef, pull, refreshing, threshold };
 }
