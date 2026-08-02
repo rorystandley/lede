@@ -42,8 +42,8 @@ export function Header({ onOpenSettings, onOpenRules, onOpenDigest, onOpenStats,
       </div>
 
       <div className="flex items-center gap-1 md:gap-2">
-        {/* View mode toggle */}
-        <div className="flex bg-surface-tertiary rounded p-0.5">
+        {/* View mode toggle — desktop only; on mobile it lives in the bottom-nav "More" sheet. */}
+        <div className="hidden md:flex bg-surface-tertiary rounded p-0.5">
           {(['list', 'card', 'magazine'] as const).map((mode) => (
             <button
               key={mode}

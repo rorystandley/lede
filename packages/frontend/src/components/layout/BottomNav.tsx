@@ -32,10 +32,10 @@ export function BottomNav({ onOpenAddSources, onOpenSettings, onOpenStats, onOpe
   return (
     <>
       <nav
-        className="md:hidden shrink-0 grid grid-cols-5 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]"
+        className="md:hidden shrink-0 grid grid-cols-5 border-t border-border bg-surface pt-1.5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]"
         aria-label="Primary"
       >
-        <NavButton label="Home" active={isHome} onClick={() => clearFilters()} icon={<HomeIcon />} />
+        <NavButton label="Home" active={isHome} onClick={() => clearFilters()} icon={<HomeIcon active={isHome} />} />
         <NavButton label="Feeds" onClick={() => setSidebarOpen(true)} icon={<FeedsIcon />} />
         <NavButton label="Search" active={isSearching} onClick={openSearch} icon={<SearchIcon />} />
         <NavButton label="Saved" active={showStarred} onClick={() => setShowStarred(true)} icon={<SavedIcon active={showStarred} />} />
@@ -61,13 +61,13 @@ function NavButton({ label, icon, active, onClick }: { label: string; icon: Reac
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
       aria-current={active ? 'page' : undefined}
-      className={`flex min-h-14 flex-col items-center justify-center gap-0.5 py-1.5 text-[11px] font-medium ${
+      className={`flex min-h-14 items-center justify-center ${
         active ? 'text-primary-600 dark:text-primary-400' : 'text-text-secondary'
       }`}
     >
       {icon}
-      <span>{label}</span>
     </button>
   );
 }
@@ -81,6 +81,7 @@ function MoreSheet({ onClose, onOpenAddSources, onOpenSettings, onOpenStats, onO
   onOpenRules?: () => void;
 }) {
   const { user, logout } = useAuthStore();
+  const { viewMode, setViewMode } = useUiStore();
   const run = (fn?: () => void) => () => { onClose(); fn?.(); };
 
   return (
@@ -89,6 +90,27 @@ function MoreSheet({ onClose, onOpenAddSources, onOpenSettings, onOpenStats, onO
       <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] animate-slide-up">
         <div className="mx-auto my-2 h-1 w-10 rounded-full bg-border" aria-hidden="true" />
         <div className="px-2 pb-3">
+          {/* View mode — moved off the top bar to keep the mobile header clean. */}
+          <div className="px-2 pb-1 pt-1">
+            <div className="mb-1.5 text-xs font-medium text-text-tertiary">View</div>
+            <div className="flex gap-1 rounded-lg bg-surface-tertiary p-1" role="group" aria-label="View mode">
+              {VIEW_MODES.map(({ mode, icon }) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setViewMode(mode)}
+                  aria-pressed={viewMode === mode}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-sm capitalize ${
+                    viewMode === mode ? 'bg-surface text-text-primary shadow-sm' : 'text-text-secondary'
+                  }`}
+                >
+                  {icon}
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="mx-2 my-1.5 border-t border-border" />
           {onOpenStats && <SheetItem label="Reading Stats" icon={<StatsIcon />} onClick={run(onOpenStats)} />}
           {onOpenDigest && <SheetItem label="Morning Briefing" icon={<BriefingIcon />} onClick={run(onOpenDigest)} />}
           {onOpenRules && <SheetItem label="Rules" icon={<RulesIcon />} onClick={run(onOpenRules)} />}
@@ -123,7 +145,40 @@ function SheetItem({ label, icon, onClick }: { label: string; icon: ReactNode; o
 const S = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 } as const;
 const Sm = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 } as const;
 
-function HomeIcon() {
+const VIEW_MODES = [
+  { mode: 'list' as const, icon: <ListViewIcon /> },
+  { mode: 'card' as const, icon: <CardViewIcon /> },
+  { mode: 'magazine' as const, icon: <MagazineViewIcon /> },
+];
+
+function ListViewIcon() {
+  return (
+    <svg {...Sm}>
+      <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  );
+}
+function CardViewIcon() {
+  return (
+    <svg {...Sm}>
+      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
+    </svg>
+  );
+}
+function MagazineViewIcon() {
+  return (
+    <svg {...Sm}>
+      <rect x="3" y="3" width="18" height="8" rx="1" /><rect x="3" y="14" width="8" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  );
+}
+
+function HomeIcon({ active }: { active?: boolean }) {
+  // Solid house when active (X-style), outlined with a door otherwise.
+  if (active) {
+    return <svg {...S} fill="currentColor" stroke="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>;
+  }
   return <svg {...S}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>;
 }
 function FeedsIcon() {

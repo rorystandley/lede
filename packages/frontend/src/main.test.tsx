@@ -67,6 +67,30 @@ describe('main entrypoint', () => {
     expect(warnMock).toHaveBeenCalledWith('Service worker registration failed:', expect.any(Error));
   });
 
+  it('reloads once when a new service worker takes control', async () => {
+    let controllerChange: (() => void) | undefined;
+    const swAddEventListener = vi.fn((event: string, handler: () => void) => {
+      if (event === 'controllerchange') controllerChange = handler;
+    });
+    vi.spyOn(window, 'addEventListener').mockImplementation((() => {}) as typeof window.addEventListener);
+    const reloadMock = vi.fn();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, reload: reloadMock },
+    });
+    Object.defineProperty(window.navigator, 'serviceWorker', {
+      configurable: true,
+      value: { register: registerMock, addEventListener: swAddEventListener },
+    });
+
+    await import('./main.js');
+
+    expect(swAddEventListener).toHaveBeenCalledWith('controllerchange', expect.any(Function));
+    controllerChange?.();
+    controllerChange?.();
+    expect(reloadMock).toHaveBeenCalledTimes(1);
+  });
+
   it('skips registration when service workers are unavailable', async () => {
     const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
     Reflect.deleteProperty(window.navigator, 'serviceWorker');

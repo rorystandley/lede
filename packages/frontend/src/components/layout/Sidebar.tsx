@@ -154,11 +154,11 @@ export function Sidebar({ onOpenAddSources }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto p-2">
         {/* Smart Feeds */}
         <div className="space-y-0.5 mb-4">
-          <button onClick={() => mobileClearFilters()} className={`w-full flex items-center justify-between px-2.5 py-1.5 text-sm rounded ${!selectedFeedId && !selectedFolderId && !selectedTagId && !showStarred && !isSearching ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}>
+          <button onClick={() => mobileClearFilters()} className={`w-full flex items-center justify-between min-h-11 px-2.5 py-1.5 text-sm rounded md:min-h-0 ${!selectedFeedId && !selectedFolderId && !selectedTagId && !showStarred && !isSearching ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}>
             <span className="flex items-center gap-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></svg>News Feed</span>
             <span className="text-xs min-w-[1.5rem] text-right shrink-0">{feeds.reduce((s, f) => s + f.unreadCount, 0) || ''}</span>
           </button>
-          <button onClick={() => mobileSetShowStarred(true)} className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-sm rounded ${showStarred ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}>
+          <button onClick={() => mobileSetShowStarred(true)} className={`w-full flex items-center gap-2 min-h-11 px-2.5 py-1.5 text-sm rounded md:min-h-0 ${showStarred ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill={showStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>Saved
           </button>
         </div>
@@ -314,7 +314,7 @@ function FolderItem({ folder, selectedFolderId, onSelect, feeds, selectedFeedId,
 
   return (
     <div>
-      <div className={`flex items-center gap-1 px-2.5 py-1.5 rounded transition-colors ${isDragOver ? 'bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-300' : ''} ${isEditing ? '' : selectedFolderId === folder.id ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}
+      <div className={`flex items-center gap-1 min-h-11 px-2.5 py-1.5 rounded transition-colors md:min-h-0 ${isDragOver ? 'bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-300' : ''} ${isEditing ? '' : selectedFolderId === folder.id ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}
         onContextMenu={(e) => onContextMenu(e, 'folder', folder.id, folder.name)}
         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolder(folder.id); }}
         onDragLeave={(e) => { e.stopPropagation(); setDragOverFolder(null); }}
@@ -352,7 +352,7 @@ function FeedButton({ feed, isSelected, onClick, onContextMenu, isEditing, onSav
   return (
     <button onClick={onClick} onContextMenu={onContextMenu} draggable
       onDragStart={(e) => { e.dataTransfer.setData('feedId', feed.id); e.dataTransfer.effectAllowed = 'move'; }}
-      className={`w-full flex items-center gap-2 ${indent ? 'pl-7 pr-2.5' : 'px-2.5'} py-1.5 text-sm rounded truncate cursor-grab active:cursor-grabbing ${isSelected ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}
+      className={`w-full flex items-center gap-2 min-h-11 md:min-h-0 ${indent ? 'pl-7 pr-2.5' : 'px-2.5'} py-1.5 text-sm rounded truncate cursor-grab active:cursor-grabbing ${isSelected ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-text-secondary hover:bg-surface-tertiary'}`}
       title={`${feed.customTitle ?? feed.title ?? feed.url} (${FEED_TYPE_LABELS[feed.feedType]})`}>
       {feed.faviconUrl ? <img src={feed.faviconUrl} alt="" className="w-4 h-4 rounded shrink-0" /> : <span className="w-4 h-4 rounded bg-primary-100 dark:bg-primary-800 flex items-center justify-center text-[10px] text-primary-600 shrink-0">{(feed.customTitle ?? feed.title ?? 'F')[0]}</span>}
       <span className="truncate flex-1 text-left">{feed.customTitle ?? feed.title ?? feed.url}</span>
