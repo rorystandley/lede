@@ -3,10 +3,10 @@
  * splash. iOS standalone PWAs do NOT fall back to the manifest splash, so
  * without these images the app shows a blank white screen on launch.
  *
- * The images are a branded splash: the app surface colour with the lede logo
- * mark centred — mirroring `public/icon.svg`. Encoded as opaque 8-bit truecolor
- * PNGs with zero external dependencies (pure Node `zlib`), so this runs in any
- * environment without native image tooling.
+ * The images are a branded splash: the emerald brand field with the lede
+ * wordmark centred — mirroring `public/icon-512.svg`. Encoded as opaque 8-bit
+ * truecolor PNGs with zero external dependencies (pure Node `zlib`), so this
+ * runs in any environment without native image tooling.
  *
  * Run from `packages/frontend`:
  *   node scripts/generate-splash.mjs
@@ -22,13 +22,10 @@ import { fileURLToPath } from 'node:url';
 const OUT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../public/splash');
 
 // Brand colours — kept in sync with the manifest and globals.css.
-const BG = [0x11, 0x18, 0x27]; // --color-surface (dark) / manifest background_color
-const GREEN = [0x12, 0xb9, 0x81]; // brand emerald / theme_color
+const GREEN = [0x12, 0xb9, 0x81]; // brand emerald / theme_color / manifest background_color
 
-// The logo mark, expressed in the icon's native 512×512 coordinate space
-// (see public/icon.svg). A green squircle with the "lede" wordmark bars.
-const MARK = 512;
-const SQUIRCLE_RADIUS = MARK * 0.2237; // iOS superellipse-ish corner radius
+// The "lede" wordmark bars, expressed in the icon's native 512×512 coordinate
+// space (see public/icon-512.svg). Rendered white on the emerald field.
 const BARS = [
   { x: 140, y: 160, w: 236, h: 44, alpha: 1 },
   { x: 140, y: 242, w: 196, h: 26, alpha: 0.5 },
@@ -36,7 +33,10 @@ const BARS = [
   { x: 140, y: 326, w: 150, h: 26, alpha: 0.5 },
 ];
 
-// Pre-blend the wordmark bars over the green squircle so we only need opaque
+// Bounding box of the wordmark in logical space — used to centre it on screen.
+const BBOX = { x: 140, y: 160, w: 236, h: 192 }; // spans x[140,376], y[160,352]
+
+// Pre-blend the wordmark bars over the emerald field so we only need opaque
 // colours when rasterising.
 function blend(fg, bg, a) {
   return fg.map((c, i) => Math.round(c * a + bg[i] * (1 - a)));
@@ -55,12 +55,10 @@ function inRoundedRect(px, py, x0, y0, x1, y1, r) {
 
 /** Resolve the colour of a single sample point in logical mark coordinates. */
 function sampleColor(lx, ly) {
-  if (lx < 0 || ly < 0 || lx > MARK || ly > MARK) return BG;
-  if (!inRoundedRect(lx, ly, 0, 0, MARK, MARK, SQUIRCLE_RADIUS)) return BG;
   for (const b of BAR_COLORS) {
     if (inRoundedRect(lx, ly, b.x, b.y, b.x + b.w, b.y + b.h, b.h / 2)) return b.color;
   }
-  return GREEN;
+  return GREEN; // emerald fills the whole screen
 }
 
 /** Encode a raw RGB pixel buffer as an opaque PNG (Buffer). */
@@ -116,21 +114,21 @@ function crc32(buf) {
 /** Render one splash image at the given device resolution. */
 function renderSplash(width, height) {
   const rgb = Buffer.alloc(width * height * 3);
-  const markSize = Math.round(Math.min(width, height) * 0.38);
-  const scale = markSize / MARK;
-  const ox = (width - markSize) / 2;
-  const oy = (height - markSize) / 2;
+  // Target the wordmark to ~48% of the shorter screen edge, centred by its bbox.
+  const scale = (Math.min(width, height) * 0.48) / BBOX.w;
+  const cx = BBOX.x + BBOX.w / 2; // logical centre of the wordmark
+  const cy = BBOX.y + BBOX.h / 2;
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      // 2×2 supersampling for smoother edges on the squircle/bars.
+      // 2×2 supersampling for smoother edges on the bars.
       let r = 0;
       let g = 0;
       let b = 0;
       for (const sy of [0.25, 0.75]) {
         for (const sx of [0.25, 0.75]) {
-          const lx = (x + sx - ox) / scale;
-          const ly = (y + sy - oy) / scale;
+          const lx = (x + sx - width / 2) / scale + cx;
+          const ly = (y + sy - height / 2) / scale + cy;
           const c = sampleColor(lx, ly);
           r += c[0];
           g += c[1];
