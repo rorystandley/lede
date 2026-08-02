@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useUiStore, useAuthStore } from '../../stores/index.js';
+import { authApi } from '../../api/index.js';
 
 interface BottomNavProps {
   onOpenAddSources?: () => void;
@@ -84,6 +85,13 @@ function MoreSheet({ onClose, onOpenAddSources, onOpenSettings, onOpenStats, onO
   const { viewMode, setViewMode } = useUiStore();
   const run = (fn?: () => void) => () => { onClose(); fn?.(); };
 
+  const handleLogout = () => {
+    // Best-effort server-side logout: revoke the refresh token and clear the
+    // HttpOnly cookie. Clear local state regardless of the request outcome.
+    void authApi.logout().catch(() => {});
+    logout();
+  };
+
   return (
     <div className="md:hidden" role="dialog" aria-label="More options">
       <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
@@ -119,7 +127,7 @@ function MoreSheet({ onClose, onOpenAddSources, onOpenSettings, onOpenStats, onO
           {user && (
             <>
               <div className="my-1 border-t border-border" />
-              <SheetItem label="Logout" icon={<LogoutIcon />} onClick={run(logout)} />
+              <SheetItem label="Logout" icon={<LogoutIcon />} onClick={run(handleLogout)} />
             </>
           )}
         </div>
