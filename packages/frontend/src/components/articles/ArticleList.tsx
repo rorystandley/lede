@@ -7,6 +7,7 @@ import { useSearch } from '../../hooks/use-search.js';
 import { useUiStore } from '../../stores/index.js';
 import { useKeyboardNav } from '../../hooks/use-keyboard-nav.js';
 import { useIsMobile } from '../../hooks/use-media-query.js';
+import { usePullToRefresh, type UsePullToRefreshResult } from '../../hooks/use-pull-to-refresh.js';
 import { ArticleListItem } from './ArticleListItem.js';
 import { ArticleCard } from './ArticleCard.js';
 import { ArticleMagazineItem } from './ArticleMagazineItem.js';
@@ -166,6 +167,15 @@ export function ArticleList() {
     });
   };
 
+  // Pull-to-refresh (touch only): dragging down at the top of the list kicks
+  // off a feed refresh, mirroring the toolbar's refresh button.
+  const pullToRefresh = usePullToRefresh({
+    enabled: isMobile,
+    onRefresh: async () => {
+      await refreshAllMut.mutateAsync().catch(() => {});
+    },
+  });
+
   const handleLoadMore = () => {
     if (!isSearching && infinite.hasNextPage && !infinite.isFetchingNextPage) {
       infinite.fetchNextPage();
@@ -275,7 +285,7 @@ export function ArticleList() {
     return (
       <>
         {toolbar}
-        <ScrollContainer onNearBottom={handleLoadMore}>
+        <ScrollContainer onNearBottom={handleLoadMore} pull={pullToRefresh}>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
             {articles.map((article, index) => (
               <ArticleCard
@@ -298,7 +308,7 @@ export function ArticleList() {
     return (
       <>
         {toolbar}
-        <ScrollContainer onNearBottom={handleLoadMore}>
+        <ScrollContainer onNearBottom={handleLoadMore} pull={pullToRefresh}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
             {articles.map((article, index) => (
               <ArticleMagazineItem
@@ -334,6 +344,7 @@ export function ArticleList() {
         swipeEnabled={isMobile}
         onSwipeStar={handleSwipeStar}
         onSwipeArchive={handleSwipeArchive}
+        pull={pullToRefresh}
       />
     </>
   );
@@ -402,15 +413,41 @@ function CaughtUpState({ onSeeAll }: { onSeeAll: () => void }) {
   );
 }
 
-function ScrollContainer({ children, onNearBottom }: { children: React.ReactNode; onNearBottom: () => void }) {
+function ScrollContainer({ children, onNearBottom, pull }: { children: React.ReactNode; onNearBottom: () => void; pull?: UsePullToRefreshResult }) {
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const el = event.currentTarget;
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 600) onNearBottom();
   };
 
   return (
-    <div className="flex-1 overflow-y-auto" onScroll={handleScroll}>
+    <div className="relative flex-1 overflow-y-auto" onScroll={handleScroll} {...(pull?.handlers ?? {})}>
+      {pull && <PullIndicator pull={pull.pull} refreshing={pull.refreshing} threshold={pull.threshold} />}
       {children}
+    </div>
+  );
+}
+
+/** Circular pull-to-refresh spinner shown as you drag the list down. */
+function PullIndicator({ pull, refreshing, threshold }: { pull: number; refreshing: boolean; threshold: number }) {
+  if (pull <= 0 && !refreshing) return null;
+  const progress = Math.min(pull / threshold, 1);
+  const offset = refreshing ? threshold : pull;
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center"
+      style={{ transform: `translateY(${Math.max(offset - 28, 0)}px)`, opacity: refreshing ? 1 : progress }}
+      role="status"
+      aria-label={refreshing ? 'Refreshing feeds' : undefined}
+    >
+      <div className={`mt-1 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface shadow-sm ${refreshing ? 'animate-spin' : ''}`}>
+        <svg
+          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          className="text-primary-600"
+          style={refreshing ? undefined : { transform: `rotate(${progress * 270}deg)` }}
+        >
+          <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+        </svg>
+      </div>
     </div>
   );
 }
@@ -427,7 +464,7 @@ function LoadMoreSentinel({ isFetching, hasMore }: { isFetching: boolean; hasMor
   return null;
 }
 
-function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick, onStar, onToggleRead, onNearEnd, isFetchingMore, hasMore, swipeEnabled, onSwipeStar, onSwipeArchive }: {
+function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick, onStar, onToggleRead, onNearEnd, isFetchingMore, hasMore, swipeEnabled, onSwipeStar, onSwipeArchive, pull }: {
   articles: ArticleWithState[];
   focusedArticleIndex: number;
   selectedArticleId: string | null;
@@ -440,6 +477,7 @@ function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick
   swipeEnabled: boolean;
   onSwipeStar: (article: ArticleWithState) => void;
   onSwipeArchive: (article: ArticleWithState) => void;
+  pull?: UsePullToRefreshResult;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -460,7 +498,8 @@ function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick
   }, [lastVirtualIndex, articles.length, hasMore, isFetchingMore, onNearEnd]);
 
   return (
-    <div ref={parentRef} className="flex-1 overflow-y-auto">
+    <div ref={parentRef} className="relative flex-1 overflow-y-auto" {...(pull?.handlers ?? {})}>
+      {pull && <PullIndicator pull={pull.pull} refreshing={pull.refreshing} threshold={pull.threshold} />}
       <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
         {virtualItems.map((virtualRow) => {
           const article = articles[virtualRow.index];
