@@ -61,13 +61,13 @@ function NavButton({ label, icon, active, onClick }: { label: string; icon: Reac
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
       aria-current={active ? 'page' : undefined}
-      className={`flex min-h-14 flex-col items-center justify-center gap-0.5 py-1.5 text-[11px] font-medium ${
+      className={`flex min-h-14 items-center justify-center ${
         active ? 'text-primary-600 dark:text-primary-400' : 'text-text-secondary'
       }`}
     >
       {icon}
-      <span>{label}</span>
     </button>
   );
 }
