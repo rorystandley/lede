@@ -24,8 +24,13 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            set -euo pipefail
             cd /opt/lede
-            git pull origin main
+            # Hard-reset to the pushed commit rather than `git pull`. A pull
+            # silently fails (and the old build keeps serving) if history was
+            # rewritten and the branches diverge; reset always lands on origin/main.
+            git fetch --prune origin main
+            git reset --hard origin/main
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
             docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T -w /app/packages/backend app node dist/db/migrate.js
             docker image prune -f
