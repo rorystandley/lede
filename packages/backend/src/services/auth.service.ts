@@ -96,6 +96,16 @@ export class AuthService {
     return null;
   }
 
+  /**
+   * Revoke a refresh token without issuing a new one (used on logout). Deletes
+   * by digest so a valid session is torn down server-side, not just client-side.
+   */
+  async revokeRefreshToken(token: string): Promise<void> {
+    const db = getDb();
+    const tokenDigest = digestToken(token);
+    await db.delete(refreshTokens).where(eq(refreshTokens.tokenDigest, tokenDigest));
+  }
+
   async createApiKey(userId: string, name: string, expiresAt?: string) {
     const db = getDb();
     const rawKey = `${API_KEY_PREFIX}${crypto.randomBytes(32).toString('base64url')}`;

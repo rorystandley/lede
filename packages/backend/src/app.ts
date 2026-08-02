@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import cookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
@@ -97,6 +98,7 @@ export async function buildApp() {
   });
 
   await app.register(cors, { origin: true, credentials: true });
+  await app.register(cookie);
   await app.register(errorHandler);
 
   await app.register(swagger, {

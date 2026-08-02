@@ -238,15 +238,33 @@
           ]
         },
         {
+          "name": "Log out",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Revokes the current refresh token server-side and clears the refresh cookie."
+          }
+        },
+        {
           "name": "Refresh access token",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/refresh",
               "host": [
@@ -262,15 +280,7 @@
             "auth": {
               "type": "noauth"
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Reads the refresh token from the HttpOnly cookie, rotates it, and returns a new access token."
           },
           "event": [
             {

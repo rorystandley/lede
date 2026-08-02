@@ -16,9 +16,15 @@ const uiMock = {
 };
 const authMock = { user: { id: 'u1', email: 'user@example.com' } as { id: string; email: string } | null, logout: vi.fn() };
 
+const apiLogoutMock = vi.fn();
+
 vi.mock('../../stores/index.js', () => ({
   useUiStore: () => uiMock,
   useAuthStore: () => authMock,
+}));
+
+vi.mock('../../api/index.js', () => ({
+  authApi: { logout: () => apiLogoutMock() },
 }));
 
 function renderNav(overrides: Partial<Parameters<typeof BottomNav>[0]> = {}) {
@@ -37,6 +43,7 @@ function renderNav(overrides: Partial<Parameters<typeof BottomNav>[0]> = {}) {
 describe('BottomNav', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    apiLogoutMock.mockResolvedValue(undefined);
     uiMock.showStarred = false;
     uiMock.selectedFeedId = null;
     uiMock.selectedFolderId = null;
@@ -110,10 +117,11 @@ describe('BottomNav', () => {
     expect(uiMock.setViewMode).toHaveBeenCalledWith('card');
   });
 
-  it('logs out from the More sheet', () => {
+  it('logs out from the More sheet, revoking the refresh cookie server-side', () => {
     renderNav();
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
+    expect(apiLogoutMock).toHaveBeenCalled();
     expect(authMock.logout).toHaveBeenCalled();
   });
 
