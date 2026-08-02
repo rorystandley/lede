@@ -420,7 +420,7 @@ function ScrollContainer({ children, onNearBottom, pull }: { children: React.Rea
   };
 
   return (
-    <div className="relative flex-1 overflow-y-auto" onScroll={handleScroll} {...(pull?.handlers ?? {})}>
+    <div className="relative flex-1 overflow-y-auto overscroll-y-contain" onScroll={handleScroll} {...(pull?.handlers ?? {})}>
       {pull && <PullIndicator pull={pull.pull} refreshing={pull.refreshing} threshold={pull.threshold} />}
       {children}
     </div>
@@ -498,7 +498,7 @@ function VirtualList({ articles, focusedArticleIndex, selectedArticleId, onClick
   }, [lastVirtualIndex, articles.length, hasMore, isFetchingMore, onNearEnd]);
 
   return (
-    <div ref={parentRef} className="relative flex-1 overflow-y-auto" {...(pull?.handlers ?? {})}>
+    <div ref={parentRef} className="relative flex-1 overflow-y-auto overscroll-y-contain" {...(pull?.handlers ?? {})}>
       {pull && <PullIndicator pull={pull.pull} refreshing={pull.refreshing} threshold={pull.threshold} />}
       <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
         {virtualItems.map((virtualRow) => {
