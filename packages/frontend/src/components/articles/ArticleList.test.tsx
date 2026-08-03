@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -298,7 +298,7 @@ describe('ArticleList', () => {
     expect(starMutate).toHaveBeenCalledWith({ articleId: 'article-1', isStarred: true });
 
     await user.click(screen.getByTitle('Mark all read'));
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Mark all read' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     await waitFor(() => {
       expect(mocks.markAllReadApiMock).toHaveBeenCalledWith({ feedId: 'feed-1', folderId: undefined });
     });
@@ -319,6 +319,26 @@ describe('ArticleList', () => {
     fireEvent.scroll(scrollContainer);
     expect(fetchNextPage).toHaveBeenCalledTimes(1);
   }, 8000);
+
+  it('marks all read in a single click, with no confirmation dialog, and toasts on success', async () => {
+    const user = userEvent.setup();
+    const addToast = vi.fn();
+    mocks.useUiStoreMock.mockReturnValue(uiState({ selectedFeedId: 'feed-1', addToast }));
+    mocks.markAllReadApiMock.mockResolvedValue({ marked: 2 });
+
+    renderWithClient(<ArticleList />);
+
+    await user.click(screen.getByTitle('Mark all read'));
+
+    // No confirmation step: the click goes straight to the API.
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(mocks.markAllReadApiMock).toHaveBeenCalledWith({ feedId: 'feed-1', folderId: undefined });
+    });
+    await waitFor(() => {
+      expect(addToast).toHaveBeenCalledWith('Marked 2 articles as read', 'info');
+    });
+  });
 
   it('renders magazine view and uses the featured article branch', async () => {
     const user = userEvent.setup();
@@ -434,7 +454,6 @@ describe('ArticleList', () => {
     expect(screen.getByText('1 article')).toBeInTheDocument();
 
     await user.click(screen.getByTitle('Mark all read'));
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Mark all read' }));
     await waitFor(() => {
       expect(mocks.markAllReadApiMock).toHaveBeenCalledWith({
         feedId: undefined,

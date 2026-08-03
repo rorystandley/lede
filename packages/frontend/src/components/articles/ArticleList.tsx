@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useArticlesInfinite } from '../../hooks/use-articles-infinite.js';
@@ -12,7 +12,6 @@ import { ArticleListItem } from './ArticleListItem.js';
 import { ArticleCard } from './ArticleCard.js';
 import { ArticleMagazineItem } from './ArticleMagazineItem.js';
 import { SwipeableRow } from './SwipeableRow.js';
-import { ConfirmDialog } from '../shared/ConfirmDialog.js';
 import { articlesApi, feedsApi } from '../../api/index.js';
 import type { ArticleWithState, PaginatedResult } from '@lede/shared';
 
@@ -78,22 +77,23 @@ export function ArticleList() {
     prevSelectedRef.current = selectedArticleId;
   }, [selectedArticleId, qc]);
 
-  const [confirmMarkAllOpen, setConfirmMarkAllOpen] = useState(false);
+  const addToast = useUiStore((s) => s.addToast);
 
   const markAllReadMut = useMutation({
     mutationFn: () => articlesApi.markAllRead({
       feedId: selectedFeedId ?? undefined,
       folderId: selectedFolderId ?? undefined,
     }),
-    onSuccess: () => {
+    onSuccess: ({ marked }) => {
       qc.invalidateQueries({ queryKey: ['articles-infinite'] });
       qc.invalidateQueries({ queryKey: ['feeds'] });
       qc.invalidateQueries({ queryKey: ['folders'] });
+      addToast(`Marked ${marked} ${marked === 1 ? 'article' : 'articles'} as read`, 'info');
     },
-    onSettled: () => setConfirmMarkAllOpen(false),
+    onError: () => {
+      addToast('Failed to mark articles as read', 'error');
+    },
   });
-
-  const addToast = useUiStore((s) => s.addToast);
 
   const refreshAllMut = useMutation({
     mutationFn: () => feedsApi.refreshAll(),
@@ -185,7 +185,6 @@ export function ArticleList() {
   const totalCount = isSearching ? articles.length : (infinite.data?.pages[0]?.total ?? articles.length);
 
   const toolbar = (
-    <>
     <div
       data-testid="article-list-toolbar"
       className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b border-border bg-surface-secondary px-3 py-1.5 min-h-10 shrink-0 sm:h-10 sm:flex-nowrap sm:px-4 sm:py-0"
@@ -219,7 +218,7 @@ export function ArticleList() {
           </svg>
         </button>
         <button
-          onClick={() => { if (totalCount > 0) setConfirmMarkAllOpen(true); }}
+          onClick={() => { if (totalCount > 0) markAllReadMut.mutate(); }}
           disabled={markAllReadMut.isPending || articles.length === 0}
           className="flex shrink-0 items-center gap-1.5 rounded border border-border p-1.5 text-xs text-text-secondary hover:bg-surface-tertiary hover:text-text-primary disabled:opacity-50 sm:px-2 sm:py-1"
           title="Mark all read"
@@ -232,16 +231,6 @@ export function ArticleList() {
         </button>
       </div>
     </div>
-    <ConfirmDialog
-      open={confirmMarkAllOpen}
-      title="Mark all as read"
-      message={`Mark all ${totalCount} ${totalCount === 1 ? 'article' : 'articles'} as read?`}
-      confirmLabel="Mark all read"
-      isPending={markAllReadMut.isPending}
-      onConfirm={() => markAllReadMut.mutate()}
-      onCancel={() => setConfirmMarkAllOpen(false)}
-    />
-    </>
   );
 
   if (loading) {
