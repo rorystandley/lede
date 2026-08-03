@@ -1,0 +1,14 @@
+title = "lede gitleaks config"
+
+# Start from gitleaks' built-in rule set, then narrow with the allowlist below.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known non-secret test fixtures (dummy JWT/encryption keys used in unit tests)"
+regexTarget = "match"
+regexes = [
+  # Placeholder value hard-coded in *.test.ts (config.test.ts, ai.service.test.ts).
+  # Not a real credential — see packages/backend/src/config.test.ts.
+  '''1234567890abcdef''',
+]
