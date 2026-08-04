@@ -16,7 +16,15 @@ interface BottomNavProps {
  * a "More" sheet within thumb reach, so small screens no longer depend on the
  * desktop top toolbar. Hidden at `md` and up, where the header + sidebar drive
  * navigation. Lives in normal flow (not fixed) so list/reader content always
- * sits above it, and pads the iOS home-indicator safe area.
+ * sits above it.
+ *
+ * The bottom padding is `max(env(safe-area-inset-bottom), 0.5rem)`: on phones
+ * with a home indicator (any Face ID iPhone, gesture-nav Android) it resolves
+ * to that device's real inset, so the icons sit consistently just above the
+ * indicator regardless of how tall it is; where the inset is 0 (older phones,
+ * in-browser Android, desktop) it falls back to a 0.5rem floor so the icons are
+ * never flush to the screen edge. Avoid adding a fixed constant on top of the
+ * inset — that double-counts and makes the bar's height vary per device.
  */
 export function BottomNav({ onOpenAddSources, onOpenSettings, onOpenStats, onOpenDigest, onOpenRules }: BottomNavProps) {
   const { showStarred, selectedFeedId, selectedFolderId, selectedTagId, isSearching, clearFilters, setShowStarred, setSidebarOpen } = useUiStore();
@@ -33,7 +41,7 @@ export function BottomNav({ onOpenAddSources, onOpenSettings, onOpenStats, onOpe
   return (
     <>
       <nav
-        className="md:hidden shrink-0 grid grid-cols-5 border-t border-border bg-surface pt-1.5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]"
+        className="md:hidden shrink-0 grid grid-cols-5 border-t border-border bg-surface pt-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)]"
         aria-label="Primary"
       >
         <NavButton label="Home" active={isHome} onClick={() => clearFilters()} icon={<HomeIcon active={isHome} />} />
@@ -95,7 +103,7 @@ function MoreSheet({ onClose, onOpenAddSources, onOpenSettings, onOpenStats, onO
   return (
     <div className="md:hidden" role="dialog" aria-label="More options">
       <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
-      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] animate-slide-up">
+      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-border bg-surface pb-[max(env(safe-area-inset-bottom),0.5rem)] animate-slide-up">
         <div className="mx-auto my-2 h-1 w-10 rounded-full bg-border" aria-hidden="true" />
         <div className="px-2 pb-3">
           {/* View mode — moved off the top bar to keep the mobile header clean. */}
