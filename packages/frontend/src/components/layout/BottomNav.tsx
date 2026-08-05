@@ -18,14 +18,16 @@ interface BottomNavProps {
  * navigation. Lives in normal flow (not fixed) so list/reader content always
  * sits above it.
  *
- * The bottom padding is `max(env(safe-area-inset-bottom), 34px)`. `env()` is the
- * dynamic, correct source and drives this on every device that reports honestly
- * (older iPhones, Android, desktop). But newer iOS has a bug where a standalone
- * PWA gets `env(safe-area-inset-bottom): 0` despite the phone having a home
- * indicator, which drops the icons onto the screen edge. 34px is not a tuned
- * magic number — it's the exact home-indicator height iOS uses across the whole
- * Face ID iPhone lineup, i.e. the value `env()` should have returned. `max()`
- * (not `+`) means devices reporting a real inset just use it, without stacking.
+ * Bottom padding depends on how the app is running:
+ *   - Installed PWA (`standalone:`) — reserve the iOS home indicator with
+ *     `max(env(safe-area-inset-bottom), 34px)`. The `max()` floor covers a
+ *     newer-iOS bug where a standalone PWA reports `env(...): 0` despite the
+ *     phone having a home indicator; 34px is the real indicator height iOS uses
+ *     across the Face ID lineup (the value `env()` should have returned).
+ *   - Browser tab (default) — Safari's own toolbar already sits at the bottom,
+ *     AND with `viewport-fit=cover` `env(safe-area-inset-bottom)` balloons in a
+ *     tab (it reserves the browser chrome, not just the indicator). Using it
+ *     there leaves a big empty band under the icons, so we keep a plain `pb-2`.
  */
 export function BottomNav({ onOpenAddSources, onOpenSettings, onOpenStats, onOpenDigest, onOpenRules }: BottomNavProps) {
   const { showStarred, selectedFeedId, selectedFolderId, selectedTagId, isSearching, clearFilters, setShowStarred, setSidebarOpen } = useUiStore();
@@ -42,7 +44,7 @@ export function BottomNav({ onOpenAddSources, onOpenSettings, onOpenStats, onOpe
   return (
     <>
       <nav
-        className="md:hidden shrink-0 grid grid-cols-5 border-t border-border bg-surface pt-1.5 pb-[max(env(safe-area-inset-bottom),34px)]"
+        className="md:hidden shrink-0 grid grid-cols-5 border-t border-border bg-surface pt-1.5 pb-2 standalone:pb-[max(env(safe-area-inset-bottom),34px)]"
         aria-label="Primary"
       >
         <NavButton label="Home" active={isHome} onClick={() => clearFilters()} icon={<HomeIcon active={isHome} />} />
@@ -104,7 +106,7 @@ function MoreSheet({ onClose, onOpenAddSources, onOpenSettings, onOpenStats, onO
   return (
     <div className="md:hidden" role="dialog" aria-label="More options">
       <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
-      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-border bg-surface pb-[max(env(safe-area-inset-bottom),34px)] animate-slide-up">
+      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-border bg-surface pb-2 standalone:pb-[max(env(safe-area-inset-bottom),34px)] animate-slide-up">
         <div className="mx-auto my-2 h-1 w-10 rounded-full bg-border" aria-hidden="true" />
         <div className="px-2 pb-3">
           {/* View mode — moved off the top bar to keep the mobile header clean. */}
