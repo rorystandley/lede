@@ -3,6 +3,12 @@
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+/* Matches only when the app runs as an installed PWA (added to home screen).
+   Used to reserve the iOS home-indicator safe area in the bottom nav there,
+   while a normal browser tab — where Safari's own chrome sits at the bottom —
+   keeps a plain small gap instead. */
+@custom-variant standalone (@media (display-mode: standalone));
+
 @theme {
   /* lede — emerald brand ramp (anchored on #12B981) */
   --color-primary-50: #ecfdf5;
