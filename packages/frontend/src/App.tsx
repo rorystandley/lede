@@ -131,8 +131,13 @@ function AppContent() {
     return <LoginPage onForgotPassword={() => setAuthView('forgot-password')} />;
   }
 
+  // `h-dvh` (dynamic viewport height), not `h-screen`/100vh: on iOS, 100vh is
+  // measured inconsistently — slightly taller than the real screen in a standalone
+  // PWA (clipping the bottom nav) and shorter than the visible area in a Safari tab
+  // (leaving the nav floating). `dvh` tracks the true visible height in both, so
+  // the flex column ends exactly where the screen does.
   return (
-    <div className="h-screen flex flex-col bg-surface">
+    <div className="h-dvh flex flex-col bg-surface">
       <Header
         onOpenSettings={() => setShowSettings(true)}
         onOpenRules={() => setShowRules(true)}
