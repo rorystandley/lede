@@ -38,6 +38,14 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Generate coverage report
+        run: pnpm coverage
+
+      - name: Add coverage table to job summary
+        run: |
+          node scripts/render-coverage-table.mjs
+          cat coverage/coverage-table.md >> "$GITHUB_STEP_SUMMARY"
+
       - name: Build
         run: pnpm run build
 
