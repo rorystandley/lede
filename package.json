@@ -9,6 +9,7 @@
     "test": "pnpm --filter @lede/backend test && pnpm --filter @lede/frontend test",
     "coverage": "pnpm --filter @lede/backend coverage && pnpm --filter @lede/frontend coverage",
     "coverage:table": "pnpm coverage && node scripts/render-coverage-table.mjs",
+    "gen:secrets": "node scripts/gen-secrets.mjs",
     "db:generate": "turbo db:generate --filter=@lede/backend",
     "db:migrate": "turbo db:migrate --filter=@lede/backend",
     "db:seed": "turbo db:seed --filter=@lede/backend",
