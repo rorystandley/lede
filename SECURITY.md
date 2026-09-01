@@ -161,7 +161,12 @@ See [BACKUP.md](./BACKUP.md). A daily encrypted backup to off-site storage prote
 
 ## Dependency Vulnerabilities
 
-Run regularly:
+CI runs `pnpm audit --audit-level=high` for every pull request and on a weekly
+schedule (Mondays at 09:00 UTC). It is advisory while the existing findings are
+remediated, so high- and critical-severity advisories are visible in CI without
+blocking unrelated pull requests.
+
+For local checks:
 
 ```bash
 pnpm audit
