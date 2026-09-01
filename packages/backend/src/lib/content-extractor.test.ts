@@ -52,12 +52,21 @@ describe('content extractor', () => {
     expect(extractMock).toHaveBeenCalledWith(
       'https://example.com/story',
       {},
-      {
-        headers: {
-          'User-Agent': 'NewsReader/1.0 (Article Extractor)',
-        },
-      },
+      expect.any(Function),
     );
+
+    // The custom fetcher should forward the User-Agent header.
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('ok'));
+    const fetcher = extractMock.mock.calls[0][2] as (url: string) => Promise<Response>;
+    await fetcher('https://example.com/story');
+    expect(fetchSpy).toHaveBeenCalledWith('https://example.com/story', {
+      headers: {
+        'User-Agent': 'NewsReader/1.0 (Article Extractor)',
+      },
+    });
+    fetchSpy.mockRestore();
     expect(sanitizeArticleHtmlMock).toHaveBeenCalledWith(
       '<p>Hello</p><img src="https://cdn.example.com//photo.jpg">',
     );

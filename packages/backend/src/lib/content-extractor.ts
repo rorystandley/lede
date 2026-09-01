@@ -40,11 +40,13 @@ function upgradeContentImages(html: string): string {
 
 export async function extractArticleContent(url: string): Promise<ExtractedContent | null> {
   try {
-    const article = await extract(url, {}, {
-      headers: {
-        'User-Agent': 'NewsReader/1.0 (Article Extractor)',
-      },
-    });
+    const article = await extract(url, {}, (fetchUrl) =>
+      fetch(fetchUrl, {
+        headers: {
+          'User-Agent': 'NewsReader/1.0 (Article Extractor)',
+        },
+      }),
+    );
 
     if (!article) return null;
 
