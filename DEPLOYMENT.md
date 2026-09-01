@@ -29,8 +29,8 @@ sudo usermod -aG docker $USER
 git clone <repo> /opt/lede
 cd /opt/lede
 cp .env.example .env
-# Edit .env — set JWT_SECRET, JWT_REFRESH_SECRET, ENCRYPTION_KEY to random strings
-openssl rand -hex 32  # use for each secret
+# Generate and paste the three values into .env
+pnpm gen:secrets
 ```
 
 ### Build and start
