@@ -25,6 +25,24 @@ describe('api modules', () => {
     vi.stubGlobal('fetch', vi.fn());
   });
 
+  it('uses the authenticated client for API-key management and preserves response shapes', async () => {
+    const { apiKeysApi } = await import('./api-keys.api.js');
+    const key = { id: 'key-1', name: 'Agent', keyPrefix: 'nrk_abcd', lastUsed: null, expiresAt: null, createdAt: '2026-01-01T00:00:00Z' };
+    vi.mocked(api.get).mockResolvedValueOnce([key]);
+    vi.mocked(api.post).mockResolvedValueOnce({ ...key, key: 'nrk_creation_secret' });
+    vi.mocked(api.delete).mockResolvedValueOnce(undefined);
+    await expect(apiKeysApi.list()).resolves.toEqual([key]);
+    await expect(apiKeysApi.create({ name: 'Agent' })).resolves.toMatchObject({ key: 'nrk_creation_secret' });
+    await apiKeysApi.create({ name: 'Expiring', expiresAt: '2099-01-01T00:00:00.000Z' });
+    await expect(apiKeysApi.revoke('key-1')).resolves.toBeUndefined();
+    expect(api.get).toHaveBeenCalledWith('/auth/api-keys');
+    expect(api.post).toHaveBeenCalledWith('/auth/api-keys', { name: 'Agent' });
+    expect(api.post).toHaveBeenCalledWith('/auth/api-keys', { name: 'Expiring', expiresAt: '2099-01-01T00:00:00.000Z' });
+    expect(api.delete).toHaveBeenCalledWith('/auth/api-keys/key-1');
+    const index = await import('./index.js');
+    expect(index.apiKeysApi).toBe(apiKeysApi);
+  });
+
   it('wires article, auth, folder, tag, rule, digest, ai, sharing, annotation, search, saved search, stats, and user endpoints', async () => {
     const { aiApi } = await import('./ai.api.js');
     const { annotationsApi } = await import('./annotations.api.js');

@@ -1,4 +1,5 @@
 export { authApi } from './auth.api.js';
+export { apiKeysApi } from './api-keys.api.js';
 export { feedsApi } from './feeds.api.js';
 export { articlesApi } from './articles.api.js';
 export { foldersApi } from './folders.api.js';
