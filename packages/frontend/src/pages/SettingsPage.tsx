@@ -5,6 +5,7 @@ import { deliveryApi, pushApi } from '../api/push.api.js';
 import { subscribeToPush, unsubscribeFromPush, isCurrentlySubscribed, isPushSupported, getPushPermission } from '../lib/push-helper.js';
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import type { AIProvider } from '@lede/shared';
+import { ApiKeysSection } from '../components/settings/ApiKeysSection.js';
 import { NoiseFiltersSection } from '../components/settings/NoiseFiltersSection.js';
 
 interface Props {
@@ -12,7 +13,7 @@ interface Props {
 }
 
 export function SettingsPage({ onClose }: Props) {
-  const [activeSection, setActiveSection] = useState<'general' | 'noise-filters'>('general');
+  const [activeSection, setActiveSection] = useState<'general' | 'noise-filters' | 'api-keys'>('general');
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -122,7 +123,7 @@ export function SettingsPage({ onClose }: Props) {
       <div className="bg-surface rounded-t-xl md:rounded-lg border border-border shadow-xl w-full md:max-w-lg md:mx-4 max-h-[90vh] md:max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="text-lg font-semibold text-text-primary">Settings</h2>
-          <button onClick={onClose} className="p-1 text-text-tertiary hover:text-text-primary">
+          <button aria-label="Close settings" onClick={onClose} className="p-1 text-text-tertiary hover:text-text-primary">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -130,24 +131,36 @@ export function SettingsPage({ onClose }: Props) {
         </div>
 
         <div className="flex gap-1 border-b border-border px-4 pt-2" role="tablist" aria-label="Settings sections">
-          <button
-            role="tab"
-            aria-selected={activeSection === 'general'}
-            onClick={() => setActiveSection('general')}
-            className={`border-b-2 px-3 py-2 text-xs font-medium ${activeSection === 'general' ? 'border-primary-500 text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
-          >
-            General
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeSection === 'noise-filters'}
-            onClick={() => setActiveSection('noise-filters')}
-            className={`border-b-2 px-3 py-2 text-xs font-medium ${activeSection === 'noise-filters' ? 'border-primary-500 text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
-          >
-            Noise filters
-          </button>
+          {([
+            ['general', 'General'],
+            ['noise-filters', 'Noise filters'],
+            ['api-keys', 'API keys'],
+          ] as const).map(([id, label], index, tabs) => (
+            <button
+              key={id}
+              id={`settings-tab-${id}`}
+              role="tab"
+              aria-controls="settings-panel"
+              aria-selected={activeSection === id}
+              tabIndex={activeSection === id ? 0 : -1}
+              onClick={() => setActiveSection(id)}
+              onKeyDown={(event) => {
+                const next = event.key === 'ArrowRight' ? (index + 1) % tabs.length
+                  : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
+                  : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : null;
+                if (next === null) return;
+                event.preventDefault();
+                setActiveSection(tabs[next][0]);
+                document.getElementById(`settings-tab-${tabs[next][0]}`)?.focus();
+              }}
+              className={`border-b-2 px-3 py-2 text-xs font-medium ${activeSection === id ? 'border-primary-500 text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
+        <div id="settings-panel" role="tabpanel" aria-labelledby={`settings-tab-${activeSection}`} tabIndex={0}>
         {activeSection === 'general' ? <div className="p-4 space-y-6">
           {/* Digest & Profile */}
           <section>
@@ -334,7 +347,8 @@ export function SettingsPage({ onClose }: Props) {
               ))}
             </div>
           </section>
-        </div> : <NoiseFiltersSection />}
+        </div> : activeSection === 'noise-filters' ? <NoiseFiltersSection /> : <ApiKeysSection />}
+        </div>
       </div>
     </div>
   );

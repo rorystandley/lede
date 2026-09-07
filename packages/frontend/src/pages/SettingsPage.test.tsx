@@ -6,6 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsPage } from './SettingsPage.js';
 
 const mocks = vi.hoisted(() => ({
+  listApiKeysMock: vi.fn(),
+  createApiKeyMock: vi.fn(),
   importOpmlMock: vi.fn(),
   exportOpmlMock: vi.fn(),
   getConfigMock: vi.fn(),
@@ -32,6 +34,10 @@ vi.mock('../api/index.js', () => ({
     getUsage: mocks.getUsageMock,
     updateConfig: mocks.updateConfigMock,
   },
+}));
+
+vi.mock('../api/api-keys.api.js', () => ({
+  apiKeysApi: { list: mocks.listApiKeysMock, create: mocks.createApiKeyMock },
 }));
 
 vi.mock('../api/user.api.js', () => ({
@@ -92,6 +98,7 @@ function triggerReactInputValue(element: HTMLElement, value: string) {
 describe('SettingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.listApiKeysMock.mockResolvedValue([]);
 
     if (!('supportedValuesOf' in Intl)) {
       Object.defineProperty(Intl, 'supportedValuesOf', {
@@ -143,6 +150,28 @@ describe('SettingsPage', () => {
     });
     vi.spyOn(window, 'alert').mockImplementation(() => {});
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  });
+
+  it('opens API keys with the keyboard and forgets a revealed key when leaving the tab', async () => {
+    const user = userEvent.setup();
+    mocks.createApiKeyMock.mockResolvedValue({ id: 'new-key', name: 'Agent', key: 'nrk_once_only' });
+    const onClose = vi.fn();
+    render(<SettingsPage onClose={onClose} />, { wrapper: Wrapper });
+    expect(mocks.listApiKeysMock).not.toHaveBeenCalled();
+    const general = screen.getByRole('tab', { name: 'General' });
+    general.focus();
+    await user.keyboard('{End}');
+    expect(screen.getByRole('tab', { name: 'API keys' })).toHaveFocus();
+    expect(screen.getByRole('tabpanel', { name: 'API keys' })).toBeInTheDocument();
+    await screen.findByText('No API keys yet.');
+    await user.type(screen.getByLabelText('Key name'), 'Agent');
+    await user.click(screen.getByRole('button', { name: 'Create key' }));
+    expect(await screen.findByLabelText('New API key')).toHaveValue('nrk_once_only');
+    await user.click(general);
+    await user.click(screen.getByRole('tab', { name: 'API keys' }));
+    expect(screen.queryByDisplayValue('nrk_once_only')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Close settings' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('loads config and profile data, saves AI config, and removes AI settings', async () => {
