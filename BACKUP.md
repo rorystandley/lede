@@ -18,97 +18,140 @@ Redis holds BullMQ queue state. Loss is acceptable — pending jobs just don't r
 
 ## Backup Strategy
 
-### Daily pg_dump to local disk
+Backups use [restic](https://restic.net/). It handles encryption, deduplication, compression, and retention itself, and it's a single static binary with no daemon. The key thing for a self-hosted setup: **you choose where the backups go.** A restic repository can live on:
 
-Quick and dirty for a personal deployment:
+- a local path or attached disk,
+- **SFTP to another machine you control** (a home NAS, a Raspberry Pi, a second VPS) — fully self-hosted, no third party,
+- any S3-compatible object store, including a self-hosted [MinIO](https://min.io/).
+
+Nothing here assumes a particular cloud provider.
+
+### One-time setup
+
+Install restic (`apt install restic`, `brew install restic`, or grab the binary from the [releases page](https://github.com/restic/restic/releases)), then choose a repository and a password.
 
 ```bash
-# /etc/cron.daily/lede-backup
-#!/bin/bash
-set -e
-TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-BACKUP_DIR=/var/backups/lede
-mkdir -p "$BACKUP_DIR"
+# Pick ONE repository location:
+export RESTIC_REPOSITORY=sftp:backups@nas.local:/srv/lede-backups   # your own box over SSH
+# export RESTIC_REPOSITORY=/mnt/external/lede-backups               # a local/attached disk
+# export RESTIC_REPOSITORY=s3:https://minio.example.com/lede        # self-hosted MinIO / any S3-compatible
 
-docker compose -f /opt/lede/docker-compose.yml exec -T postgres \
-  pg_dump -U newsreader newsreader \
-  | gzip > "$BACKUP_DIR/lede-$TIMESTAMP.sql.gz"
+# Store the encryption password in a file readable only by root.
+# WITHOUT THIS PASSWORD THE BACKUPS CANNOT BE DECRYPTED — keep a copy somewhere safe.
+sudo install -m 600 /dev/stdin /etc/lede/restic-password <<< "$(openssl rand -base64 32)"
+export RESTIC_PASSWORD_FILE=/etc/lede/restic-password
 
-# Keep 30 days
-find "$BACKUP_DIR" -name 'lede-*.sql.gz' -mtime +30 -delete
+# Initialise the repository once.
+restic init
+```
+
+### The backup script
+
+The repo ships [`scripts/backup.sh`](./scripts/backup.sh). It dumps the database out of the Postgres container, verifies the dump, hands it to restic as a snapshot, and applies retention. With `RESTIC_REPOSITORY` and the password set, it needs no other configuration.
+
+```bash
+RESTIC_REPOSITORY=sftp:backups@nas.local:/srv/lede-backups \
+RESTIC_PASSWORD_FILE=/etc/lede/restic-password \
+./scripts/backup.sh
+```
+
+It dumps to a temporary file and only snapshots it once `pg_dump` has succeeded, so a failed dump never becomes a snapshot of partial data. Tunables (all optional):
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `KEEP_DAILY` | `7` | Daily snapshots to keep |
+| `KEEP_WEEKLY` | `4` | Weekly snapshots to keep |
+| `KEEP_MONTHLY` | `6` | Monthly snapshots to keep |
+| `LEDE_DIR` | repo root | Project dir with the compose files |
+| `POSTGRES_USER` / `POSTGRES_DB` | `newsreader` | Override if you changed the defaults |
+
+restic deduplicates, so daily snapshots of a slowly-changing database cost very little extra space.
+
+### Schedule it
+
+A systemd timer is the tidiest option. Put the restic settings in an environment file readable only by root:
+
+`/etc/lede/backup.env`:
+
+```ini
+RESTIC_REPOSITORY=sftp:backups@nas.local:/srv/lede-backups
+RESTIC_PASSWORD_FILE=/etc/lede/restic-password
+```
+
+`/etc/systemd/system/lede-backup.service`:
+
+```ini
+[Unit]
+Description=lede database backup
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/lede
+EnvironmentFile=/etc/lede/backup.env
+ExecStart=/opt/lede/scripts/backup.sh
+```
+
+`/etc/systemd/system/lede-backup.timer`:
+
+```ini
+[Unit]
+Description=Run lede database backup daily
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
 ```
 
 ```bash
-sudo chmod +x /etc/cron.daily/lede-backup
+sudo systemctl enable --now lede-backup.timer
 ```
 
-### Off-site backup to S3 or compatible
+Prefer cron? Same idea:
 
-The risk with local-only backups is the same VPS dying. Push to S3, Backblaze B2 (cheaper), or any S3-compatible store.
-
-```bash
-# /etc/cron.daily/lede-backup
-#!/bin/bash
-set -e
-TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-
-docker compose -f /opt/lede/docker-compose.yml exec -T postgres \
-  pg_dump -U newsreader newsreader \
-  | gzip \
-  | gpg --encrypt --recipient backup@yourdomain.com \
-  | aws s3 cp - s3://your-backup-bucket/lede/$TIMESTAMP.sql.gz.gpg
+```cron
+0 3 * * * cd /opt/lede && set -a && . /etc/lede/backup.env && ./scripts/backup.sh >> /var/log/lede-backup.log 2>&1
 ```
-
-Use `--storage-class STANDARD_IA` or `INTELLIGENT_TIERING` to cut storage costs.
-
-Cost for ~50 MB dumps × 30 days × S3 Standard-IA = ~$0.02/mo. Backblaze B2 is cheaper still.
-
-### Encrypted with GPG
-
-The pipe through `gpg --encrypt` above means the backup is encrypted at rest. You need the private key to restore. Export the public key once:
-
-```bash
-gpg --export --armor backup@yourdomain.com > /opt/lede/backup-pubkey.asc
-```
-
-Store the private key somewhere safe and separate (1Password, a USB stick in a drawer, etc.) — without it the backups are useless.
-
-### Continuous backup via WAL archiving
-
-For larger deployments, consider continuous WAL archiving to recover to a specific point in time:
-
-- [pgBackRest](https://pgbackrest.org/) — production-grade
-- Managed Postgres (DigitalOcean, RDS, etc.) handles this automatically
-
-This is overkill for personal use. Daily snapshots are fine.
 
 ## Restore
 
-### From a local pg_dump
+List what you've got:
+
+```bash
+restic snapshots --tag lede
+```
+
+### With the restore script
+
+[`scripts/restore.sh`](./scripts/restore.sh) is the counterpart to the backup script. It drops and recreates the database, then loads a snapshot (the latest by default):
+
+```bash
+# Restore the most recent snapshot
+./scripts/restore.sh
+
+# Restore a specific snapshot
+./scripts/restore.sh 1a2b3c4d
+```
+
+It asks you to confirm before dropping the database (type the database name). Pass `--force` to skip the prompt — handy for the automated restore drill below.
+
+### By hand
 
 ```bash
 # Stop the app to avoid concurrent writes
 docker compose stop app
 
-# Drop and recreate the database (destructive!)
-docker compose exec postgres psql -U newsreader -c "DROP DATABASE newsreader;"
-docker compose exec postgres psql -U newsreader -c "CREATE DATABASE newsreader;"
-
-# Restore
-gunzip -c /var/backups/lede/lede-20260101-030000.sql.gz \
+# Stream a snapshot straight from restic into psql
+restic dump latest lede-newsreader.sql \
+  | docker compose exec -T postgres psql -U newsreader postgres \
+      -c "DROP DATABASE IF EXISTS newsreader;" -c "CREATE DATABASE newsreader;"
+restic dump latest lede-newsreader.sql \
   | docker compose exec -T postgres psql -U newsreader newsreader
 
-# Restart
 docker compose start app
-```
-
-### From an encrypted S3 backup
-
-```bash
-aws s3 cp s3://your-backup-bucket/lede/20260101-030000.sql.gz.gpg - \
-  | gpg --decrypt \
-  | gunzip \
-  | docker compose exec -T postgres psql -U newsreader newsreader
 ```
 
 ### Smoke test after restore
@@ -144,25 +187,14 @@ curl -s http://localhost:3000/api/v1/opml/export \
 Periodically verify your backups actually work. Schedule a restore drill every quarter:
 
 - [ ] Spin up a fresh VPS or local Docker environment
-- [ ] Download the latest encrypted backup
-- [ ] Decrypt with the recovery GPG key
-- [ ] Restore the dump
+- [ ] Point `RESTIC_REPOSITORY`/`RESTIC_PASSWORD_FILE` at your repo
+- [ ] Restore it: `./scripts/restore.sh latest --force`
 - [ ] Log in with a known account
 - [ ] Verify feeds, articles, settings are intact
 - [ ] Tear down the test environment
 
-If the restore drill fails, fix the backup process before you actually need it.
+If the restore drill fails, fix the backup process before you actually need it. `restic check` also verifies repository integrity without a full restore.
 
-## Postgres tuning for backup performance
+## Point-in-time recovery (optional)
 
-For dumps larger than a few hundred MB, parallel dump speeds things up:
-
-```bash
-docker compose exec postgres pg_dump -U newsreader -j 4 -Fd newsreader -f /tmp/dump
-docker compose cp postgres:/tmp/dump ./dump
-tar czf lede.tar.gz dump
-```
-
-`-Fd` (directory format) + `-j 4` runs four parallel workers. Restore with `pg_restore -j 4`.
-
-For most deployments this is unnecessary — `pg_dump | gzip` over the default plain format is fine up to several GB.
+restic gives you daily snapshots, which is plenty for a personal deployment. If you ever need to recover to an exact moment rather than the last snapshot, look at continuous WAL archiving with [pgBackRest](https://pgbackrest.org/) — it's production-grade but overkill for most self-hosted setups.
