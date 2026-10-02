@@ -299,7 +299,7 @@ describe('Sidebar', () => {
     expect(uiState.setIsSearching).toHaveBeenCalledWith(true);
     expect(screen.getByLabelText('Monitored')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /AI 2/i }));
+    await user.click(screen.getByRole('button', { name: /AI\s*2/i }));
     expect(uiState.selectTag).toHaveBeenCalledWith('tag-1');
   });
 
@@ -421,14 +421,14 @@ describe('Sidebar', () => {
     await user.click(screen.getByRole('button', { name: 'Unsubscribe' }));
     expect(unsubscribeFeedMutate).toHaveBeenCalledWith('feed-1');
 
-    fireEvent.contextMenu(screen.getByRole('button', { name: /AI 2/i }), { clientX: 10, clientY: 20 });
+    fireEvent.contextMenu(screen.getByRole('button', { name: /AI\s*2/i }), { clientX: 10, clientY: 20 });
     await user.click(screen.getByRole('button', { name: 'Rename' }));
     await user.click(screen.getByRole('button', { name: 'Inline Save' }));
     await waitFor(() => {
       expect(mocks.tagUpdateMock).toHaveBeenCalledWith('tag-1', { name: 'AI updated' });
     });
 
-    fireEvent.contextMenu(screen.getByRole('button', { name: /AI 2/i }), { clientX: 10, clientY: 20 });
+    fireEvent.contextMenu(screen.getByRole('button', { name: /AI\s*2/i }), { clientX: 10, clientY: 20 });
     await user.click(screen.getByRole('button', { name: 'Delete tag' }));
     expect(deleteTagMutate).toHaveBeenCalledWith('tag-1');
 
@@ -743,7 +743,7 @@ describe('Sidebar', () => {
     fireEvent.dragLeave(folderRow, { stopPropagation: vi.fn() });
     expect(folderRow.className).not.toContain('ring-1');
 
-    fireEvent.contextMenu(screen.getByRole('button', { name: /AI 2/i }), { clientX: 10, clientY: 20 });
+    fireEvent.contextMenu(screen.getByRole('button', { name: /AI\s*2/i }), { clientX: 10, clientY: 20 });
     await user.click(screen.getByRole('button', { name: 'Rename' }));
     await user.click(screen.getByRole('button', { name: 'Inline Cancel' }));
     expect(mocks.tagUpdateMock).not.toHaveBeenCalled();

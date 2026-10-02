@@ -15,11 +15,13 @@ const {
   const getRedisOptsMock = vi.fn(() => ({ host: 'redis.local', port: 6380 }));
   const connectMock = vi.fn();
   const pingMock = vi.fn();
-  const RedisMock = vi.fn().mockImplementation(() => ({
-    status: 'wait',
-    connect: connectMock,
-    ping: pingMock,
-  }));
+  const RedisMock = vi.fn().mockImplementation(function () {
+    return {
+      status: 'wait',
+      connect: connectMock,
+      ping: pingMock,
+    };
+  });
 
   return {
     executeMock,
@@ -50,11 +52,13 @@ describe('health checks', () => {
     executeMock.mockResolvedValue(undefined);
     connectMock.mockResolvedValue(undefined);
     pingMock.mockResolvedValue('PONG');
-    RedisMock.mockImplementation(() => ({
-      status: 'wait',
-      connect: connectMock,
-      ping: pingMock,
-    }));
+    RedisMock.mockImplementation(function () {
+      return {
+        status: 'wait',
+        connect: connectMock,
+        ping: pingMock,
+      };
+    });
   });
 
   it('reports ok when database and redis are up', async () => {
@@ -103,11 +107,13 @@ describe('health checks', () => {
   });
 
   it('skips redis connect when the client is already ready and surfaces bad pong responses', async () => {
-    RedisMock.mockImplementation(() => ({
-      status: 'ready',
-      connect: connectMock,
-      ping: pingMock.mockResolvedValueOnce('NOPE'),
-    }));
+    RedisMock.mockImplementation(function () {
+      return {
+        status: 'ready',
+        connect: connectMock,
+        ping: pingMock.mockResolvedValueOnce('NOPE'),
+      };
+    });
 
     const { checkHealth } = await import('./health.js');
     const health = await checkHealth();
