@@ -19,7 +19,7 @@
     "db:seed": "tsx src/db/seed.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.129.0",
+    "@anthropic-ai/sdk": "^0.131.0",
     "@extractus/article-extractor": "^9.0.1",
     "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^11.0.0",
@@ -33,7 +33,7 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@sentry/node": "^10.55.0",
     "bcrypt": "^6.0.0",
-    "bullmq": "^5.0.0",
+    "bullmq": "^6.3.11",
     "dotenv": "^18.0.4",
     "drizzle-orm": "^0.45.2",
     "entities": "^8.0.0",
@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.6.4",
     "@types/nodemailer": "^8.0.0",
     "@types/sanitize-html": "^2.16.1",
     "@types/web-push": "^3.6.4",
