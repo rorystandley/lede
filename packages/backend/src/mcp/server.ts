@@ -208,8 +208,10 @@ export function createMcpServer() {
 function getUserIdFromContext(extra: unknown): string {
   // In a real implementation, the userId would come from the MCP auth context
   // For now, we extract from sessionId or use a default
-  const ctx = extra as { sessionId?: string; userId?: string } | undefined;
+  const ctx = extra as { userId?: string; authInfo?: { extra?: { userId?: unknown } } } | undefined;
   if (ctx?.userId) return ctx.userId;
+  const authUserId = ctx?.authInfo?.extra?.userId;
+  if (typeof authUserId === 'string') return authUserId;
   // Fallback: the MCP transport should inject this
   throw new Error('User context not available. Authenticate via API key in the MCP session.');
 }
@@ -230,7 +232,14 @@ export async function registerMcpRoutes(app: FastifyInstance) {
     }
 
     const server = createMcpServer();
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: () => req.user.id });
+    // Stateless: a fresh server/transport is built per request, so session IDs would never resolve.
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    (req.raw as { auth?: unknown }).auth = {
+      token: '',
+      clientId: 'lede',
+      scopes: [],
+      extra: { userId: req.user.id },
+    };
 
     await server.connect(transport);
 

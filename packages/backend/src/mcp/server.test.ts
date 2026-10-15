@@ -49,9 +49,9 @@ const {
   }
 
   class FakeTransport {
-    sessionIdGenerator: () => string;
+    sessionIdGenerator?: () => string;
 
-    constructor({ sessionIdGenerator }: { sessionIdGenerator: () => string }) {
+    constructor({ sessionIdGenerator }: { sessionIdGenerator?: () => string }) {
       this.sessionIdGenerator = sessionIdGenerator;
       transportInstances.push(this);
     }
@@ -139,9 +139,9 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
 
 vi.mock('@modelcontextprotocol/sdk/server/streamableHttp.js', () => ({
   StreamableHTTPServerTransport: class FakeTransport {
-    sessionIdGenerator: () => string;
+    sessionIdGenerator?: () => string;
 
-    constructor({ sessionIdGenerator }: { sessionIdGenerator: () => string }) {
+    constructor({ sessionIdGenerator }: { sessionIdGenerator?: () => string }) {
       this.sessionIdGenerator = sessionIdGenerator;
       transportInstances.push(this as never);
     }
@@ -453,7 +453,7 @@ describe('mcp server', () => {
     await handler?.(req, reply);
 
     expect(connectMock).toHaveBeenCalledTimes(1);
-    expect(transportInstances[0]?.sessionIdGenerator()).toBe('user-1');
+    expect(transportInstances[0]?.sessionIdGenerator).toBeUndefined();
     expect(handleRequestMock).toHaveBeenCalledWith(req.raw, reply.raw, { jsonrpc: '2.0' });
   });
 });
