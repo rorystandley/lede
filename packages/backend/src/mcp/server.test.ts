@@ -454,6 +454,7 @@ describe('mcp server', () => {
 
     expect(connectMock).toHaveBeenCalledTimes(1);
     expect(transportInstances[0]?.sessionIdGenerator).toBeUndefined();
+    expect(req.raw).toMatchObject({ auth: { extra: { userId: 'user-1' } } });
     expect(handleRequestMock).toHaveBeenCalledWith(req.raw, reply.raw, { jsonrpc: '2.0' });
   });
 });
